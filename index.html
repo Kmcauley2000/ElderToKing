@@ -568,6 +568,11 @@
     objectives: null,
     objStreak: 0,
 
+    // burst events
+    feverUntil: 0,
+    objDoubleUntil: 0,
+    lastGoldStormAt: 0,
+
     // temp buffs
     prosperUntil: 0,
   });
@@ -682,10 +687,19 @@
 
   function applyStreak(){
     const now = Date.now();
-    if(now - S.lastTap <= 2600) S.streak = clamp(S.streak + 1, 1, 40);
-    else S.streak = 1;
+    const prev = S.streak || 0;
+    if(now - (S.lastTap || 0) <= 2600){
+      // Infinite streak: no upper cap, just timing-based
+      S.streak = prev + 1;
+    }else{
+      S.streak = 1;
+    }
     S.lastTap = now;
-    
+
+    // Streak milestone bursts every 25 taps
+    if(S.streak > 0 && S.streak % 25 === 0){
+      maybeBurst("streak");
+    }
   }
 
   function critChance(){
@@ -701,8 +715,9 @@
     const base = S.tribute + rankTributeBonus(titleInfo().idx) + rushBonus();
     const streakBonus = 1 + Math.min(0.35, (S.streak-1)*0.018);
     const pMult = landMult() * decreeMult() * crownMult();
+    const feverMult = (Date.now() < (S.feverUntil || 0)) ? 2.5 : 1;
     const crit = chance(critChance());
-    const gain = Math.round(base * streakBonus * pMult * (crit ? 2 : 1));
+    const gain = Math.round(base * streakBonus * pMult * feverMult * (crit ? 2 : 1));
     return { gain, crit };
   }
 
@@ -949,7 +964,7 @@
     const now = Date.now();
     return (now >= (S.cashoutCooldownUntil || 0)) && cashoutPotential() > 0;
   }
-// ---- Micro objectives (simple, addictive, always something to do) ----
+// ---- Micro objectives (state-driven, procedural, always something to do) ----
   const OBJ_SLOTS = 3;
 
   function ensureObjectives(){
@@ -961,36 +976,155 @@
   }
 
   function makeObjective(){
-    // Keep objectives focused and fair. We gate harder ones behind progression.
-    const r = Number(S.renown) || 0;
-    const land = Number(S.land) || 0;
-    const w = Number(S.warriors) || 0;
+    // Procedural objectives: scale off current progress + unlocks.
+    const r      = Number(S.renown)   || 0;
+    const land   = Number(S.land)     || 0;
+    const w      = Number(S.warriors) || 0;
+    const crowns = Number(S.crowns)   || 0;
+    const income = Math.max(0, incomePerSec());
+
+    // Rough progression tier: renown + crowns pushes things up.
+    const progTier = Math.max(
+      1,
+      1 + Math.floor(r / 1400) + Math.floor(crowns / 3)
+    );
+
+    // Slightly discourage giving the same type in every slot.
+    const existingTypes = (Array.isArray(S.objectives) ? S.objectives : [])
+      .filter(Boolean)
+      .map(o => o.type);
+    const existingSet = new Set(existingTypes);
 
     const pool = [];
+    const pushObj = (spec)=>{
+      if(!spec || spec.weight <= 0) return;
+      let weight = spec.weight;
+      if(existingSet.has(spec.type)){
+        // still allowed, but less likely so you see variety
+        weight *= 0.45;
+      }
+      if(weight <= 0) return;
+      pool.push({ ...spec, weight });
+    };
 
-    // Always available (core loop)
-    pool.push({ type:"tap", min: 12, max: 30, weight: 5 });
-    pool.push({ type:"tap", min: 35, max: 75, weight: 3 });
+    // --- Core tap loop (always relevant) ---
+    // Easy, always-present tap objective
+    pushObj({ type:"tap", min: 10, max: 24, weight: 5 });
 
-    // Building goals (early-friendly)
-    pool.push({ type:"buildFarm",  min: 1, max: 1, weight: 4 });
-    if(r >= 700) pool.push({ type:"buildFarm",  min: 2, max: 2, weight: 2 });
+    // Harder tap chains that scale with progTier
+    if(progTier >= 2){
+      const baseTap = 25 + (progTier-1)*10;
+      pushObj({ type:"tap", min: baseTap, max: baseTap + 20 + progTier*10, weight: 4 });
+    }
 
-    // Villas are midgame-ish
-    if(r >= 900) pool.push({ type:"buildVilla", min: 1, max: 1, weight: 2 });
-    if(r >= 1800) pool.push({ type:"buildVilla", min: 2, max: 2, weight: 1 });
+    // --- Village build ---
+    // Farms stay small but step up a bit later
+    const farmTarget = (progTier <= 2) ? 1 : (progTier <= 4 ? 2 : 3);
+    pushObj({ type:"buildFarm", min: farmTarget, max: farmTarget, weight: 4 });
 
-    // Earn denarii objectives scale with progress (no ridiculous early targets)
-    const earnLow = (r < 800) ? {min: 120, max: 260} : {min: 260, max: 650};
-    pool.push({ type:"earnDen", min: earnLow.min, max: earnLow.max, weight: 3 });
-    if(r >= 2000) pool.push({ type:"earnDen", min: 700, max: 1600, weight: 2 });
+    // Villas mid/late game
+    if(r >= 900){
+      pushObj({ type:"buildVilla", min: 1, max: Math.min(2, 1 + Math.floor(progTier/2)), weight: 3 });
+    }
+    if(r >= 4000){
+      pushObj({ type:"buildVilla", min: 2, max: 3, weight: 2 });
+    }
 
-    // Recruit / cashout gated
-    if(w >= 0 && r >= 450) pool.push({ type:"recruit", min: 1, max: 1, weight: 2 });
-    if(w >= 2) pool.push({ type:"recruit", min: 1, max: 2, weight: 1 });
+    // --- Earn denarii (scales off income / tier) ---
+    const earnBase = Math.max(150, Math.round(income * (18 + progTier*4)));
+    pushObj({
+      type: "earnDen",
+      min: earnBase,
+      max: Math.round(earnBase * 1.7),
+      weight: 5
+    });
 
-    // Cashout is always available but low weight early (keeps flow)
-    pool.push({ type:"cashout", min: 1, max: 1, weight: (r < 900 ? 1 : 2) });
+    if(progTier >= 3){
+      const big = earnBase * (1.8 + progTier*0.25);
+      pushObj({
+        type: "earnDen",
+        min: Math.round(big),
+        max: Math.round(big * 1.5),
+        weight: 3
+      });
+    }
+
+    // --- Legion / land objectives ---
+    if(r >= unlock.legion){
+      // Win battles
+      pushObj({
+        type:"winBattle",
+        min: 1,
+        max: Math.min(4, 1 + progTier),
+        weight: 3
+      });
+      // Gain land
+      pushObj({
+        type:"gainLand",
+        min: 1,
+        max: Math.min(6, 1 + progTier*2),
+        weight: 3
+      });
+    }
+
+    // --- Trade objectives ---
+    if(r >= unlock.trade){
+      pushObj({
+        type:"runCaravan",
+        min: 1,
+        max: Math.min(3, 1 + progTier),
+        weight: 2
+      });
+    }
+
+    // --- Temple objectives ---
+    if(r >= unlock.temple){
+      pushObj({
+        type:"offerFaith",
+        min: 1,
+        max: Math.min(3, 1 + progTier),
+        weight: 2
+      });
+    }
+
+    // --- Court objectives ---
+    if(r >= unlock.court){
+      pushObj({
+        type:"holdCourt",
+        min: 1,
+        max: Math.min(2, 1 + Math.floor(progTier/3)),
+        weight: 2
+      });
+      pushObj({
+        type:"feast",
+        min: 1,
+        max: 1,
+        weight: 1
+      });
+    }
+
+    // --- Recruit / cashout ---
+    if(r >= 450 && w >= 0){
+      pushObj({
+        type:"recruit",
+        min: 1,
+        max: Math.min(3, 1 + progTier),
+        weight: 3
+      });
+    }
+
+    // Cashout is always possible but not spammed
+    pushObj({
+      type:"cashout",
+      min: 1,
+      max: 1,
+      weight: (r < 900 ? 1 : 2)
+    });
+
+    // Fallback if somehow pool is empty
+    if(pool.length === 0){
+      pushObj({ type:"tap", min: 10, max: 20, weight: 1 });
+    }
 
     // Weighted pick
     const totalW = pool.reduce((a,p)=>a+p.weight,0);
@@ -1005,21 +1139,24 @@
     const id = `${pick.type}_${Date.now()}_${rnd(100,999)}`;
 
     // Reward design:
-    // - Early game: small, motivating, never absurd.
-    // - Midgame+: scales with land/crowns but gently.
-    const income = incomePerSec();
-    const baseDen = 18 + Math.floor(r/220) + (S.crowns*5) + Math.floor(land*2.2);
-    const targetFactor = 1 + (target * 0.06);
+    // - scales with renown, land, crowns, income and target
+    const baseDen   = 22 + Math.floor(r/110) + (crowns*16) + Math.floor(land*3.5);
+    const incomeDen = income * (12 + progTier*4);
+    const targetFactor = 0.85 + target*0.08 + progTier*0.25;
 
-    // Denarii reward mostly tied to income + target; capped early
-    let rewardDen = Math.round((baseDen + income*9) * targetFactor);
-    const earlyCap = (r < 900) ? 420 : (r < 2000 ? 950 : 9e9);
-    rewardDen = Math.min(rewardDen, earlyCap);
+    let rewardDen = Math.round((baseDen + incomeDen) * targetFactor);
 
-    // Power reward small
-    let rewardPower = Math.max(1, Math.round(1 + target*0.03));
-    if(r < 700) rewardPower = Math.min(rewardPower, 3);
-    if(r < 1500) rewardPower = Math.min(rewardPower, 5);
+    // soft caps just to keep early game sane
+    const softCap =
+      (r < 1500)   ?  900 :
+      (r < 8000)   ? 5000 :
+      (r < 25000)  ? 30000 :
+                     1e12;
+    rewardDen = Math.min(rewardDen, softCap);
+
+    // Power reward: small but scales with target + tier
+    let rewardPower = Math.max(1, Math.round(1 + target*0.05 + progTier*0.4));
+    rewardPower = clamp(rewardPower, 1, 30);
 
     return {
       id,
@@ -1034,12 +1171,43 @@
 
   function objText(o){
     const left = Math.max(0, o.target - o.progress);
-    if(o.type==="tap") return `Tap ${o.target} times (${left} left)`;
-    if(o.type==="buildFarm") return `Build ${o.target} farm (${left} left)`;
-    if(o.type==="buildVilla") return `Build ${o.target} villa (${left} left)`;
-    if(o.type==="earnDen") return `Earn ${fmt(o.target)} denarii (${fmt(left)} left)`;
-    if(o.type==="recruit") return `Recruit ${o.target} warrior (${left} left)`;
-        if(o.type==="cashout") return `Cash out once (${left} left)`;
+
+    if(o.type==="tap")
+      return `Tap ${o.target} times (${left} left)`;
+
+    if(o.type==="buildFarm")
+      return `Build ${o.target} farm${o.target>1?"s":""} (${left} left)`;
+
+    if(o.type==="buildVilla")
+      return `Build ${o.target} villa${o.target>1?"s":""} (${left} left)`;
+
+    if(o.type==="earnDen")
+      return `Earn ${fmt(o.target)} denarii (${fmt(left)} left)`;
+
+    if(o.type==="recruit")
+      return `Recruit ${o.target} warrior${o.target>1?"s":""} (${left} left)`;
+
+    if(o.type==="cashout")
+      return `Cash out ${o.target} time${o.target>1?"s":""} (${left} left)`;
+
+    if(o.type==="winBattle")
+      return `Win ${o.target} battle${o.target>1?"s":""} (${left} left)`;
+
+    if(o.type==="gainLand")
+      return `Gain ${o.target} land (${left} left)`;
+
+    if(o.type==="runCaravan")
+      return `Run ${o.target} caravan${o.target>1?"s":""} (${left} left)`;
+
+    if(o.type==="offerFaith")
+      return `Make ${o.target} temple offering${o.target>1?"s":""} (${left} left)`;
+
+    if(o.type==="holdCourt")
+      return `Hold court ${o.target} time${o.target>1?"s":""} (${left} left)`;
+
+    if(o.type==="feast")
+      return `Host ${o.target} feast${o.target>1?"s":""} (${left} left)`;
+
     return `Do something (${left} left)`;
   }
 
@@ -1071,16 +1239,22 @@
     o.claimed = true;
     S.objStreak = (Number(S.objStreak)||0) + 1;
 
-    // payout
-    S.gold += o.rewardDen;
-    S.lifetimeGold += o.rewardDen;
-    S.power += o.rewardPower;
+    const now = Date.now();
+    const objMult = now < (S.objDoubleUntil || 0) ? 2 : 1;
+    const rewardDen = o.rewardDen * objMult;
+    const rewardPower = o.rewardPower * objMult;
 
-    const ren = Math.max(1, Math.round(o.rewardDen/110));
+    // payout
+    S.gold += rewardDen;
+    S.lifetimeGold += rewardDen;
+    S.power += rewardPower;
+
+    const ren = Math.max(1, Math.round(rewardDen/110));
     S.renown += ren;
     S.lifetimeRenown += ren;
 
-    logLine(`Objective complete! (+${fmt(o.rewardDen)} denarii)`, "good");
+    const doubledText = objMult > 1 ? " (doubled)" : "";
+    logLine(`Objective complete! (+${fmt(rewardDen)} denarii${doubledText})`, "good");
     toast("Objective claimed");
 
     // replace with a new one
@@ -1138,7 +1312,80 @@
   }
 
 
-  // ---- Loot Chests (2-second dopamine overlay) ----
+  // ---- Burst Events (RNG micro-spikes) ----
+  function triggerTributeFever(){
+    const now = Date.now();
+    const dur = 6000; // 6s
+    S.feverUntil = Math.max(S.feverUntil || 0, now) + dur;
+    toast("Tribute Fever! +250% taps for 6s");
+    logLine("Tribute Fever surges through the village!", "good");
+  }
+
+  function triggerDoubleObjectives(){
+    const now = Date.now();
+    const dur = 20000; // 20s
+    S.objDoubleUntil = Math.max(S.objDoubleUntil || 0, now) + dur;
+    toast("Double Objectives! Rewards boosted");
+    logLine("For a short time, objectives are doubled.", "warn");
+  }
+
+  function triggerCommanderVisit(){
+    S.warriors = (S.warriors || 0) + 1;
+    recalcLegionStrength();
+    toast("Commander visits: +1 free warrior");
+    logLine("A seasoned commander grants you a free warrior.", "good");
+  }
+
+  function triggerGoldStorm(){
+    const now = Date.now();
+    S.lastGoldStormAt = now;
+
+    // Small burst of gold
+    const base = 18 + Math.floor((S.renown||0)/160) + (S.crowns||0)*4;
+    const gain = Math.max(10, Math.round(base * (1 + Math.random()*3)));
+    S.gold += gain;
+    S.lifetimeGold += gain;
+    bumpEarnedDenarii(gain);
+
+    toast("Gold storm!");
+
+    // Visual coins: reuse sparkAt across random positions
+    try{
+      const vw = window.innerWidth || 400;
+      const vh = window.innerHeight || 700;
+      for(let i=0;i<10;i++){
+        const x = rnd(Math.floor(vw*0.1), Math.floor(vw*0.9));
+        const y = rnd(Math.floor(vh*0.15), Math.floor(vh*0.7));
+        sparkAt(x,y);
+      }
+    }catch(e){}
+    logLine(`Gold storm! (+${fmt(gain)} denarii)`, "good");
+  }
+
+  function maybeBurst(source){
+    // Base chance per trigger source
+    let base;
+    if(source === "streak") base = 0.18;
+    else if(source === "cashout") base = 0.15;
+    else if(source === "battle") base = 0.16;
+    else if(source === "caravan") base = 0.16;
+    else base = 0.10;
+
+    if(Math.random() > base) return;
+
+    const roll = Math.random();
+    if(roll < 0.35){
+      triggerTributeFever();
+    }else if(roll < 0.60){
+      triggerDoubleObjectives();
+    }else if(roll < 0.80){
+      triggerCommanderVisit();
+    }else{
+      triggerGoldStorm();
+    }
+  }
+
+// ---- Loot Chests (2-second dopamine overlay) ----
   function chestRarityFrom(source){
     // source: "skirmish" | "caravan" | "feast"
     // Feast tends to be better.
@@ -1371,7 +1618,7 @@
     // Village
     const t = tapGain();
     $("#tributeGain").textContent = `+${fmt(t.gain)} denarii`;
-    $("#tributeHint").textContent = `Streak x${S.streak} • ${Math.ceil(streakTimeLeftMs()/100)/10}s${rushBonus()>0 ? ` • RUSH +${rushBonus()}` : ""}${isBuffed() ? " • BLESSED" : ""}`;
+    $("#tributeHint").textContent = `Streak x${S.streak} • ${Math.ceil(streakTimeLeftMs()/100)/10}s${rushBonus()>0 ? ` • RUSH +${rushBonus()}` : ""}${isBuffed() ? " • BLESSED" : ""}${Date.now() < (S.feverUntil||0) ? " • FEVER" : ""}${Date.now() < (S.objDoubleUntil||0) ? " • DOUBLE OBJ" : ""}`;
 
 
     // Cash Out UI
@@ -1612,6 +1859,13 @@ render();
 
       S.battlesWon = (S.battlesWon||0) + 1;
 
+      // Objectives: battles + land gain
+      bumpObjective("winBattle", 1);
+      bumpObjective("gainLand", landGain);
+
+      // Battle burst chance
+      maybeBurst("battle");
+
       toast("Victory!");
       logLine(`Victory! (+${fmt(loot)} denarii, +${fmt(landGain)} land, -${fmt(losses)} warriors)`, "good");
     }else{
@@ -1651,6 +1905,12 @@ render();
     S.lifetimeRenown += r;
     S.caravans += 1;
 
+    // Trade objective
+    bumpObjective("runCaravan", 1);
+
+    // Caravan burst chance
+    maybeBurst("caravan");
+
     const rect = e.currentTarget.getBoundingClientRect();
     sparkAt(rect.left + rect.width*0.76, rect.top + rect.height*0.45);
 
@@ -1685,6 +1945,10 @@ render();
     const f = offerFaithGain();
     S.faith += f;
     S.renown += 12;
+
+    // Temple objective
+    bumpObjective("offerFaith", 1);
+
     toast("Blessed");
     render();
   });
@@ -1721,6 +1985,9 @@ render();
     S.renown += g;
     S.lifetimeRenown += g;
 
+    // Court objective
+    bumpObjective("holdCourt", 1);
+
     const rect = e.currentTarget.getBoundingClientRect();
     sparkAt(rect.left + rect.width*0.70, rect.top + rect.height*0.52);
 
@@ -1752,6 +2019,9 @@ render();
     S.renown += r;
     S.lifetimeRenown += r;
 
+    // Feast objective
+    bumpObjective("feast", 1);
+
     toast("Feast!");
     showChest("feast");
     render();
@@ -1782,6 +2052,9 @@ render();
 
     const rect = e.currentTarget.getBoundingClientRect();
     sparkAt(rect.left + rect.width*0.55, rect.top + rect.height*0.55);
+
+    // Cashout burst chance
+    maybeBurst("cashout");
 
     toast("Cashed out!");
     logLine(`Cashed out for +${fmt(payout)} denarii`, "good");
