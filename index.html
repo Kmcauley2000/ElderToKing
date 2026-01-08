@@ -237,7 +237,28 @@
     .table td:first-child{border-radius:14px 0 0 14px;color:var(--muted);width:46%;}
     .table td:last-child{border-radius:0 14px 14px 0;text-align:right;}
     .danger{border-color: rgba(255,107,107,.35) !important;}
-  </style>
+  
+
+    /* Chest overlay transitions */
+    #chestOverlay{
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .22s ease-out;
+    }
+    #chestOverlay.visible{
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #chestCard{
+      transform: translateY(18px) scale(.94);
+      opacity: 0;
+      transition: transform .26s ease-out, opacity .26s ease-out;
+    }
+    #chestOverlay.visible #chestCard{
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+</style>
 </head>
 <body>
   <header>
@@ -1388,7 +1409,34 @@
 // ---- Loot Chests (2-second dopamine overlay) ----
   function chestRarityFrom(source){
     // source: "skirmish" | "caravan" | "feast"
-    // Feast tends to be better.
+    // For skirmishes, we bias rarity by total battles won so early fights feel juicy:
+    // e.g. after 5 wins, guaranteed Common; after 8+, Rare+; after 12+, Epic chance.
+    if(source === "skirmish"){
+      const wins = S.battlesWon || 0;
+      if(wins >= 12){
+        const roll = Math.random();
+        if(roll < 0.45) return "Epic";
+        if(roll < 0.85) return "Rare";
+        return "Common";
+      }else if(wins >= 8){
+        const roll = Math.random();
+        if(roll < 0.30) return "Epic";
+        if(roll < 0.80) return "Rare";
+        return "Common";
+      }else if(wins >= 5){
+        // first few chests are almost always common, to teach the loop
+        const roll = Math.random();
+        if(roll < 0.15) return "Rare";
+        return "Common";
+      }else{
+        // before 5 wins, very small chance from skirmish
+        if(Math.random() < 0.30) return "Common";
+        // no chest; caller shouldn't have asked for rarity
+        return "Common";
+      }
+    }
+
+    // Feast / caravan still mostly RNG, but feasts skew better.
     const roll = Math.random();
     const epicP = source==="feast" ? 0.14 : (source==="caravan" ? 0.08 : 0.05);
     const rareP = source==="feast" ? 0.40 : (source==="caravan" ? 0.34 : 0.28);
@@ -1450,6 +1498,7 @@
     return picks;
   }
 
+
   function showChest(source="caravan"){
     const rarity = chestRarityFrom(source);
     const loot = makeChestLoot(rarity);
@@ -1460,6 +1509,7 @@
     const icon = $("#chestIcon");
     const hint = $("#chestHint");
     const rev = [$("#rev1"), $("#rev2"), $("#rev3")];
+    const btnContinue = $("#chestContinue");
 
     const pal = chestPalette(rarity);
     title.textContent = pal.title;
@@ -1468,15 +1518,31 @@
 
     // reset reveal
     rev.forEach(r=>r.textContent = "?");
-    hint.textContent = "Tap to open";
+    hint.textContent = "Tap to reveal rewards";
+    if(btnContinue){
+      btnContinue.style.display = "none";
+      btnContinue.disabled = true;
+    }
+
     overlay.style.display = "flex";
+    // small fade/scale-in via CSS class
+    overlay.classList.add("visible");
 
     let opened = false;
     let step = 0;
 
     const finish = ()=>{
-      overlay.style.display = "none";
+      overlay.classList.remove("visible");
       overlay.onclick = null;
+      if(btnContinue){
+        btnContinue.onclick = null;
+        btnContinue.disabled = true;
+      }
+      // wait for transition then hide
+      setTimeout(()=>{
+        overlay.style.display = "none";
+      }, 230);
+
       // tiny burst
       try{
         const rect = card.getBoundingClientRect();
@@ -1493,13 +1559,27 @@
       item.apply();
       step += 1;
       if(step >= 3){
-        hint.textContent = "Nice.";
-        setTimeout(finish, 850);
+        hint.textContent = "All rewards claimed.";
+        if(btnContinue){
+          btnContinue.style.display = "inline-flex";
+          btnContinue.disabled = false;
+          btnContinue.onclick = finish;
+        }else{
+          // fallback: tap backdrop closes
+          overlay.onclick = finish;
+        }
       }
     };
 
     const open = ()=>{
-      if(opened) { revealNext(); return; }
+      if(step >= 3){
+        // if already done, do nothing here (continue handled by button)
+        return;
+      }
+      if(opened){
+        revealNext();
+        return;
+      }
       opened = true;
       hint.textContent = "Opening…";
       // fast 3 reveals
@@ -1510,12 +1590,8 @@
 
     // Tap anywhere on the card/backdrop to open/advance
     overlay.onclick = open;
-
-    // Auto-close safety
-    setTimeout(()=>{
-      if(overlay.style.display !== "none") finish();
-    }, 2200);
   }
+
 
 
   function canAccess(view){
@@ -1877,8 +1953,17 @@ render();
       logLine(`Defeat. (-${fmt(lost)} denarii, -${fmt(losses)} warriors)`, "bad");
     }
 
-    // Drop a loot chest after battle (fits your dopamine loop)
-    showChest(source);
+    // Drop a loot chest sometimes after battle (not every fight)
+    if(win){
+      const wins = S.battlesWon || 0;
+      let chestChance = 0;
+      if(wins >= 8) chestChance = 0.75;
+      else if(wins >= 5) chestChance = 0.55;
+      else if(wins >= 3) chestChance = 0.35;
+      if(Math.random() < chestChance){
+        showChest("skirmish");
+      }
+    }
     render();
   }
 
@@ -2150,8 +2235,11 @@ $("#btnExport").addEventListener("click", async ()=>{
         </div>
 
         <div id="chestSub" style="margin-top:12px;font-family:var(--sans);color:var(--muted);font-size:.78rem;line-height:1.25;">
-          Quick rewards. No menus. Back to the grind.
+          Tap each reward, then continue.
         </div>
+        <button id="chestContinue" class="tab" style="margin-top:10px;width:100%;justify-content:center;display:none;">
+          <span class="dot"></span>Continue
+        </button>
       </div>
     </div>
   </div>
