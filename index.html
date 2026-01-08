@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+ <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 
 
@@ -1205,66 +1205,61 @@
     const enemies = rnd(b.enemyMin, b.enemyMax);
 
     // --- Power model ---
-    // Bandits should remain easy forever; harder tiers scale slightly with your campaign success.
-    const wins = (S.battlesWon||0);
+    const wins = (S.battlesWon || 0);
 
-    const tierMult =
-      (key==="bandits") ? 0.75 :
-      (key==="levy")    ? 1.00 :
-      (key==="village") ? 1.15 :
-      (key==="siege")   ? 1.35 : 1.0;
+    // Determine tier from current title index
+    const tier = battleTierFromTitleIdx(titleInfo().idx);
 
-    // How much enemies "learn" over time (very small for bandits)
-    const learnDiv =
-      (key==="bandits") ? 1000 :
-      (key==="levy")    ? 260  :
-      (key==="village") ? 190  :
-      (key==="siege")   ? 140  : 250;
+    // Base difficulty by tier (1–6) – tweak if you like
+    const baseTierMult = [0.85, 1.0, 1.2, 1.4, 1.7, 2.0];
+    let tierMult = baseTierMult[tier - 1] || 1.0;
 
+    // Within a rank, later battles are harder
+    const slotMult = [0.9, 1.0, 1.1, 1.22]; // 0 = easiest, 3 = hardest
+    tierMult *= (slotMult[slot] || 1.0);
+
+    // How fast enemies “learn” as you win more
+    const learnDivBase = [1000, 260, 190, 140]; // similar to bandits/levy/village/siege pacing
+    const learnDiv = learnDivBase[Math.min(slot, learnDivBase.length - 1)] || 250;
     const learn = 1 + clamp(wins / learnDiv, 0, 0.18);
 
-    // Your side: warriors are the main factor; power and land give small, readable boosts.
-    const yourTroops = Math.max(0, S.warriors||0);
+    // Your side
+    const yourTroops = Math.max(0, S.warriors || 0);
     const perWarrior = 6;
 
-    const org = 1 + clamp((S.power||0)/1800, 0, 0.28);   // organization/gear
-    const terrain = 1 + clamp((S.land||0)/90, 0, 0.18);  // better supply lines
+    const org = 1 + clamp((S.power || 0) / 1800, 0, 0.28);   // organization/gear
+    const terrain = 1 + clamp((S.land || 0) / 90, 0, 0.18);  // logistics/supply
     const yourPower = (yourTroops * perWarrior) * org * terrain;
 
-    // Enemy power: count * tier difficulty * slight learning
+    // Enemy power
     const enemyPower = enemies * tierMult * learn;
 
     // --- Win chance ---
-    // Use a sigmoid on relative advantage so big leads feel *very* safe.
-    // advantage > 0 => you're stronger
-    const denom = Math.max(12, 0.25*(yourPower + enemyPower));
-    const advantage = (yourPower - enemyPower) / denom; // roughly -? .. +?
-    const winP = clamp(1/(1+Math.exp(-advantage)) , 0.03, 0.985);
-
+    const denom = Math.max(12, 0.25 * (yourPower + enemyPower));
+    const advantage = (yourPower - enemyPower) / denom;
+    const winP = clamp(1 / (1 + Math.exp(-advantage)), 0.03, 0.985);
     const win = chance(winP);
 
     // --- Casualties ---
-    // Losses scale with pressure; overwhelming wins can be clean (0 losses).
     const pressure = clamp(enemyPower / Math.max(1, yourPower + enemyPower), 0.05, 0.95);
-    const outcomeMult = win ? 0.55 : 1.05; // defeats hurt more
-    const noise = 0.80 + Math.random()*0.45;
+    const outcomeMult = win ? 0.55 : 1.05;
+    const noise = 0.80 + Math.random() * 0.45;
 
     let losses = Math.round(yourTroops * pressure * outcomeMult * noise);
 
-    const cap = win ? Math.max(0, Math.floor(yourTroops*0.30)) : Math.max(1, Math.floor(yourTroops*0.70));
+    const cap = win
+      ? Math.max(0, Math.floor(yourTroops * 0.30))
+      : Math.max(1, Math.floor(yourTroops * 0.70));
     losses = clamp(losses, 0, cap);
 
-    // Only enforce a minimum loss when the fight was actually close.
-    if(yourTroops > 0){
+    if (yourTroops > 0) {
       const closeFight = yourPower < enemyPower * 1.35;
-      if(!win){
+      if (!win) {
         losses = Math.max(1, losses);
-      }else if(closeFight){
+      } else if (closeFight) {
         losses = Math.max(1, losses);
       }
     }
-
-    const tier = battleTierFromTitleIdx(titleInfo().idx);
 
     return { enemies, winP, win, losses, tier };
   }
