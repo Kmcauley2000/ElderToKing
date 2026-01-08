@@ -3,16 +3,6 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="ElderToKing">
-
-  <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png">
-
-  <title>ElderToKing</title>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#0b0f0c">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -359,18 +349,23 @@
           </div>
         </button>
 
+        
         <div class="row2">
-          <button class="smallBtn" id="btnBattleVillage">
-            <div class="t">Takeover nearby village</div>
-            <div class="d" id="battleVillageDesc">Gain land. Small loot.</div>
-          </button>
-          <button class="smallBtn" id="btnBattleBandits">
+          <button class="smallBtn" id="btnBattleBandits1">
             <div class="t">Crush bandits</div>
-            <div class="d" id="battleBanditsDesc">Loot chest. Risk casualties.</div>
+            <div class="d" id="battleBandits1Desc">10–50 enemies • quick skirmish</div>
           </button>
-          <button class="smallBtn" id="btnBattleTown">
+          <button class="smallBtn" id="btnBattleLevy">
+            <div class="t">Muster your levy (local lord)</div>
+            <div class="d" id="battleLevyDesc">250–500 enemies • moderate risk</div>
+          </button>
+          <button class="smallBtn" id="btnBattleVillageRaid">
+            <div class="t">Take nearby village</div>
+            <div class="d" id="battleVillageRaidDesc">500–1,000 enemies • high risk</div>
+          </button>
+          <button class="smallBtn" id="btnBattleSiege">
             <div class="t">Siege town</div>
-            <div class="d" id="battleTownDesc">Big land. Bigger risk.</div>
+            <div class="d" id="battleSiegeDesc">1,000–5,000 enemies • deadly</div>
           </button>
         </div>
 
@@ -639,6 +634,58 @@
     if(!raw) return null;
     try{ return JSON.parse(raw); } catch(e){ return null; }
   }
+// --- iPhone/iOS reliability: persistent storage + autosave + lifecycle saves ---
+// iOS Safari can aggressively discard tabs; we save often and also on page hide.
+(function setupReliableSaves(){
+  // Ask for "persistent" storage when available (reduces eviction on some browsers)
+  try{
+    if(navigator.storage && navigator.storage.persist){
+      navigator.storage.persist().then(()=>{}).catch(()=>{});
+    }
+  }catch(e){}
+
+  // Detect whether localStorage is actually usable (Private Browsing / restrictions can break it)
+  function storageWritable(){
+    try{
+      const k = STORAGE_KEY + "__probe";
+      localStorage.setItem(k, "1");
+      localStorage.removeItem(k);
+      return true;
+    }catch(e){
+      return false;
+    }
+  }
+
+  // If storage isn't writable, warn once so the user knows why resets happen.
+  try{
+    if(!storageWritable()){
+      // Keep it subtle; also avoid blocking the game.
+      setTimeout(()=>toast("⚠️ Saving is blocked in this mode (iPhone Private Browsing / restrictions). Open in Safari normally or add to Home Screen."), 400);
+    }
+  }catch(e){}
+
+  // Debounced save helper (avoids spamming writes during rapid taps)
+  let _svT = 0;
+  window.scheduleSave = function scheduleSave(){
+    clearTimeout(_svT);
+    _svT = setTimeout(()=>{ try{ save(true); }catch(e){} }, 500);
+  };
+
+  // Autosave: iOS may kill the page without firing beforeunload reliably.
+  // Keep it lightweight and frequent.
+  setInterval(()=>{ try{ save(true); }catch(e){} }, 5000);
+
+  // Save when the page is being backgrounded / suspended.
+  function flushSave(){
+    try{ save(true); }catch(e){}
+  }
+  document.addEventListener("visibilitychange", ()=>{
+    if(document.visibilityState === "hidden") flushSave();
+  });
+  window.addEventListener("pagehide", flushSave, {capture:true});
+  window.addEventListener("beforeunload", flushSave, {capture:true});
+})();
+
 
   function toast(text){
     const t = $("#toast");
@@ -713,9 +760,13 @@
 
   // ---- Village Economy Loop ----
   function populationCap(){
-    // Farms provide housing; land improves efficiency.
-    // Keep it readable: each farm supports 4 warriors, land boosts capacity.
-    return Math.floor((S.farmCount * 4) * (1 + S.land * 0.08));
+    // Farms provide housing; villas attract families; land improves efficiency.
+    // Simple + readable:
+    // - Each farm supports 4 warriors
+    // - Each villa supports 10 more warriors (bigger settlements)
+    // - Land boosts overall capacity a bit
+    const base = (S.farmCount * 4) + (S.villaCount * 10);
+    return Math.floor(base * (1 + S.land * 0.08));
   }
   function hasVillageCapacity(){
     return (S.populationUsed || 0) < populationCap();
@@ -808,8 +859,9 @@
 
 
   function recruitCost(){
-    // Realistic early: first warrior is expensive, then scales
-    return Math.round(260 * Math.pow(1.22, S.warriors) * Math.pow(1.05, S.land));
+    // Scale like farms: gentle growth so armies stay affordable
+    // (tiny land factor so conquering still matters)
+    return Math.round(260 * Math.pow(1.06, S.warriors) * Math.pow(1.01, S.land));
   }
 
   function recruitStrengthGain(){
@@ -823,27 +875,53 @@
   }
 
 
-  function battleCasualties(risk){
-    // risk: 1 (low) / 2 (mid) / 3 (high)
-    const basePct = [0, 0.04, 0.08, 0.14][risk];
-    const strength = Math.max(1, S.legion);
-    const mitigation = clamp(1 - (strength/700), 0.15, 0.95); // stronger = fewer losses
-    const pct = basePct * mitigation;
-    return Math.max(1, Math.round(S.warriors * pct));
+  
+  // --- Battles (enemy-count based) ---
+  const BATTLES = {
+    bandits: { label:"Crush bandits", enemyMin:10, enemyMax:50,  landMin:0, landMax:1, lootBase:90,  lootScale:35, cdMs:22_000 },
+    levy:    { label:"Muster your levy", enemyMin:250, enemyMax:500, landMin:1, landMax:2, lootBase:260, lootScale:55, cdMs:32_000 },
+    village: { label:"Take nearby village", enemyMin:500, enemyMax:1000, landMin:2, landMax:4, lootBase:520, lootScale:80, cdMs:44_000 },
+    siege:   { label:"Siege town", enemyMin:1000, enemyMax:5000, landMin:4, landMax:10, lootBase:1100, lootScale:140, cdMs:70_000 },
+  };
+
+  function battleCooldownMs(key){
+    return (BATTLES[key] ? BATTLES[key].cdMs : 35_000);
   }
 
-  function battleWinProb(risk){
-    // stronger armies win more reliably; risk increases difficulty
-    const strength = Math.max(1, S.legion);
-    const need = [0, 60, 160, 360][risk] + (S.battlesWon||0)*8;
-    const ratio = clamp(strength / Math.max(1, need), 0.4, 2.5);
-    const base = 0.55 + 0.28*Math.tanh((ratio-1)*1.25);
-    const riskPenalty = [0, 0.00, 0.06, 0.14][risk];
-    return clamp(base - riskPenalty + 0.12, 0.62, 0.96);
-  }
+  function battleSim(key){
+    const b = BATTLES[key];
+    const enemies = rnd(b.enemyMin, b.enemyMax);
 
-  function battleCooldownMs(risk){
-    return [0, 28_000, 36_000, 48_000][risk];
+    // Your side: warriors + a small boost from "power" (tech/organization)
+    const perWarrior = 6;
+    const yourTroops = Math.max(0, S.warriors||0);
+    const yourPower = (yourTroops * perWarrior) * (1 + clamp((S.power||0)/2500, 0, 0.20));
+
+    // Enemy: count scales their power; late-game unrest/battles won makes them a bit tougher
+    const enemyPower = enemies * (1.0 + clamp((S.battlesWon||0)/120, 0, 0.25));
+
+    // Win probability: smooth, always uncertain
+    const base = (yourPower <= 0) ? 0.0 : (yourPower / (yourPower + enemyPower));
+    const winP = clamp(0.08 + 0.86*base, 0.05, 0.97);
+
+    const win = chance(winP);
+
+    // Casualties depend on relative power and outcome
+    const pressure = clamp(enemyPower / Math.max(1, yourPower + enemyPower), 0.05, 0.95);
+    const outcomeMult = win ? 0.45 : 0.95; // defeats hurt
+    const noise = 0.85 + Math.random()*0.35;
+
+    // Troops actually die (warriors are your "troops")
+    let losses = Math.round(yourTroops * pressure * outcomeMult * noise);
+
+    // Ensure battles feel costly at higher tiers, but never delete the whole army from one roll
+    const cap = win ? Math.max(1, Math.floor(yourTroops*0.35)) : Math.max(1, Math.floor(yourTroops*0.65));
+    losses = clamp(losses, 0, cap);
+
+    // If you fought with troops, usually lose at least 1 (keeps it believable)
+    if(yourTroops > 0) losses = Math.max(1, losses);
+
+    return { enemies, winP, win, losses };
   }
 
 
@@ -1740,7 +1818,7 @@
 
 
     $("#farmDesc").textContent  = `${fmt(S.farmCount)} farms • Cost ${fmt(costFarm())} • +0.75/s each`;
-    $("#villaDesc").textContent = `${fmt(S.villaCount)} villas • Cost ${fmt(costVilla())} • +3.0/s each`;
+    $("#villaDesc").textContent = `${fmt(S.villaCount)} villas • Cost ${fmt(costVilla())} • +3.0/s each • +10 cap`;
 
     updateTitleProgress();
 
@@ -1754,25 +1832,28 @@
     $("#recruitCost").textContent = `Cost ${fmt(recruitCost())}`;
     $("#recruitGain").textContent = `+${fmt(recruitStrengthGain())} strength`;
 
-    // Battles unlock progressively with strength
+    
+    // Battles (enemy-count based)
     const cd = Math.max(0, Math.ceil(((S.battleReadyAt||0) - Date.now())/1000));
 
-    const canVillage = (S.warriors||0) >= 1;
-    const canBandits = (S.warriors||0) >= 3;
-    const canTown    = (S.warriors||0) >= 7;
+    const canBandits1 = (S.warriors||0) >= 1;
+    const canLevy     = (S.warriors||0) >= 10;
+    const canVillageR = (S.warriors||0) >= 25;
+    const canSiege    = (S.warriors||0) >= 60;
 
-    $("#btnBattleVillage").disabled = !canVillage || cd>0;
-    $("#btnBattleBandits").disabled = !canBandits || cd>0;
-    $("#btnBattleTown").disabled = !canTown || cd>0;
+    $("#btnBattleBandits1").disabled   = !canBandits1 || cd>0;
+    $("#btnBattleLevy").disabled       = !canLevy     || cd>0;
+    $("#btnBattleVillageRaid").disabled= !canVillageR || cd>0;
+    $("#btnBattleSiege").disabled      = !canSiege    || cd>0;
 
-    $("#battleVillageDesc").textContent = canVillage ? (cd>0 ? `Cooling down (${cd}s)` : `Gain land • small loot`) : `Need 1 warrior`;
-    $("#battleBanditsDesc").textContent = canBandits ? (cd>0 ? `Cooling down (${cd}s)` : `Loot chest • casualties`) : `Need 3 warriors`;
-    $("#battleTownDesc").textContent = canTown ? (cd>0 ? `Cooling down (${cd}s)` : `Big land • big risk`) : `Need 7 warriors`;
+    $("#battleBandits1Desc").textContent    = canBandits1 ? (cd>0 ? `Cooling down (${cd}s)` : `10–50 enemies • quick skirmish`) : `Need 1 warrior`;
+    $("#battleLevyDesc").textContent        = canLevy     ? (cd>0 ? `Cooling down (${cd}s)` : `250–500 enemies • moderate risk`) : `Need 10 warriors`;
+    $("#battleVillageRaidDesc").textContent = canVillageR ? (cd>0 ? `Cooling down (${cd}s)` : `500–1,000 enemies • high risk`) : `Need 25 warriors`;
+    $("#battleSiegeDesc").textContent       = canSiege    ? (cd>0 ? `Cooling down (${cd}s)` : `1,000–5,000 enemies • deadly`) : `Need 60 warriors`;
 
-
-    // Village capacity hint
+    // Village capacity hint: recruiting uses capacity, but battles are allowed regardless.
     if(!hasVillageCapacity()){
-      $("#battleVillageDesc").textContent = "Village at capacity — build farms or take land";
+      $("#battleBandits1Desc").textContent = "Village at capacity — build farms or take land";
     }
 
 
@@ -1900,7 +1981,7 @@ render();
     bumpObjective("buildVilla", 1);
     S.renown += 10;
     logLine("A villa rises. The taxes flow.", "good");
-    toast("Built");
+    toast("Village capacity grows");
     render();
   });
   $("#btnRecruit").addEventListener("click", (e)=>{
@@ -1924,75 +2005,80 @@ render();
     logLine(`A warrior joins your banner. (Warriors: ${fmt(S.warriors)})`, "good");
     render();
   });
-  function doBattle(risk, source){
+  
+  function doBattle(key){
     const now = Date.now();
 
     // 3-second streak window
     if(now - (S.lastTap||0) <= STREAK_WINDOW_MS){ S.streak += 1; } else { S.streak = 1; }
     S.lastTap = now;
+
     if(now < (S.battleReadyAt||0)){ toast("Cooling down"); return; }
 
-    const winP = battleWinProb(risk);
-    const win = chance(winP);
+    const b = BATTLES[key];
+    if(!b){ toast("No such battle"); return; }
 
-    // casualties always (believable), less if you're strong
-    const losses = battleCasualties(risk);
-    S.warriors = Math.max(0, S.warriors - losses);
+    const sim = battleSim(key);
+
+    // Apply casualties (warriors can die)
+    const before = S.warriors || 0;
+    const losses = clamp(sim.losses, 0, before);
+    S.warriors = before - losses;
+
+    // Free up population slots when warriors die
+    S.populationUsed = Math.max(0, (S.populationUsed || 0) - losses);
+
     recalcLegionStrength();
 
-    S.battleReadyAt = now + battleCooldownMs(risk);
+    S.battleReadyAt = now + battleCooldownMs(key);
 
-    if(win){
-      const landGain = (risk===1) ? 1 : (risk===2 ? rnd(1,2) : rnd(2,4));
+    if(sim.win){
+      const landGain = rnd(b.landMin, b.landMax);
       S.land += landGain;
 
-      const loot = Math.round((120 + risk*140 + (S.battlesWon||0)*35) * landMult() * crownMult());
+      const loot = Math.round((b.lootBase + (S.battlesWon||0)*b.lootScale) * landMult() * crownMult());
       S.gold += loot; S.lifetimeGold += loot; bumpEarnedDenarii(loot);
 
-      const ren = Math.max(1, Math.round((loot/140) + risk*2));
+      const ren = Math.max(1, Math.round((loot/180) + landGain*2));
       S.renown += ren; S.lifetimeRenown += ren;
 
-      // Influence: needed for taxes/court. Winning battles generates it.
-      const inf = Math.max(1, Math.round(risk + landGain));
+      const inf = Math.max(1, Math.round(1 + landGain));
       S.influence += inf;
 
       S.battlesWon = (S.battlesWon||0) + 1;
 
-      // Objectives: battles + land gain
       bumpObjective("winBattle", 1);
       bumpObjective("gainLand", landGain);
 
-      // Battle burst chance
       maybeBurst("battle");
 
       toast("Victory!");
-      logLine(`Victory! (+${fmt(loot)} denarii, +${fmt(landGain)} land, -${fmt(losses)} warriors)`, "good");
+      logLine(`Victory vs ${fmt(sim.enemies)} enemies! (+${fmt(loot)} denarii, +${fmt(landGain)} land, -${fmt(losses)} warriors)`, "good");
     }else{
-      const lost = Math.min(S.gold, Math.round(60 + risk*70));
+      const lost = Math.min(S.gold, Math.round(b.lootBase*0.35));
       S.gold -= lost;
-      S.power = Math.max(0, S.power - (risk===3 ? 3 : 2));
+      S.power = Math.max(0, S.power - 2);
 
       toast("Defeat");
-      logLine(`Defeat. (-${fmt(lost)} denarii, -${fmt(losses)} warriors)`, "bad");
+      logLine(`Defeat vs ${fmt(sim.enemies)} enemies. (-${fmt(lost)} denarii, -${fmt(losses)} warriors)`, "bad");
     }
 
-    // Drop a loot chest sometimes after battle (not every fight)
-    if(win){
+    // Chance for a loot chest after a win (more likely as you prove yourself)
+    if(sim.win){
       const wins = S.battlesWon || 0;
-      let chestChance = 0;
-      if(wins >= 8) chestChance = 0.75;
-      else if(wins >= 5) chestChance = 0.55;
-      else if(wins >= 3) chestChance = 0.35;
+      const chestChance = clamp(0.18 + wins*0.03, 0.18, 0.70);
       if(Math.random() < chestChance){
         showChest("skirmish");
       }
     }
+
     render();
   }
 
-  $("#btnBattleVillage").addEventListener("click", ()=> doBattle(1, "skirmish"));
-  $("#btnBattleBandits").addEventListener("click", ()=> doBattle(2, "skirmish"));
-  $("#btnBattleTown").addEventListener("click", ()=> doBattle(3, "skirmish"));
+  $("#btnBattleBandits1").addEventListener("click", ()=> doBattle("bandits"));
+  $("#btnBattleLevy").addEventListener("click", ()=> doBattle("levy"));
+  $("#btnBattleVillageRaid").addEventListener("click", ()=> doBattle("village"));
+  $("#btnBattleSiege").addEventListener("click", ()=> doBattle("siege"));
 
 
 
