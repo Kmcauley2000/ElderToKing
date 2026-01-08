@@ -346,7 +346,7 @@
 
     <!-- VILLAGE -->
     <section class="card view" data-view="village">
-      <div class="sectionTitle"><span>Village</span><span style="display:flex;gap:10px;align-items:center;"><span>Income <b id="incomeRate">0</b>/s</span><span class="pill" style="padding:8px 10px;">Pop <b id="popUsed">0</b>/<b id="popCap">0</b> • Mig <b id="migRate">0.00</b>/s</span></span></div>
+      <div class="sectionTitle"><span>Village</span><span style="display:flex;gap:10px;align-items:center;"><span>Income <b id="incomeRate">0</b>/s</span><span class="pill" style="padding:8px 10px;">Pop <b id="popUsed">0</b>/<b id="popCap">0</b> • Mig <b id="migRate">0.00</b>/s <span style="opacity:.65">(streak)</span></span></span></div>
       <div class="cardBody">
         <div class="card" style="box-shadow:none; border-radius:18px; overflow:hidden; margin-bottom:12px;">
           <div class="sectionTitle" style="border-bottom:1px solid rgba(31,58,42,.55);">
@@ -930,13 +930,32 @@
 
   // --- Migration rate (settlers per second) ---
   // Kept in one place so UI and simulation stay consistent.
+  
+  // --- Migration rate (settlers per second) ---
+  // Includes infinite scaling from tap streak (logarithmic, no hard cap)
   function migrationPerSec(){
     const prosper = (Date.now() < (S.prosperUntil||0)) ? 1.35 : 1.0;
-    const baseRate = 0.03; // baseline migration when you have any capacity
+
+    const baseRate = 0.03; // baseline migration
     const incomeRate = clamp(incomePerSec()/250, 0, 0.14);
-    const sizeRate = (S.villaCount||0)*0.004 + (S.farmCount||0)*0.001 + (S.hutCount||0)*0.002;
+    const sizeRate =
+      (S.villaCount||0)*0.004 +
+      (S.farmCount||0)*0.001 +
+      (S.hutCount||0)*0.002;
     const landRate = (S.land||0)*0.0008;
-    return clamp((baseRate + incomeRate + sizeRate + landRate) * prosper, 0.01, 0.35);
+
+    // 🔥 Streak-based attraction (infinite, diminishing returns)
+    // 10 streak ≈ +15%, 100 ≈ +35%, 1,000 ≈ +60%, 10k ≈ +85%
+    const streak = Math.max(1, S.streak||1);
+    const streakMult = 1 + Math.log10(streak) * 0.25;
+
+    return clamp(
+      (baseRate + incomeRate + sizeRate + landRate)
+      * prosper
+      * streakMult,
+      0.01,
+      1.5
+    );
   }
 
 
