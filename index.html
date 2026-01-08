@@ -419,43 +419,8 @@
       </div>
     </section>
 
-    
-
-    <!-- TRADE -->
-    <section class="card view" data-view="trade" hidden>
-      <div class="sectionTitle"><span>Trade</span><span>Trade lvl <b id="tradeLvl">0</b></span></div>
-      <div class="cardBody">
-        <button class="bigBtn" id="btnCaravan">
-          <div class="bigLeft">
-            <div class="bigName">Run Caravan</div>
-            <div class="bigDesc">Cooldown burst of denarii. Grows with land.</div>
-          </div>
-          <div class="bigRight">
-            <div class="gain" id="caravanReward">+0 denarii</div>
-            <div class="hint" id="caravanCd">Ready</div>
-          </div>
-        </button>
-
-        <div class="row2">
-          <button class="smallBtn" id="btnMarket">
-            <div class="t">Upgrade Market</div>
-            <div class="d" id="marketDesc">Better caravans + income.</div>
-          </button>
-          <button class="smallBtn" id="btnTax">
-            <div class="t">Set Tax Policy</div>
-            <div class="d" id="taxDesc">Tiny renown tick. Costs influence.</div>
-          </button>
-        </div>
-
-        <div class="meta">
-          <div>Tax rate: <b id="taxRate">0%</b></div>
-          <div>Caravans: <b id="caravans">0</b></div>
-        </div>
-      </div>
-    </section>
-
     <!-- TEMPLE -->
-    <section class="card view" data-view="temple" hidden>
+<section class="card view" data-view="temple" hidden>
       <div class="sectionTitle"><span>Temple</span><span>Crowns <b id="crowns">0</b></span></div>
       <div class="cardBody">
         <button class="bigBtn" id="btnOffer">
@@ -546,8 +511,7 @@
   <nav class="tabbar" aria-label="Sections">
     <button class="tab active" data-go="village"><span class="dot"></span>Village</button>
     <button class="tab" data-go="legion"><span class="dot"></span>Legion</button>
-<button class="tab" data-go="trade"><span class="dot"></span>Trade</button>
-    <button class="tab" data-go="temple"><span class="dot"></span>Temple</button>
+<button class="tab" data-go="temple"><span class="dot"></span>Temple</button>
     <button class="tab" data-go="court"><span class="dot"></span>Court</button>
     <button class="tab" data-go="stats"><span class="dot"></span>Stats</button>
   </nav>
@@ -566,8 +530,7 @@
 
   const unlock = {
     legion: 450,
-    trade: 2600,
-    temple: 5200,
+temple: 5200,
     court: 8200,
     stats: 0
   };
@@ -605,12 +568,6 @@
 
     // village capacity
     populationUsed: 0,
-
-    // trade
-    tradeLvl: 0,
-    taxRate: 0, // %
-    caravans: 0,
-    caravanReadyAt: 0,
 
     // temple / prestige
     faith: 0,
@@ -872,9 +829,7 @@
   function landMult(){
     return 1 + (S.land * 0.05);
   }
-  function marketMult(){
-    return 1 + (S.tradeLvl * 0.05);
-  }
+  function marketMult(){ return 1; }
   function decreeMult(){
     return 1 + (S.decrees * 0.07);
   }
@@ -888,7 +843,7 @@
     const villa = S.villaCount * 3.0;
     const base = farm + villa;
     const prosper = (Date.now() < (S.prosperUntil||0)) ? 1.5 : 1.0;
-    return base * landMult() * marketMult() * decreeMult() * crownMult() * prosper;
+    return base * landMult() * decreeMult() * crownMult() * prosper;
   }
 
   // ---- Village Economy Loop ----
@@ -1095,15 +1050,10 @@
 
   function roadsCost(){ return Math.round(260 * Math.pow(1.28, S.roads)); }
 
-  function caravanReward(){
-    const base = 320 + (S.tradeLvl*120) + (S.roads*60);
-    return Math.round(base * marketMult() * landMult() * crownMult());
-  }
-  function marketCost(){ return Math.round(1600 * Math.pow(1.55, S.tradeLvl)); }
-  function taxCostInf(){ return Math.round(6 + (S.taxRate/5) + S.tradeLvl*0.8); }
-
   function offerCost(){ return Math.round(600 * Math.pow(1.34, Math.floor(S.faith/120))); }
-  function offerFaithGain(){ return Math.round(22 + (S.tradeLvl*3) + (S.land*2)); }
+  function offerFaithGain(){
+    return Math.round(22 + (S.land*2));
+  }
 
   function blessCooldownMs(){ return 60_000; }
   function blessDurationMs(){ return 22_000; }
@@ -1122,7 +1072,9 @@
   function decreeCostInf(){ return Math.round(30 * Math.pow(1.22, S.decrees)); }
 
   function feastCooldownMs(){ return 75_000; }
-  function feastRenown(){ return Math.round(260 + S.decrees*120 + S.tradeLvl*80); }
+  function feastRenown(){
+    return Math.round(260 + S.decrees*120);
+  }
   function feastCostGold(){ return Math.round(900 + S.decrees*250); }
 
   // ---- Titles + unlocks ----
@@ -1319,16 +1271,6 @@
       });
     }
 
-    // --- Trade objectives ---
-    if(r >= unlock.trade){
-      pushObj({
-        type:"runCaravan",
-        min: 1,
-        max: Math.min(3, 1 + progTier),
-        weight: 2
-      });
-    }
-
     // --- Temple objectives ---
     if(r >= unlock.temple){
       pushObj({
@@ -1447,8 +1389,6 @@
 
     if(o.type==="gainLand")
       return `Gain ${o.target} land (${left} left)`;
-
-    if(o.type==="runCaravan")
       return `Run ${o.target} caravan${o.target>1?"s":""} (${left} left)`;
 
     if(o.type==="offerFaith")
@@ -1889,16 +1829,13 @@
       ["Influence", S.influence],
       ["Population Used", S.populationUsed],
       ["Population Cap", populationCap()],
-            ["Trade level", S.tradeLvl],
-      ["Tax rate", S.taxRate+"%"],
-      ["Caravans run", S.caravans],
-      ["Faith", S.faith],
+            ["Faith", S.faith],
       ["Crowns (prestige)", S.crowns],
       ["Ascensions", S.ascends || 0],
       ["Best streak (all time)", S.bestStreak || 0],
       ["Biggest cashout", S.biggestCashout || 0],
       ["Decrees", S.decrees],
-      ["Multipliers", `Land x${landMult().toFixed(2)} • Market x${marketMult().toFixed(2)} • Decree x${decreeMult().toFixed(2)} • Crown x${crownMult().toFixed(2)}`],
+      ["Multipliers", `Land x${landMult().toFixed(2)} • Decree x${decreeMult().toFixed(2)} • Crown x${crownMult().toFixed(2)}`],
       ["Lifetime denarii", S.lifetimeGold],
       ["Lifetime renown", S.lifetimeRenown],
     ];
@@ -1988,18 +1925,6 @@
     if(!hasVillageCapacity()){
       $("#battleBandits1Desc").textContent = "Village at capacity — build farms or take land";
     }
-
-
-    // Trade
-    $("#tradeLvl").textContent = fmt(S.tradeLvl);
-    const carCd = Math.max(0, Math.ceil((S.caravanReadyAt - Date.now())/1000));
-    $("#caravanReward").textContent = `+${fmt(caravanReward())} denarii`;
-    $("#caravanCd").textContent = carCd>0 ? `CD ${carCd}s` : "Ready";
-    $("#marketDesc").textContent = `Lvl ${S.tradeLvl} • Cost ${fmt(marketCost())} • boosts income`;
-    $("#taxDesc").textContent = `Costs influence • +renown trickle`;
-    $("#taxRate").textContent = S.taxRate + "%";
-    $("#caravans").textContent = fmt(S.caravans);
-    $("#btnCaravan").disabled = carCd>0;
 
     // Temple
     $("#crowns").textContent = fmt(S.crowns);
@@ -2275,54 +2200,6 @@ function doBattle(key){
 
 
     // Skirmish: optional combat later (tiny screen footprint)
-  
-
-              $("#btnCaravan").addEventListener("click", (e)=>{
-    const now = Date.now();
-    if(now < S.caravanReadyAt){ toast("Caravan on the road"); return; }
-    S.caravanReadyAt = now + 55_000;
-
-    const reward = caravanReward();
-    S.gold += reward;
-    S.lifetimeGold += reward;
-    bumpEarnedDenarii(reward);
-    const r = Math.round(reward/10);
-    S.renown += r;
-    S.lifetimeRenown += r;
-    S.caravans += 1;
-
-    // Trade objective
-    bumpObjective("runCaravan", 1);
-
-    // Caravan burst chance
-    maybeBurst("caravan");
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    sparkAt(rect.left + rect.width*0.76, rect.top + rect.height*0.45);
-
-    toast("Profit!");
-    showChest("caravan");
-    render();
-  });
-
-  $("#btnMarket").addEventListener("click", ()=>{
-    const c = marketCost();
-    if(S.gold < c){ toast("Not enough denarii"); return; }
-    S.gold -= c;
-    S.tradeLvl += 1;
-    S.renown += 18;
-    toast("Market up");
-    render();
-  });
-
-  $("#btnTax").addEventListener("click", ()=>{
-    const c = taxCostInf();
-    if(S.influence < c){ toast("Need more influence"); return; }
-    S.influence -= c;
-    S.taxRate = clamp(S.taxRate + 5, 0, 50);
-    toast("Taxes set");
-    render();
-  });
 
   $("#btnOffer").addEventListener("click", ()=>{
     const c = offerCost();
@@ -2497,13 +2374,6 @@ $("#btnExport").addEventListener("click", async ()=>{
     if(inc > 0){
       S.gold += inc;
       S.lifetimeGold += inc;
-    }
-
-    // Gentle renown drip from taxes (optional, low noise)
-    if(S.taxRate > 0){
-      const drip = (S.taxRate/100) * (0.10 + S.tradeLvl*0.025) * dt * crownMult();
-      S.renown += drip;
-      S.lifetimeRenown += drip;
     }
 
     // Power slowly decays a tiny bit if huge (keeps choices meaningful)
