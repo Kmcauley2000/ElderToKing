@@ -246,6 +246,17 @@
     .table td:first-child{border-radius:14px 0 0 14px;color:var(--muted);width:46%;}
     .table td:last-child{border-radius:0 14px 14px 0;text-align:right;}
     .danger{border-color: rgba(255,107,107,.35) !important;}
+    /* Milites icon label */
+    .milites-label{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .milites-icon{
+      width:22px;
+      height:22px;
+      image-rendering: pixelated;
+    }
   
 
     /* Chest overlay transitions */
@@ -386,7 +397,7 @@
 
     <!-- LEGION -->
     <section class="card view" data-view="legion" hidden>
-      <div class="sectionTitle"><span>Legion</span><span>Milites <b id="warriors">0</b></span></div>
+      <div class="sectionTitle"><span>Legion</span><span class="milites-label"><img id="militesIcon" class="milites-icon" alt=""><span>Milites <b id="warriors">0</b></span></span></div>
       <div class="cardBody">
         <button class="bigBtn" id="btnRecruit">
           <div class="bigLeft">
@@ -2126,6 +2137,26 @@
     return rows;
   }
 
+  // Update the Milites header icon based on rank. For the first few
+  // ranks we show the basic milites sprite; higher ranks can later use
+  // different art or hide the icon entirely.
+  function updateMilitesIcon(){
+    const icon = $("#militesIcon");
+    if(!icon) return;
+    const info = titleInfo();
+    const idx = info.idx || 0;
+
+    // First four ranks (Elder → Council Elder) use the base sprite.
+    if(idx <= 3){
+      icon.src = "Sprites/MiliteForElder.png";
+      icon.alt = "Milites";
+      icon.style.display = "inline-block";
+    }else{
+      // Hide for now at higher ranks (you can swap to other sprites later)
+      icon.style.display = "none";
+    }
+  }
+
   function render(){
     handleRankUps();
     expireCashoutIfNeeded();
@@ -2184,6 +2215,9 @@
 
     $("#recruitCost").textContent = `Cost ${fmt(recruitCost())}`;
     $("#recruitGain").textContent = `+${fmt(recruitStrengthGain())} strength`;
+
+    // Update Milites header icon depending on current rank.
+    updateMilitesIcon();
 
     
     
