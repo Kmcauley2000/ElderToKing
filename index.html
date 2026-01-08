@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+ <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 
 
@@ -117,6 +117,9 @@
     .bigRight .gain{font-size:.90rem;}
     .bigRight .hint{font-size:.72rem;color:var(--muted);margin-top:2px;}
     .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+    .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;}
+    @media (max-width: 520px){ .row3{grid-template-columns:1fr;} }
+
     .smallBtn{
       border:1px solid rgba(31,58,42,.95);
       background: linear-gradient(180deg, rgba(13,21,17,.95), rgba(10,16,13,.95));
@@ -253,8 +256,8 @@
       gap:8px;
     }
     .milites-icon{
-      width:22px;
-      height:22px;
+      width:44px;
+      height:44px;
       image-rendering: pixelated;
     }
   
@@ -371,7 +374,11 @@
         </button>
 
 
-        <div class="row2">
+        <div class="row3">
+          <button class="smallBtn" id="btnHut">
+            <div class="t">Build Huts</div>
+            <div class="d" id="hutDesc">Cheap shelter. Attracts settlers.</div>
+          </button>
           <button class="smallBtn" id="btnFarm">
             <div class="t">Build Farm</div>
             <div class="d" id="farmDesc">Passive income. Small but forever.</div>
@@ -618,6 +625,7 @@
     tribute: 1,
     farmCount: 0,
     villaCount: 0,
+    hutCount: 0,
 
     // legion
     warriors: 0,    legion: 0,  // derived strength (kept for compatibility)
@@ -926,7 +934,7 @@
     // - Each farm supports 4 warriors
     // - Each villa supports 10 more warriors (bigger settlements)
     // - Land boosts overall capacity a bit
-    const base = (S.farmCount * 4) + (S.villaCount * 10);
+    const base = (S.hutCount * 2) + (S.farmCount * 4) + (S.villaCount * 10);
     return Math.floor(base * (1 + S.land * 0.08));
   }
   function hasVillageCapacity(){
@@ -1001,6 +1009,12 @@
 
 
   // ---- Costs (ramp hard so it isn't beaten in 2 mins) ----
+  function costHut(){
+    // Cheap early housing that becomes gradually more expensive
+    const n = S.hutCount||0;
+    return Math.floor(60 * Math.pow(1.22, n));
+  }
+
   function costFarm(){
     return 320;
   }
@@ -2114,6 +2128,7 @@
       ["Rank tap bonus", rankTributeBonus(titleInfo().idx)],
       ["Streak", "x"+S.streak],
       ["Crit chance", Math.round(critChance()*100)+"%"],
+      ["Huts", S.hutCount||0],
       ["Farms", S.farmCount],
       ["Villas", S.villaCount],
       ["Milites", S.warriors],
@@ -2201,6 +2216,7 @@
     }
 
 
+    $("#hutDesc").textContent   = `${fmt(S.hutCount||0)} huts • Cost ${fmt(costHut())} • +2 cap each`;
     $("#farmDesc").textContent  = `${fmt(S.farmCount)} farms • Cost ${fmt(costFarm())} • +0.75/s each`;
     $("#villaDesc").textContent = `${fmt(S.villaCount)} villas • Cost ${fmt(costVilla())} • +3.0/s each • +10 cap`;
 
@@ -2345,6 +2361,15 @@
     bankCashout(gain + Math.round(jackpotGain*0.08));
     
 render();
+  });
+
+  $("#btnHut").addEventListener("click", ()=>{
+    const c = costHut();
+    if(S.gold < c){ toast("Not enough denarii"); return; }
+    S.gold -= c;
+    S.hutCount = (S.hutCount||0) + 1;
+    toast("Huts raised — word spreads");
+    render();
   });
 
   $("#btnFarm").addEventListener("click", ()=>{
@@ -2855,9 +2880,9 @@ $("#btnExport").addEventListener("click", async ()=>{
 
     // "Doing well" = better income + bigger settlement attracts more people
     const prosper = (Date.now() < (S.prosperUntil||0)) ? 1.35 : 1.0;
-    const baseRate = 0.015;
+    const baseRate = 0.03;
     const incomeRate = clamp(incomePerSec()/250, 0, 0.14);
-    const sizeRate = (S.villaCount||0)*0.004 + (S.farmCount||0)*0.001;
+    const sizeRate = (S.villaCount||0)*0.004 + (S.farmCount||0)*0.001 + (S.hutCount||0)*0.002;
     const landRate = (S.land||0)*0.0008;
 
     const settleRatePerSec = clamp((baseRate + incomeRate + sizeRate + landRate) * prosper, 0.01, 0.35);
@@ -2867,7 +2892,12 @@ $("#btnExport").addEventListener("click", async ()=>{
       const add = Math.floor(S.settlerProg);
       if(add > 0){
         S.settlerProg -= add;
-        S.population = Math.min(cap, (S.population||0) + add);
+        const before = S.population||0;
+        S.population = Math.min(cap, before + add);
+        const gained = S.population - before;
+        if(gained > 0){
+          logLine(`${gained} settler${gained===1?"":"s"} joined your village.`, "good");
+        }
       }
     }else{
       // bleed off progress so you don't "bank" settlers while capped
