@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Wasteland Outpost">
+  <meta name="apple-mobile-web-app-title" content="ElderToKing">
 
   <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -606,6 +606,11 @@
 
     // temp buffs
     prosperUntil: 0,
+
+    // prestige meta
+    ascends: 0,
+    bestStreak: 0,
+    biggestCashout: 0,
   });
 
   function normalizeState(state){
@@ -726,6 +731,11 @@
       S.streak = 1;
     }
     S.lastTap = now;
+
+    // Track best streak across all runs
+    if(!S.bestStreak || S.streak > S.bestStreak){
+      S.bestStreak = S.streak;
+    }
 
     // Streak milestone bursts every 25 taps
     if(S.streak > 0 && S.streak % 25 === 0){
@@ -1673,6 +1683,9 @@
       ["Caravans run", S.caravans],
       ["Faith", S.faith],
       ["Crowns (prestige)", S.crowns],
+      ["Ascensions", S.ascends || 0],
+      ["Best streak (all time)", S.bestStreak || 0],
+      ["Biggest cashout", S.biggestCashout || 0],
       ["Decrees", S.decrees],
       ["Multipliers", `Land x${landMult().toFixed(2)} • Market x${marketMult().toFixed(2)} • Decree x${decreeMult().toFixed(2)} • Crown x${crownMult().toFixed(2)}`],
       ["Lifetime denarii", S.lifetimeGold],
@@ -2062,11 +2075,19 @@ render();
     if(gain <= 0){ toast("Need 25,000 renown"); return; }
     if(!confirm(`Ascend for +${gain} crowns? (Resets most progress)`)) return;
 
-    const keepCrowns = S.crowns + gain;
+    const keepCrowns = (S.crowns || 0) + gain;
+    const keepLifetimeGold = S.lifetimeGold || 0;
+    const keepLifetimeRenown = S.lifetimeRenown || 0;
+    const nextAscends = (S.ascends || 0) + 1;
+
     S = defaultState();
     S.crowns = keepCrowns;
+    S.lifetimeGold = keepLifetimeGold;
+    S.lifetimeRenown = keepLifetimeRenown;
+    S.ascends = nextAscends;
+
     $("#log").innerHTML = "";
-    logLine(`You ascend. Crowns: ${fmt(S.crowns)}.`, "warn");
+    logLine(`You ascend. Crowns: ${fmt(S.crowns)}. (Ascensions: ${S.ascends})`, "warn");
     toast("Ascended");
     save(true);
     setView("village");
@@ -2137,6 +2158,11 @@ render();
     const r = Math.max(1, Math.round(payout/160));
     S.renown += r;
     S.lifetimeRenown += r;
+
+    // Track biggest single cashout across all runs
+    if(!S.biggestCashout || payout > S.biggestCashout){
+      S.biggestCashout = payout;
+    }
 
     // Cashing out resets streak: this is the decision point.
     S.streak = 1;
