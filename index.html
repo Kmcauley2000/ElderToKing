@@ -258,6 +258,28 @@
       transform: translateY(0) scale(1);
       opacity: 1;
     }
+
+    /* Battle report overlay transitions */
+    #battleOverlay{
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .22s ease-out;
+    }
+    #battleOverlay.visible{
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #battleCard{
+      transform: translateY(18px) scale(.94);
+      opacity: 0;
+      transition: transform .26s ease-out, opacity .26s ease-out;
+    }
+    #battleOverlay.visible #battleCard{
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+
+
 </style>
 </head>
 <body>
@@ -624,15 +646,97 @@
   }
 
   let S = normalizeState(load()) || defaultState();
+  // If localStorage is empty/evicted, try IndexedDB recovery (especially on iPhone).
+  recoverSaveFromIDB();
   let currentView = "village";
 
-  function save(silent=false){
-    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(S)); if(!silent) toast("Saved"); } catch(e){}
+    // --- Robust saving on iPhone (localStorage + IndexedDB fallback) ---
+  // iOS Safari can evict localStorage (especially for file:// or low-storage situations).
+  // We write to BOTH localStorage and IndexedDB, and we can recover from IndexedDB if localStorage is empty.
+  const SAVE_DB_NAME = "roman_kingdom_save_db_v1";
+  const SAVE_STORE = "kv";
+
+  function isStandalone(){
+    try{
+      return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || (window.navigator && window.navigator.standalone);
+    }catch(e){ return false; }
   }
+
+  function openSaveDB(){
+    return new Promise((resolve, reject)=>{
+      try{
+        const req = indexedDB.open(SAVE_DB_NAME, 1);
+        req.onupgradeneeded = ()=>{ req.result.createObjectStore(SAVE_STORE); };
+        req.onsuccess = ()=> resolve(req.result);
+        req.onerror = ()=> reject(req.error);
+      }catch(e){ reject(e); }
+    });
+  }
+
+  async function idbSet(key, value){
+    try{
+      const db = await openSaveDB();
+      await new Promise((resolve, reject)=>{
+        const tx = db.transaction(SAVE_STORE, "readwrite");
+        tx.objectStore(SAVE_STORE).put(value, key);
+        tx.oncomplete = ()=> resolve(true);
+        tx.onerror = ()=> reject(tx.error);
+      });
+      db.close();
+    }catch(e){}
+  }
+
+  async function idbGet(key){
+    try{
+      const db = await openSaveDB();
+      const val = await new Promise((resolve, reject)=>{
+        const tx = db.transaction(SAVE_STORE, "readonly");
+        const req = tx.objectStore(SAVE_STORE).get(key);
+        req.onsuccess = ()=> resolve(req.result ?? null);
+        req.onerror = ()=> reject(req.error);
+      });
+      db.close();
+      return val;
+    }catch(e){
+      return null;
+    }
+  }
+
+  function save(silent=false){
+    const payload = JSON.stringify(S);
+    try{ localStorage.setItem(STORAGE_KEY, payload); }catch(e){}
+    // IndexedDB write (best-effort, async)
+    idbSet(STORAGE_KEY, payload);
+    if(!silent) toast("Saved");
+  }
+
   function load(){
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return null;
-    try{ return JSON.parse(raw); } catch(e){ return null; }
+    // Fast path: localStorage
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        try{ return JSON.parse(raw); }catch(e){}
+      }
+    }catch(e){}
+    // Slow path: handled asynchronously after first render
+    return null;
+  }
+
+  async function recoverSaveFromIDB(){
+    const raw = await idbGet(STORAGE_KEY);
+    if(!raw) return false;
+    try{
+      const parsed = JSON.parse(raw);
+      S = normalizeState(parsed);
+      try{ localStorage.setItem(STORAGE_KEY, raw); }catch(e){}
+      toast("Save recovered");
+      render();
+      return true;
+    }catch(e){
+      return false;
+    }
+  }
+
   }
 // --- iPhone/iOS reliability: persistent storage + autosave + lifecycle saves ---
 // iOS Safari can aggressively discard tabs; we save often and also on page hide.
@@ -655,6 +759,15 @@
       return false;
     }
   }
+
+  // iPhone tip: if you're running from file:// and NOT installed to Home Screen,
+  // iOS can reset storage when you leave the tab. Warn once.
+  try{
+    const fromFile = (location && location.protocol === "file:");
+    if(fromFile && !isStandalone()){
+      setTimeout(()=>toast("📌 iPhone tip: install to Home Screen (Share → Add to Home Screen) and launch from the icon for reliable saving."), 650);
+    }
+  }catch(e){}
 
   // If storage isn't writable, warn once so the user knows why resets happen.
   try{
@@ -2006,7 +2119,48 @@ render();
     render();
   });
   
-  function doBattle(key){
+    // --- Battle Report overlay (after every battle) ---
+  function showBattleReport(rep){
+    const overlay = document.getElementById("battleOverlay");
+    const body = document.getElementById("battleBody");
+    const title = document.getElementById("battleTitle");
+    if(!overlay || !body || !title) return;
+
+    title.textContent = rep.win ? "Victory Report" : "Defeat Report";
+
+    body.innerHTML = `
+      <table class="table" style="margin:0;">
+        <tbody>
+          <tr><td>Engagement</td><td>${rep.label}</td></tr>
+          <tr><td>Enemies</td><td>${fmt(rep.enemies)}</td></tr>
+          <tr><td>Win chance</td><td>${Math.round(rep.winP*100)}%</td></tr>
+          <tr><td>Your warriors</td><td>${fmt(rep.beforeWarriors)} → ${fmt(rep.afterWarriors)}</td></tr>
+          <tr><td>Warriors lost</td><td>${fmt(rep.losses)}</td></tr>
+          <tr><td>Denarii change</td><td>${rep.denDelta>=0?"+":""}${fmt(Math.abs(rep.denDelta))}</td></tr>
+          <tr><td>Land change</td><td>${rep.landDelta>=0?"+":""}${fmt(Math.abs(rep.landDelta))}</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:10px;font-family:var(--sans);color:var(--muted);font-size:.82rem;line-height:1.25;">
+        ${rep.note || ""}
+      </div>
+    `;
+
+    overlay.style.display = "flex";
+    overlay.classList.add("visible");
+  }
+
+  function closeBattleReport(){
+    const overlay = document.getElementById("battleOverlay");
+    if(!overlay) return;
+    overlay.classList.remove("visible");
+    setTimeout(()=>{ overlay.style.display = "none"; }, 220);
+  }
+  // expose for overlay inline buttons
+  window.closeBattleReport = closeBattleReport;
+  window.showBattleReport = showBattleReport;
+
+
+function doBattle(key){
     const now = Date.now();
 
     // 3-second streak window
@@ -2022,7 +2176,8 @@ render();
 
     // Apply casualties (warriors can die)
     const before = S.warriors || 0;
-    const losses = clamp(sim.losses, 0, before);
+    let losses = clamp(sim.losses, 0, before);
+    if(before > 0 && losses === 0) losses = 1;
     S.warriors = before - losses;
 
     // Free up population slots when warriors die
@@ -2071,6 +2226,20 @@ render();
         showChest("skirmish");
       }
     }
+
+    const rep = {
+      label: b.label,
+      enemies: sim.enemies,
+      winP: sim.winP,
+      win: sim.win,
+      beforeWarriors,
+      afterWarriors: S.warriors || 0,
+      losses,
+      denDelta: Math.round(S.gold - startGold),
+      landDelta: Math.round(S.land - startLand),
+      note: sim.win ? "You held the field and counted the fallen." : "You retreat to lick your wounds."
+    };
+    showBattleReport(rep);
 
     render();
   }
@@ -2362,6 +2531,22 @@ $("#btnExport").addEventListener("click", async ()=>{
         <button id="chestContinue" class="tab" style="margin-top:10px;width:100%;justify-content:center;display:none;">
           <span class="dot"></span>Continue
         </button>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- Battle Report Overlay -->
+  <div id="battleOverlay" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:2100;">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);" onclick="closeBattleReport()"></div>
+    <div id="battleCard" class="card" style="position:relative;width:min(560px, calc(100vw - 26px));border-radius:26px;overflow:hidden;">
+      <div class="sectionTitle" style="justify-content:space-between;">
+        <span id="battleTitle" style="color:var(--accent);font-weight:900;">Battle Report</span>
+        <button class="tab" style="padding:8px 12px;" onclick="closeBattleReport()">Close</button>
+      </div>
+      <div class="cardBody" style="padding:14px;">
+        <div id="battleBody"></div>
       </div>
     </div>
   </div>
