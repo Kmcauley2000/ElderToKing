@@ -1,0 +1,1887 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0f0c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Roman Kingdom">
+  <title>Roman Kingdom — Denarii & Destiny</title>
+  <style>
+    :root{
+      --bg:#0b0f0c;
+      --panel:#101a14;
+      --panel2:#0d1511;
+      --text:#e9f6ea;
+      --muted:#a6d4ac;
+      --accent:#f4d06f;
+      --ok:#6be675;
+      --warn:#ffcc66;
+      --danger:#ff6b6b;
+      --line:#1f3a2a;
+      --shadow: 0 14px 36px rgba(0,0,0,.38);
+      --radius:22px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+    *{box-sizing:border-box;}
+    html{font-size:19px;-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+    body{
+      margin:0;
+      min-height:100vh;
+      padding: calc(14px + env(safe-area-inset-top)) 14px calc(92px + env(safe-area-inset-bottom));
+      font-family:var(--sans);
+      color:var(--text);
+      background:
+        radial-gradient(900px 700px at 18% 0%, rgba(244,208,111,.13), transparent 55%),
+        radial-gradient(900px 650px at 92% 25%, rgba(192,108,59,.10), transparent 55%),
+        linear-gradient(180deg, #070a08, var(--bg));
+      -webkit-tap-highlight-color: transparent;
+    }
+    .wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:12px;}
+    header{
+      position:sticky; top:0; z-index:10;
+      padding-bottom:10px;
+      background: linear-gradient(180deg, rgba(11,15,12,.94), rgba(11,15,12,.55));
+      backdrop-filter: blur(6px);
+      border-bottom:1px solid rgba(31,58,42,.65);
+    }
+    .top{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;padding:10px 2px 10px;}
+    h1{margin:0;font-family:var(--mono);font-size:1.02rem;letter-spacing:.5px;color:var(--accent);text-shadow: 0 0 14px rgba(244,208,111,.16);}
+    .sub{margin:4px 0 0;color:var(--muted);font-size:.78rem;line-height:1.3;max-width:52ch;}
+    .hud{display:flex;gap:8px;align-items:center;justify-content:flex-end;overflow:auto;scrollbar-width:none;}
+    .hud::-webkit-scrollbar{display:none;}
+    .pill{
+      border:1px solid rgba(31,58,42,.9);
+      background: linear-gradient(180deg, rgba(16,26,20,.92), rgba(13,21,17,.92));
+      border-radius:999px;
+      padding:10px 12px;
+      box-shadow: var(--shadow);
+      font-family:var(--mono);
+      font-size:.78rem;
+      white-space:nowrap;
+      user-select:none;
+    }
+    .pill b{color:var(--accent);font-weight:900;}
+    .card{
+      background: linear-gradient(180deg, rgba(16,26,20,.92), rgba(13,21,17,.92));
+      border:1px solid rgba(31,58,42,.9);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .cardBody{padding:14px;}
+    .sectionTitle{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      font-family:var(--mono);
+      color:var(--muted);
+      font-size:.78rem;
+      padding: 12px 14px;
+      border-bottom:1px solid rgba(31,58,42,.55);
+      background: linear-gradient(180deg, rgba(10,16,13,.45), rgba(10,16,13,.10));
+    }
+    .sectionTitle b{color:var(--text);}
+    .bigBtn{
+      width:100%;
+      border:1px solid rgba(244,208,111,.30);
+      background: linear-gradient(180deg, rgba(244,208,111,.18), rgba(244,208,111,.06));
+      color:var(--text);
+      border-radius: 22px;
+      padding:18px 16px;
+      font-family:var(--mono);
+      cursor:pointer;
+      box-shadow: 0 14px 30px rgba(0,0,0,.22);
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      min-height:86px;
+      transition: transform .08s ease, border-color .2s ease, filter .2s ease;
+      touch-action: manipulation;
+      user-select:none;
+    }
+    .bigBtn:active{transform: translateY(1px) scale(.99);}
+    .bigBtn[disabled]{opacity:.55;cursor:not-allowed;transform:none;filter:saturate(.7);}
+    .bigBtn:hover{border-color: rgba(244,208,111,.60);}
+    .bigLeft{display:flex;flex-direction:column;gap:4px;min-width:0;}
+    .bigName{font-size:1.06rem;color:var(--accent);font-weight:1000;letter-spacing:.3px;}
+    .bigDesc{font-family:var(--sans);font-size:.88rem;line-height:1.25;color:var(--text);opacity:.93;}
+    .bigRight{font-family:var(--mono);text-align:right;}
+    .bigRight .gain{font-size:.90rem;}
+    .bigRight .hint{font-size:.72rem;color:var(--muted);margin-top:2px;}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+    .smallBtn{
+      border:1px solid rgba(31,58,42,.95);
+      background: linear-gradient(180deg, rgba(13,21,17,.95), rgba(10,16,13,.95));
+      color:var(--text);
+      border-radius: 18px;
+      padding:14px 14px;
+      cursor:pointer;
+      font-family:var(--mono);
+      min-height:64px;
+      display:flex;flex-direction:column;justify-content:center;gap:4px;
+      transition: transform .08s ease, border-color .2s ease, opacity .2s ease, filter .2s ease;
+      touch-action: manipulation;
+      user-select:none;
+    }
+    .smallBtn:active{transform: translateY(1px) scale(.99);}
+    .smallBtn[disabled]{opacity:.55;cursor:not-allowed;transform:none;filter:saturate(.75);}
+    .smallBtn:hover{border-color: rgba(244,208,111,.38);}
+    .smallBtn .t{font-weight:900;color:var(--accent);font-size:.92rem;}
+    .smallBtn .d{font-family:var(--sans);color:var(--muted);font-size:.76rem;line-height:1.2;}
+    .bar{margin-top:12px;border:1px solid rgba(31,58,42,.85);border-radius: 999px;overflow:hidden;background: rgba(0,0,0,.16);}
+    .bar > div{height:12px;width:10%;background: linear-gradient(90deg, rgba(244,208,111,.92), rgba(107,230,117,.80));transition: width .22s ease;}
+    .meta{display:flex;justify-content:space-between;gap:10px;font-family:var(--mono);font-size:.74rem;color:var(--muted);margin-top:10px;}
+    .meta b{color:var(--text);}
+    details{margin-top:12px;border-top:1px solid rgba(31,58,42,.55);padding-top:10px;}
+    summary{cursor:pointer;font-family:var(--mono);color:var(--muted);user-select:none;}
+    .log{
+      margin-top:10px;
+      max-height: 28vh;
+      overflow:auto;
+      border-radius:18px;
+      border:1px solid rgba(31,58,42,.85);
+      background: linear-gradient(180deg, rgba(10,16,13,.78), rgba(7,10,8,.78));
+      padding:12px;
+      font-family:var(--mono);
+      font-size:.76rem;
+      line-height:1.45;
+      -webkit-overflow-scrolling: touch;
+    }
+    .log p{margin:0 0 10px;}
+    .log p span{color:var(--muted);}
+    .good{color:var(--ok);font-weight:900;}
+    .bad{color:var(--danger);font-weight:900;}
+    .warn{color:var(--warn);font-weight:900;}
+
+    /* Bottom tabs */
+    .tabbar{
+      position:fixed; left:0; right:0; bottom:0;
+      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+      background: linear-gradient(180deg, rgba(11,15,12,.0), rgba(11,15,12,.92) 40%, rgba(11,15,12,.985));
+      border-top:1px solid rgba(31,58,42,.75);
+      display:flex; gap:10px; justify-content:center;
+      overflow-x:auto; overflow-y:hidden;
+      -webkit-overflow-scrolling: touch;
+      backdrop-filter: blur(6px);
+      z-index: 999;
+    }
+    .tabbar::-webkit-scrollbar{display:none;}
+    .tab{
+      border:1px solid rgba(31,58,42,.9);
+      background: linear-gradient(180deg, rgba(16,26,20,.86), rgba(13,21,17,.86));
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 10px 12px;
+      font-family: var(--mono);
+      font-size: .76rem;
+      cursor:pointer;
+      white-space:nowrap;
+      user-select:none;
+      transition: transform .08s ease, border-color .2s ease, color .2s ease, opacity .2s ease;
+      touch-action: manipulation;
+    }
+    .tab:active{transform: translateY(1px) scale(.99);}
+    .tab.active{color:var(--text); border-color: rgba(244,208,111,.45);}
+    .tab[disabled]{opacity:.45;cursor:not-allowed;filter:saturate(.75);}
+    .dot{display:inline-block;width:8px;height:8px;border-radius:999px;background: rgba(244,208,111,.25);margin-right:8px;vertical-align:middle;}
+    .tab.active .dot{background: rgba(244,208,111,.92); box-shadow: 0 0 12px rgba(244,208,111,.25);}
+
+    .toast{
+      position: fixed;
+      left:50%; transform: translateX(-50%);
+      bottom: calc(84px + env(safe-area-inset-bottom));
+      background: rgba(16,26,20,.96);
+      border: 1px solid rgba(244,208,111,.35);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--text);
+      box-shadow: var(--shadow);
+      z-index: 1200;
+      display:none;
+      max-width: calc(100vw - 24px);
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
+    .toast.show{display:block;animation: pop .18s ease-out;}
+    @keyframes pop{from{transform:translateX(-50%) scale(.98);opacity:.25;}to{transform:translateX(-50%) scale(1);opacity:1;}}
+
+    /* tiny dopamine confetti */
+    .spark{
+      position: fixed;
+      width: 10px; height: 10px;
+      border-radius: 999px;
+      pointer-events:none;
+      opacity:.95;
+      transform: translate(-50%,-50%);
+      animation: fly 650ms ease-out forwards;
+      filter: drop-shadow(0 10px 18px rgba(0,0,0,.25));
+      z-index: 1300;
+    }
+    @keyframes fly{to{ transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(.65); opacity:0; }}
+
+    .table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0 8px;
+      font-family:var(--mono);
+      font-size:.78rem;
+      color:var(--text);
+    }
+    .table td{
+      padding:10px 12px;
+      border:1px solid rgba(31,58,42,.85);
+      background: linear-gradient(180deg, rgba(10,16,13,.62), rgba(7,10,8,.62));
+    }
+    .table td:first-child{border-radius:14px 0 0 14px;color:var(--muted);width:46%;}
+    .table td:last-child{border-radius:0 14px 14px 0;text-align:right;}
+    .danger{border-color: rgba(255,107,107,.35) !important;}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="top">
+        <div>
+          <h1>Roman Kingdom — Village to King</h1>
+          <p class="sub" id="subline">One main action per tab. Everything else is optional.</p>
+        </div>
+        <div class="hud">
+          <div class="pill">Denarii <b id="gold">0</b></div>
+          <div class="pill">Renown <b id="renown">0</b></div>
+          <div class="pill">Power <b id="power">0</b></div>
+          <div class="pill">Land <b id="landHud">0</b></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap" id="views">
+
+    <!-- VILLAGE -->
+    <section class="card view" data-view="village">
+      <div class="sectionTitle"><span>Village</span><span style="display:flex;gap:10px;align-items:center;"><span>Income <b id="incomeRate">0</b>/s</span><span class="pill" style="padding:8px 10px;">Pop <b id="popUsed">0</b>/<b id="popCap">0</b></span></span></div>
+      <div class="cardBody">
+        <div class="card" style="box-shadow:none; border-radius:18px; overflow:hidden; margin-bottom:12px;">
+          <div class="sectionTitle" style="border-bottom:1px solid rgba(31,58,42,.55);">
+            <span>Objectives</span><span><b id="objStreak">0</b> streak</span>
+          </div>
+          <div class="cardBody" style="padding:10px 12px;">
+            <div id="objList" style="display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
+        </div>
+
+        <button class="bigBtn" id="btnTribute">
+          <div class="bigLeft">
+            <div class="bigName" id="tributeTitle">Collect Tribute</div>
+            <div class="bigDesc">Tap for denarii. Keep your streak for extra.</div>
+          </div>
+          <div class="bigRight">
+            <div class="gain" id="tributeGain">+0 denarii</div>
+            <div class="hint" id="tributeHint">Streak x1</div>
+          </div>
+        </button>
+
+        <button class="smallBtn" id="btnCashout" style="margin-top:10px; display:none;">
+          <div class="t">Cash Out</div>
+          <div class="d" id="cashoutDesc">Bank your streak bonus.</div>
+        </button>
+
+
+        <div class="row2">
+          <button class="smallBtn" id="btnFarm">
+            <div class="t">Build Farm</div>
+            <div class="d" id="farmDesc">Passive income. Small but forever.</div>
+          </button>
+          <button class="smallBtn" id="btnVilla">
+            <div class="t">Build Villa</div>
+            <div class="d" id="villaDesc">Bigger income. Costs more.</div>
+          </button>
+        </div>
+
+        <div class="bar"><div id="progressFill"></div></div>
+        <div class="meta">
+          <div>Title: <b id="title">Villager</b></div>
+          <div>Next: <b id="nextTitle">Elder</b></div>
+        </div>
+
+        <details>
+          <summary>Chronicle (optional)</summary>
+          <div class="log" id="log"></div>
+        </details>
+      </div>
+    </section>
+
+    <!-- LEGION -->
+    <section class="card view" data-view="legion" hidden>
+      <div class="sectionTitle"><span>Legion</span><span>Warriors <b id="warriors">0</b></span></div>
+      <div class="cardBody">
+        <button class="bigBtn" id="btnRecruit">
+          <div class="bigLeft">
+            <div class="bigName">Recruit Warrior</div>
+            <div class="bigDesc">Spend denarii to raise your first fighters.</div>
+          </div>
+          <div class="bigRight">
+            <div class="gain" id="recruitCost">Cost 0</div>
+            <div class="hint" id="recruitGain">+6 strength</div>
+          </div>
+        </button>
+
+        <div class="row2">
+          <button class="smallBtn" id="btnBattleVillage">
+            <div class="t">Takeover nearby village</div>
+            <div class="d" id="battleVillageDesc">Gain land. Small loot.</div>
+          </button>
+          <button class="smallBtn" id="btnBattleBandits">
+            <div class="t">Crush bandits</div>
+            <div class="d" id="battleBanditsDesc">Loot chest. Risk casualties.</div>
+          </button>
+          <button class="smallBtn" id="btnBattleTown">
+            <div class="t">Siege town</div>
+            <div class="d" id="battleTownDesc">Big land. Bigger risk.</div>
+          </button>
+        </div>
+
+        <div class="meta">
+          <div>Strength: <b id="legionStr">0</b></div>
+          <div>Land: <b id="landLegion">0</b></div>
+        </div>
+      </div>
+    </section>
+
+    
+
+    <!-- TRADE -->
+    <section class="card view" data-view="trade" hidden>
+      <div class="sectionTitle"><span>Trade</span><span>Trade lvl <b id="tradeLvl">0</b></span></div>
+      <div class="cardBody">
+        <button class="bigBtn" id="btnCaravan">
+          <div class="bigLeft">
+            <div class="bigName">Run Caravan</div>
+            <div class="bigDesc">Cooldown burst of denarii. Grows with land.</div>
+          </div>
+          <div class="bigRight">
+            <div class="gain" id="caravanReward">+0 denarii</div>
+            <div class="hint" id="caravanCd">Ready</div>
+          </div>
+        </button>
+
+        <div class="row2">
+          <button class="smallBtn" id="btnMarket">
+            <div class="t">Upgrade Market</div>
+            <div class="d" id="marketDesc">Better caravans + income.</div>
+          </button>
+          <button class="smallBtn" id="btnTax">
+            <div class="t">Set Tax Policy</div>
+            <div class="d" id="taxDesc">Tiny renown tick. Costs influence.</div>
+          </button>
+        </div>
+
+        <div class="meta">
+          <div>Tax rate: <b id="taxRate">0%</b></div>
+          <div>Caravans: <b id="caravans">0</b></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TEMPLE -->
+    <section class="card view" data-view="temple" hidden>
+      <div class="sectionTitle"><span>Temple</span><span>Crowns <b id="crowns">0</b></span></div>
+      <div class="cardBody">
+        <button class="bigBtn" id="btnOffer">
+          <div class="bigLeft">
+            <div class="bigName">Offer to the Gods</div>
+            <div class="bigDesc">Spend denarii for faith. Faith boosts crits.</div>
+          </div>
+          <div class="bigRight">
+            <div class="gain" id="offerCost">Cost 0</div>
+            <div class="hint" id="faithNow">Faith 0</div>
+          </div>
+        </button>
+
+        <div class="row2">
+          <button class="smallBtn" id="btnBless">
+            <div class="t">Blessing</div>
+            <div class="d" id="blessDesc">Short buff window. Cooldown.</div>
+          </button>
+          <button class="smallBtn" id="btnAscend">
+            <div class="t">Ascend (Prestige)</div>
+            <div class="d" id="ascendDesc">Reset for crowns (permanent boosts).</div>
+          </button>
+        </div>
+
+        <div class="meta">
+          <div>Crit: <b id="critRate">0%</b></div>
+          <div>Buff: <b id="buffLeft">0s</b></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COURT -->
+    <section class="card view" data-view="court" hidden>
+      <div class="sectionTitle"><span>Court</span><span>Influence <b id="inf2">0</b></span></div>
+      <div class="cardBody">
+        <button class="bigBtn" id="btnCourt">
+          <div class="bigLeft">
+            <div class="bigName">Hold Court</div>
+            <div class="bigDesc">Spend influence to gain renown fast.</div>
+          </div>
+          <div class="bigRight">
+            <div class="gain" id="courtCost">Cost 0</div>
+            <div class="hint" id="courtGain">+0 renown</div>
+          </div>
+        </button>
+
+        <div class="row2">
+          <button class="smallBtn" id="btnDecree">
+            <div class="t">Issue Decree</div>
+            <div class="d" id="decreeDesc">Permanent boosts (expensive).</div>
+          </button>
+          <button class="smallBtn" id="btnFeast">
+            <div class="t">Host Feast</div>
+            <div class="d" id="feastDesc">Cooldown renown burst.</div>
+          </button>
+        </div>
+
+        <div class="meta">
+          <div>Decrees: <b id="decrees">0</b></div>
+          <div>Feast CD: <b id="feastCd">0s</b></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STATS -->
+    <section class="card view" data-view="stats" hidden>
+      <div class="sectionTitle"><span>Stats</span><span><b>Geek mode</b></span></div>
+      <div class="cardBody">
+        <table class="table" aria-label="All stats">
+          <tbody id="statsTable"></tbody>
+        </table>
+        <div class="row2">
+          <button class="smallBtn" id="btnExport">
+            <div class="t">Copy Save</div>
+            <div class="d">Copies JSON save to clipboard.</div>
+          </button>
+          <button class="smallBtn" id="btnReset">
+            <div class="t" style="color:var(--danger);">Reset Save</div>
+            <div class="d">Erase local save on this device.</div>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <div class="toast" id="toast">Saved.</div>
+  </main>
+
+  <nav class="tabbar" aria-label="Sections">
+    <button class="tab active" data-go="village"><span class="dot"></span>Village</button>
+    <button class="tab" data-go="legion"><span class="dot"></span>Legion</button>
+<button class="tab" data-go="trade"><span class="dot"></span>Trade</button>
+    <button class="tab" data-go="temple"><span class="dot"></span>Temple</button>
+    <button class="tab" data-go="court"><span class="dot"></span>Court</button>
+    <button class="tab" data-go="stats"><span class="dot"></span>Stats</button>
+  </nav>
+
+<script>
+(() => {
+  "use strict";
+
+  const $ = (q, el=document)=> el.querySelector(q);
+  const $$ = (q, el=document)=> Array.from(el.querySelectorAll(q));
+  const clamp = (n,min,max)=> Math.max(min, Math.min(max,n));
+  const rnd = (a,b)=> Math.floor(Math.random()*(b-a+1))+a;
+  const chance = (p)=> Math.random() < p;
+
+  const STORAGE_KEY = "roman_denarii_land_loop_villagecap_v14_save";
+
+  const unlock = {
+    legion: 450,
+    trade: 2600,
+    temple: 5200,
+    court: 8200,
+    stats: 0
+  };
+
+  const titles = [
+    { name:"Villager", need: 0 },
+    { name:"Elder", need: 600 },
+    { name:"Chief", need: 2200 },
+    { name:"Prefect", need: 6000 },
+    { name:"Senator", need: 15000 },
+    { name:"Consul", need: 36000 },
+    { name:"King", need: 90000 },
+    { name:"Legend", need: 220000 }
+  ];
+
+  const defaultState = () => ({
+    created: Date.now(),
+    gold: 18,
+    renown: 0,
+    power: 6,
+
+    // village economy
+    tribute: 1,
+    farmCount: 0,
+    villaCount: 0,
+
+    // legion
+    warriors: 0,    legion: 0,  // derived strength (kept for compatibility)
+    battlesWon: 0,
+    battleReadyAt: 0,
+
+    // land & politics
+    land: 0,
+    influence: 0,
+
+    // village capacity
+    populationUsed: 0,
+
+    // trade
+    tradeLvl: 0,
+    taxRate: 0, // %
+    caravans: 0,
+    caravanReadyAt: 0,
+
+    // temple / prestige
+    faith: 0,
+    crowns: 0,
+    buffUntil: 0,
+    blessReadyAt: 0,
+
+    // court
+    decrees: 0,
+    feastReadyAt: 0,
+
+    // streak + lifetime
+    streak: 1,
+    lastTap: 0,
+    lifetimeGold: 0,
+    lifetimeRenown: 0,
+    rankIdx: 0,
+
+    tapsSinceCashout: 0,
+    cashoutReadyAt: 0,
+    cashoutBanked: 0,
+
+    // objectives
+    objectives: null,
+    objStreak: 0,
+
+    // temp buffs
+    prosperUntil: 0,
+  });
+
+  function normalizeState(state){
+    const d = defaultState();
+    if(!state || typeof state !== "object") return d;
+
+    // Merge with defaults and coerce numbers safely
+    for(const k of Object.keys(d)){
+      if(!(k in state)) state[k] = d[k];
+      if(typeof d[k] === "number"){
+        state[k] = Number(state[k]);
+        if(!Number.isFinite(state[k])) state[k] = d[k];
+      }
+    }
+    return state;
+  }
+
+  let S = normalizeState(load()) || defaultState();
+  let currentView = "village";
+
+  function save(silent=false){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(S)); if(!silent) toast("Saved"); } catch(e){}
+  }
+  function load(){
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return null;
+    try{ return JSON.parse(raw); } catch(e){ return null; }
+  }
+
+  function toast(text){
+    const t = $("#toast");
+    t.textContent = text;
+    t.classList.add("show");
+    clearTimeout(toast._tm);
+    toast._tm = setTimeout(()=>t.classList.remove("show"), 900);
+  }
+
+  function logLine(text, tone=""){
+    const log = $("#log");
+    if(!log) return;
+    const p = document.createElement("p");
+    const ts = new Date();
+    const stamp = `${ts.getHours().toString().padStart(2,"0")}:${ts.getMinutes().toString().padStart(2,"0")}`;
+    const span = document.createElement("span");
+    span.textContent = `[${stamp}] `;
+    p.appendChild(span);
+    if(tone){
+      const s = document.createElement("span");
+      s.className = tone;
+      s.textContent = text;
+      p.appendChild(s);
+    }else{
+      p.appendChild(document.createTextNode(text));
+    }
+    log.appendChild(p);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function sparkAt(x,y){
+    const n = 6;
+    for(let i=0;i<n;i++){
+      const s = document.createElement("div");
+      s.className = "spark";
+      s.style.left = x+"px";
+      s.style.top  = y+"px";
+      s.style.background = `hsla(${rnd(35,95)}, 90%, ${rnd(55,70)}%, 0.95)`;
+      s.style.setProperty("--dx", `${rnd(-90,90)}px`);
+      s.style.setProperty("--dy", `${rnd(-140,-40)}px`);
+      document.body.appendChild(s);
+      setTimeout(()=>s.remove(), 700);
+    }
+  }
+
+  // ---- Scalind + rates (make it LAST longer) ----
+  function crownMult(){
+    // very strong long-term scaling, but gradual
+    return 1 + (S.crowns * 0.12);
+  }
+  function landMult(){
+    return 1 + (S.land * 0.05);
+  }
+  function marketMult(){
+    return 1 + (S.tradeLvl * 0.05);
+  }
+  function decreeMult(){
+    return 1 + (S.decrees * 0.07);
+  }
+  function incomePerSec(){
+    let farm = S.farmCount * 0.75;
+    // Soft cap: without land, extra farms become less effective (nudges you into the land loop)
+    const softCap = 6 + (S.land * 2);
+    if(S.farmCount > softCap){
+      farm *= Math.max(0.60, 1 - (S.farmCount - softCap) * 0.04);
+    }
+    const villa = S.villaCount * 3.0;
+    const base = farm + villa;
+    const prosper = (Date.now() < (S.prosperUntil||0)) ? 1.5 : 1.0;
+    return base * landMult() * marketMult() * decreeMult() * crownMult() * prosper;
+  }
+
+  // ---- Village Economy Loop ----
+  function populationCap(){
+    // Farms provide housing; land improves efficiency.
+    // Keep it readable: each farm supports 4 warriors, land boosts capacity.
+    return Math.floor((S.farmCount * 4) * (1 + S.land * 0.08));
+  }
+  function hasVillageCapacity(){
+    return (S.populationUsed || 0) < populationCap();
+  }
+
+  function applyStreak(){
+    const now = Date.now();
+    if(now - S.lastTap <= 2600) S.streak = clamp(S.streak + 1, 1, 40);
+    else S.streak = 1;
+    S.lastTap = now;
+    
+  }
+
+  function critChance(){
+    // faith boosts crit chance; buff doubles it
+    const base = 0.08 + clamp(S.faith / 12000, 0, 0.18);
+    const boosted = isBuffed() ? base * 1.9 : base;
+    return clamp(boosted, 0.06, 0.30);
+  }
+
+  function isBuffed(){ return Date.now() < S.buffUntil; }
+
+  function tapGain(){
+    const base = S.tribute + rankTributeBonus(titleInfo().idx) + rushBonus();
+    const streakBonus = 1 + Math.min(0.35, (S.streak-1)*0.018);
+    const pMult = landMult() * decreeMult() * crownMult();
+    const crit = chance(critChance());
+    const gain = Math.round(base * streakBonus * pMult * (crit ? 2 : 1));
+    return { gain, crit };
+  }
+
+
+  // ---- Streak timer + Gold Rush ----
+  const STREAK_WINDOW_MS = 3000;
+
+  function streakTimeLeftMs(){
+    if(!S.lastTap) return STREAK_WINDOW_MS;
+    return Math.max(0, STREAK_WINDOW_MS - (Date.now() - S.lastTap));
+  }
+
+  function expireStreakIfNeeded(){
+    if(S.streak > 1 && S.lastTap && (Date.now() - S.lastTap) > STREAK_WINDOW_MS){
+      S.streak = 1;
+    }
+  }
+
+  function rushBonus(){
+    // Infinite "gold rush" growth: every 10 streak adds a small flat bonus to tap base.
+    // Slow enough to not break balance, but feels endless.
+    const milestones = Math.max(0, Math.floor((S.streak - 1) / 10));
+    return Math.round(milestones * 0.15 * 10) / 10; // +0.15 per milestone, rounded to 0.1
+  }
+
+
+  // ---- Costs (ramp hard so it isn't beaten in 2 mins) ----
+  function costFarm(){
+    // Keep early game sane: farms stay roughly the same price (tiny scaling only)
+    return Math.round(140 * Math.pow(1.06, S.farmCount));
+  }
+  function costVilla(){
+    // Villas are pricier but still not runaway
+    return Math.round(420 * Math.pow(1.07, S.villaCount));
+  }
+
+  function drillCost(){ return Math.round(140 * Math.pow(1.22, Math.floor(S.legion/4)) * (1 + S.power/220)); }
+  function drillPowerGain(){ return Math.max(2, Math.round(2 + (S.legion/22))); }
+
+  function hireCost(){ return Math.round(220 * Math.pow(1.26, Math.floor(S.legion/5))); }
+  function raidMinStr(){ return 18 + S.battlesWon*2; }
+
+  function raidPowerCost(){
+    // Raids should feel like a commitment; cost scales but stays affordable when strong.
+    return Math.round(5 + S.battlesWon*0.25 + Math.max(0, (raidMinStr() - S.legion)) * 0.05);
+  }
+
+
+  function recruitCost(){
+    // Realistic early: first warrior is expensive, then scales
+    return Math.round(260 * Math.pow(1.22, S.warriors) * Math.pow(1.05, S.land));
+  }
+
+  function recruitStrengthGain(){
+    return 6;
+  }
+
+    function recalcLegionStrength(){
+    // Strength derived from warriors only (simple + readable)
+    const per = 6;
+    S.legion = Math.round(S.warriors * per);
+  }
+
+
+  function battleCasualties(risk){
+    // risk: 1 (low) / 2 (mid) / 3 (high)
+    const basePct = [0, 0.04, 0.08, 0.14][risk];
+    const strength = Math.max(1, S.legion);
+    const mitigation = clamp(1 - (strength/700), 0.15, 0.95); // stronger = fewer losses
+    const pct = basePct * mitigation;
+    return Math.max(1, Math.round(S.warriors * pct));
+  }
+
+  function battleWinProb(risk){
+    // stronger armies win more reliably; risk increases difficulty
+    const strength = Math.max(1, S.legion);
+    const need = [0, 60, 160, 360][risk] + (S.battlesWon||0)*8;
+    const ratio = clamp(strength / Math.max(1, need), 0.4, 2.5);
+    const base = 0.55 + 0.28*Math.tanh((ratio-1)*1.25);
+    const riskPenalty = [0, 0.00, 0.06, 0.14][risk];
+    return clamp(base - riskPenalty + 0.12, 0.62, 0.96);
+  }
+
+  function battleCooldownMs(risk){
+    return [0, 28_000, 36_000, 48_000][risk];
+  }
+
+
+  function skirmishUnlocked(){
+    // Available as soon as you have at least one warrior (micro, simple)
+    return (S.warriors || 0) >= 1;
+  }
+  function raidWinProb(){
+    // Probability depends on how much you overmatch the requirement.
+    // If you're barely at the requirement: ~70%. If you're much stronger: up to ~96%.
+    const req = raidMinStr();
+    const ratio = clamp(S.legion / Math.max(1, req), 0, 3);
+    const base = 0.58 + 0.22 * Math.tanh((ratio - 1) * 1.2); // smooth curve around 1.0
+    const powerBoost = clamp(S.power / 2000, 0, 0.06);
+    return clamp(base + 0.18 + powerBoost, 0.70, 0.96);
+  }
+
+  function raidCasualties(win){
+    // Casualties scale with how close you are to the requirement.
+    // Stronger armies take fewer losses. Win losses are small; fail losses are bigger.
+    const req = raidMinStr();
+    const ratio = clamp(S.legion / Math.max(1, req), 0, 3);
+    const closeness = clamp(1.25 - ratio, 0, 1); // 0 when overmatched, 1 when under
+    const minPct = win ? 0.002 : 0.010;
+    const maxPct = win ? 0.020 : 0.070;
+    const pct = minPct + (maxPct - minPct) * closeness;
+    const noise = (rnd(-25, 25) / 1000); // +/-2.5%
+    const loss = Math.max(0, Math.round(S.legion * clamp(pct + noise, minPct, maxPct)));
+    // Always at least 1 loss on a raid if you have a legion (keeps it believable)
+    return (S.legion > 0) ? Math.max(1, loss) : 0;
+  }
+
+  function expandGoldCost(){ return Math.round(1400 * Math.pow(1.62, S.land) * Math.pow(1.18, S.tradeLvl)); }
+  function expandPowerCost(){ return Math.round(22 * Math.pow(1.24, S.land)); }
+
+  function governGain(){ return Math.max(1, Math.round(1 + S.land*0.35)); }
+  function governCostPower(){ return Math.round(6 + S.land*1.2); }
+
+  function roadsCost(){ return Math.round(260 * Math.pow(1.28, S.roads)); }
+
+  function caravanReward(){
+    const base = 320 + (S.tradeLvl*120) + (S.roads*60);
+    return Math.round(base * marketMult() * landMult() * crownMult());
+  }
+  function marketCost(){ return Math.round(1600 * Math.pow(1.55, S.tradeLvl)); }
+  function taxCostInf(){ return Math.round(6 + (S.taxRate/5) + S.tradeLvl*0.8); }
+
+  function offerCost(){ return Math.round(600 * Math.pow(1.34, Math.floor(S.faith/120))); }
+  function offerFaithGain(){ return Math.round(22 + (S.tradeLvl*3) + (S.land*2)); }
+
+  function blessCooldownMs(){ return 60_000; }
+  function blessDurationMs(){ return 22_000; }
+
+  function ascendCrownGain(){
+    // you need renown to ascend; crowns scale gently to keep long-term
+    const r = S.renown;
+    if(r < 25000) return 0;
+    return Math.floor(Math.sqrt(r/650)); // e.g. 5000=>2, 20k=>5, 80k=>11
+  }
+
+  function courtCost(){ return Math.round(12 + S.decrees*3 + Math.floor(S.renown/900)); }
+  function courtRenownGain(){ return Math.round(28 + (S.decrees*6) + (S.land*4)); }
+
+  function decreeCostGold(){ return Math.round(2200 * Math.pow(1.52, S.decrees)); }
+  function decreeCostInf(){ return Math.round(30 * Math.pow(1.22, S.decrees)); }
+
+  function feastCooldownMs(){ return 75_000; }
+  function feastRenown(){ return Math.round(260 + S.decrees*120 + S.tradeLvl*80); }
+  function feastCostGold(){ return Math.round(900 + S.decrees*250); }
+
+  // ---- Titles + unlocks ----
+  function titleInfo(){
+    const r = S.renown;
+    let idx = 0;
+    for(let i=0;i<titles.length;i++) if(r >= titles[i].need) idx = i;
+    const cur = titles[idx];
+    const next = titles[Math.min(idx+1, titles.length-1)];
+    return { cur, next, idx };
+  }
+
+  function rankTributeBonus(idx){
+    // Slight per-rank boost. Early ranks are small to keep the start tough.
+    // Villager=0 → +0.0, Elder=1 → +0.2, Chief=2 → +0.5, etc.
+    return Math.round((0.10*idx + 0.08*idx*idx) * 10) / 10; // to nearest 0.1
+  }
+
+  function handleRankUps(){
+    const { idx } = titleInfo();
+    if(typeof S.rankIdx !== "number") S.rankIdx = 0;
+    if(idx <= S.rankIdx) return;
+
+    const gained = idx - S.rankIdx;
+    // Award a small permanent tap increase each rank-up
+    // (this stacks with multipliers like Provinces/Decrees/Crowns and crit/streak).
+    const before = S.tribute;
+    S.tribute = Math.max(1, Math.round((S.tribute + gained * 0.25) * 10) / 10);
+    S.rankIdx = idx;
+
+    logLine(`Rank up! Your tribute grows. (+${(S.tribute - before).toFixed(1)} tap base)`, "warn");
+    toast("Rank up!");
+  }
+
+
+  // ---- Dopamine layers: Jackpots + Cash Out ----
+  const CASHOUT_EVERY_TAPS = 10;        // becomes available every N taps
+  const CASHOUT_WINDOW_MS = 6500;       // time to cash out once ready
+  function cashoutMultiplier(){
+    // Scales with prestige + progression systems
+    return landMult() * decreeMult() * crownMult();
+  }
+
+  function rollJackpot(){
+    // Returns {type, mult} or null
+    // Lucky: common-ish; Imperial: rare but huge.
+    const pMult = cashoutMultiplier();
+    const luckyP = clamp(0.010 + (S.faith/200000), 0.010, 0.020);     // 1.0% → 2.0%
+    const impP   = clamp(0.0020 + (S.crowns*0.00015), 0.0020, 0.0060); // 0.20% → 0.60%
+    if(chance(impP))   return { type:"Imperial Tribute", mult: rnd(220, 650) * pMult };
+    if(chance(luckyP)) return { type:"Lucky Denarius",  mult: rnd(40, 140) * pMult };
+    return null;
+  }
+
+  function bankCashout(amount){
+    // Bank grows with streak so players feel momentum.
+    const streakBoost = 1 + Math.min(0.85, (S.streak-1)*0.02);
+    S.cashoutBanked += Math.round(amount * 0.35 * streakBoost);
+    S.cashoutBanked = clamp(S.cashoutBanked, 0, 9_999_999_999);
+  }
+  function cashoutAvailable(){ return cashoutReady(); }
+
+  function expireCashoutIfNeeded(){ /* handled by cooldown + streak timer */ }
+
+// ---- Cash Out Rework (streak-driven, timing & milestones) ----
+  // Goal: tempt players to *cash* their streak at milestones instead of mindlessly holding it.
+  const CASHOUT_MIN_STREAK = 6;       // when cashing becomes available
+  const CASHOUT_COOLDOWN_MS = 2500;   // after cashing out
+
+  function cashoutPotential(){
+    const s = Math.max(1, S.streak || 1);
+    if(s < CASHOUT_MIN_STREAK) return 0;
+
+    const milestones = Math.floor(s / 10); // every 10 feels special
+    const within = streakTimeLeftMs() / STREAK_WINDOW_MS; // 0..1
+    const timing = 0.70 + 0.30 * within; // more if you're actively tapping
+
+    // This grows fast enough to feel exciting, but not runaway:
+    // - streak curve (power-ish)
+    // - extra kicker at milestones
+    // - a little rush synergy
+    const curve = Math.pow(s, 1.22);
+    const kicker = 1 + milestones * 0.18;
+    const rush = 1 + (rushBonus() * 0.06);
+
+    const raw = (6 + curve) * kicker * timing * rush;
+    return Math.round(raw * cashoutMultiplier());
+  }
+
+  function cashoutReady(){
+    const now = Date.now();
+    return (now >= (S.cashoutCooldownUntil || 0)) && cashoutPotential() > 0;
+  }
+// ---- Micro objectives (simple, addictive, always something to do) ----
+  const OBJ_SLOTS = 3;
+
+  function ensureObjectives(){
+    if(!Array.isArray(S.objectives) || S.objectives.length !== OBJ_SLOTS){
+      S.objectives = [];
+      for(let i=0;i<OBJ_SLOTS;i++) S.objectives.push(makeObjective());
+      S.objStreak = Number(S.objStreak) || 0;
+    }
+  }
+
+  function makeObjective(){
+    // Keep objectives focused and fair. We gate harder ones behind progression.
+    const r = Number(S.renown) || 0;
+    const land = Number(S.land) || 0;
+    const w = Number(S.warriors) || 0;
+
+    const pool = [];
+
+    // Always available (core loop)
+    pool.push({ type:"tap", min: 12, max: 30, weight: 5 });
+    pool.push({ type:"tap", min: 35, max: 75, weight: 3 });
+
+    // Building goals (early-friendly)
+    pool.push({ type:"buildFarm",  min: 1, max: 1, weight: 4 });
+    if(r >= 700) pool.push({ type:"buildFarm",  min: 2, max: 2, weight: 2 });
+
+    // Villas are midgame-ish
+    if(r >= 900) pool.push({ type:"buildVilla", min: 1, max: 1, weight: 2 });
+    if(r >= 1800) pool.push({ type:"buildVilla", min: 2, max: 2, weight: 1 });
+
+    // Earn denarii objectives scale with progress (no ridiculous early targets)
+    const earnLow = (r < 800) ? {min: 120, max: 260} : {min: 260, max: 650};
+    pool.push({ type:"earnDen", min: earnLow.min, max: earnLow.max, weight: 3 });
+    if(r >= 2000) pool.push({ type:"earnDen", min: 700, max: 1600, weight: 2 });
+
+    // Recruit / cashout gated
+    if(w >= 0 && r >= 450) pool.push({ type:"recruit", min: 1, max: 1, weight: 2 });
+    if(w >= 2) pool.push({ type:"recruit", min: 1, max: 2, weight: 1 });
+
+    // Cashout is always available but low weight early (keeps flow)
+    pool.push({ type:"cashout", min: 1, max: 1, weight: (r < 900 ? 1 : 2) });
+
+    // Weighted pick
+    const totalW = pool.reduce((a,p)=>a+p.weight,0);
+    let roll = Math.random() * totalW;
+    let pick = pool[0];
+    for(const p of pool){
+      roll -= p.weight;
+      if(roll <= 0){ pick = p; break; }
+    }
+
+    const target = rnd(pick.min, pick.max);
+    const id = `${pick.type}_${Date.now()}_${rnd(100,999)}`;
+
+    // Reward design:
+    // - Early game: small, motivating, never absurd.
+    // - Midgame+: scales with land/crowns but gently.
+    const income = incomePerSec();
+    const baseDen = 18 + Math.floor(r/220) + (S.crowns*5) + Math.floor(land*2.2);
+    const targetFactor = 1 + (target * 0.06);
+
+    // Denarii reward mostly tied to income + target; capped early
+    let rewardDen = Math.round((baseDen + income*9) * targetFactor);
+    const earlyCap = (r < 900) ? 420 : (r < 2000 ? 950 : 9e9);
+    rewardDen = Math.min(rewardDen, earlyCap);
+
+    // Power reward small
+    let rewardPower = Math.max(1, Math.round(1 + target*0.03));
+    if(r < 700) rewardPower = Math.min(rewardPower, 3);
+    if(r < 1500) rewardPower = Math.min(rewardPower, 5);
+
+    return {
+      id,
+      type: pick.type,
+      target,
+      progress: 0,
+      rewardDen,
+      rewardPower,
+      claimed: false
+    };
+  }
+
+  function objText(o){
+    const left = Math.max(0, o.target - o.progress);
+    if(o.type==="tap") return `Tap ${o.target} times (${left} left)`;
+    if(o.type==="buildFarm") return `Build ${o.target} farm (${left} left)`;
+    if(o.type==="buildVilla") return `Build ${o.target} villa (${left} left)`;
+    if(o.type==="earnDen") return `Earn ${fmt(o.target)} denarii (${fmt(left)} left)`;
+    if(o.type==="recruit") return `Recruit ${o.target} warrior (${left} left)`;
+        if(o.type==="cashout") return `Cash out once (${left} left)`;
+    return `Do something (${left} left)`;
+  }
+
+  function objComplete(o){ return o.progress >= o.target; }
+
+  function bumpObjective(type, amount=1){
+    ensureObjectives();
+    for(const o of S.objectives){
+      if(o.claimed) continue;
+      if(o.type !== type) continue;
+      o.progress = clamp(o.progress + amount, 0, o.target);
+    }
+  }
+
+  function bumpEarnedDenarii(amount){
+    ensureObjectives();
+    for(const o of S.objectives){
+      if(o.claimed) continue;
+      if(o.type !== "earnDen") continue;
+      o.progress = clamp(o.progress + amount, 0, o.target);
+    }
+  }
+
+  function claimObjective(idx){
+    ensureObjectives();
+    const o = S.objectives[idx];
+    if(!o || o.claimed || !objComplete(o)) return;
+
+    o.claimed = true;
+    S.objStreak = (Number(S.objStreak)||0) + 1;
+
+    // payout
+    S.gold += o.rewardDen;
+    S.lifetimeGold += o.rewardDen;
+    S.power += o.rewardPower;
+
+    const ren = Math.max(1, Math.round(o.rewardDen/110));
+    S.renown += ren;
+    S.lifetimeRenown += ren;
+
+    logLine(`Objective complete! (+${fmt(o.rewardDen)} denarii)`, "good");
+    toast("Objective claimed");
+
+    // replace with a new one
+    S.objectives[idx] = makeObjective();
+  }
+
+  function renderObjectives(){
+    const list = $("#objList");
+    if(!list) return;
+    ensureObjectives();
+
+    $("#objStreak").textContent = fmt(S.objStreak || 0);
+
+    list.innerHTML = "";
+    S.objectives.forEach((o, i) => {
+      const row = document.createElement("div");
+      row.style.display = "flex";
+      row.style.alignItems = "center";
+      row.style.justifyContent = "space-between";
+      row.style.gap = "10px";
+
+      const left = document.createElement("div");
+      left.style.display = "flex";
+      left.style.flexDirection = "column";
+      left.style.gap = "2px";
+
+      const title = document.createElement("div");
+      title.style.fontFamily = "var(--mono)";
+      title.style.fontSize = ".78rem";
+      title.style.color = "var(--text)";
+      title.textContent = objText(o);
+
+      const small = document.createElement("div");
+      small.style.fontFamily = "var(--sans)";
+      small.style.fontSize = ".74rem";
+      small.style.color = "var(--muted)";
+      small.textContent = `Reward: +${fmt(o.rewardDen)} denarii • +${fmt(o.rewardPower)} power`;
+
+      left.appendChild(title);
+      left.appendChild(small);
+
+      const btn = document.createElement("button");
+      btn.className = "tab"; // reuse pill button style
+      btn.style.padding = "10px 12px";
+      btn.style.fontSize = ".74rem";
+      btn.textContent = objComplete(o) ? "Claim" : `${Math.floor((o.progress/Math.max(1,o.target))*100)}%`;
+      btn.disabled = !objComplete(o);
+      if(objComplete(o)) btn.classList.add("active");
+      btn.addEventListener("click", () => { claimObjective(i); render(); });
+
+      row.appendChild(left);
+      row.appendChild(btn);
+      list.appendChild(row);
+    });
+  }
+
+
+  // ---- Loot Chests (2-second dopamine overlay) ----
+  function chestRarityFrom(source){
+    // source: "skirmish" | "caravan" | "feast"
+    // Feast tends to be better.
+    const roll = Math.random();
+    const epicP = source==="feast" ? 0.14 : (source==="caravan" ? 0.08 : 0.05);
+    const rareP = source==="feast" ? 0.40 : (source==="caravan" ? 0.34 : 0.28);
+    if(roll < epicP) return "Epic";
+    if(roll < epicP + rareP) return "Rare";
+    return "Common";
+  }
+
+  function chestPalette(rarity){
+    if(rarity==="Epic") return { title:"Epic Chest", icon:"👑", border:"rgba(244,208,111,.55)" };
+    if(rarity==="Rare") return { title:"Rare Chest", icon:"🏺", border:"rgba(166,212,172,.55)" };
+    return { title:"Common Chest", icon:"🧰", border:"rgba(31,58,42,.85)" };
+  }
+
+  function makeChestLoot(rarity){
+    // Build 3 rewards. Keep it simple: denarii / power / renown OR a temp buff.
+    const mult = cashoutMultiplier();
+    const base = 35 + Math.floor(S.renown/160) + (S.crowns*7);
+
+    const rarityMult = (rarity==="Epic") ? 2.6 : (rarity==="Rare" ? 1.65 : 1.0);
+
+    const options = [
+      () => ({ kind:"den",  text:`+${fmt(Math.round((base*10) * rarityMult * mult))} denarii`, apply:()=>{
+        const amt = Math.round((base*10) * rarityMult * mult);
+        S.gold += amt; S.lifetimeGold += amt; bumpEarnedDenarii(amt);
+        const r = Math.max(1, Math.round(amt/130)); S.renown += r; S.lifetimeRenown += r;
+      }}),
+      () => ({ kind:"pow",  text:`+${fmt(Math.round((2 + base*0.03) * rarityMult))} power`, apply:()=>{
+        S.power += Math.round((2 + base*0.03) * rarityMult);
+      }}),
+      () => ({ kind:"ren",  text:`+${fmt(Math.round((6 + base*0.06) * rarityMult))} renown`, apply:()=>{
+        const amt = Math.round((6 + base*0.06) * rarityMult);
+        S.renown += amt; S.lifetimeRenown += amt;
+      }}),
+      () => ({ kind:"buf",  text:`Prosperity (20s)`, apply:()=>{
+        // income multiplier via prosperUntil (stacks by extending)
+        const now = Date.now();
+        const add = 20_000 + (rarity==="Epic" ? 12_000 : (rarity==="Rare" ? 6_000 : 0));
+        S.prosperUntil = Math.max(S.prosperUntil||0, now) + add;
+        toast("Prosperity!");
+      }}),
+    ];
+
+    // Rarity influences chance of buff appearing
+    const buffChance = (rarity==="Epic") ? 0.45 : (rarity==="Rare" ? 0.25 : 0.12);
+
+    const picks = [];
+    for(let i=0;i<3;i++){
+      let item;
+      if(chance(buffChance) && picks.filter(p=>p.kind==="buf").length===0){
+        item = options[3]();
+      }else{
+        // pick among den/pow/ren biased towards denarii
+        const r = Math.random();
+        item = (r < 0.55) ? options[0]() : (r < 0.78 ? options[1]() : options[2]());
+      }
+      picks.push(item);
+    }
+    return picks;
+  }
+
+  function showChest(source="caravan"){
+    const rarity = chestRarityFrom(source);
+    const loot = makeChestLoot(rarity);
+
+    const overlay = $("#chestOverlay");
+    const card = $("#chestCard");
+    const title = $("#chestTitle");
+    const icon = $("#chestIcon");
+    const hint = $("#chestHint");
+    const rev = [$("#rev1"), $("#rev2"), $("#rev3")];
+
+    const pal = chestPalette(rarity);
+    title.textContent = pal.title;
+    icon.textContent = pal.icon;
+    card.style.borderColor = pal.border;
+
+    // reset reveal
+    rev.forEach(r=>r.textContent = "?");
+    hint.textContent = "Tap to open";
+    overlay.style.display = "flex";
+
+    let opened = false;
+    let step = 0;
+
+    const finish = ()=>{
+      overlay.style.display = "none";
+      overlay.onclick = null;
+      // tiny burst
+      try{
+        const rect = card.getBoundingClientRect();
+        sparkAt(rect.left + rect.width*0.50, rect.top + rect.height*0.22);
+      }catch(e){}
+      render();
+    };
+
+    const revealNext = ()=>{
+      if(step >= 3) return;
+      const item = loot[step];
+      rev[step].textContent = item.text;
+      // apply immediately so the HUD updates after close
+      item.apply();
+      step += 1;
+      if(step >= 3){
+        hint.textContent = "Nice.";
+        setTimeout(finish, 850);
+      }
+    };
+
+    const open = ()=>{
+      if(opened) { revealNext(); return; }
+      opened = true;
+      hint.textContent = "Opening…";
+      // fast 3 reveals
+      revealNext();
+      setTimeout(revealNext, 220);
+      setTimeout(revealNext, 440);
+    };
+
+    // Tap anywhere on the card/backdrop to open/advance
+    overlay.onclick = open;
+
+    // Auto-close safety
+    setTimeout(()=>{
+      if(overlay.style.display !== "none") finish();
+    }, 2200);
+  }
+
+
+  function canAccess(view){
+    return (S.renown >= (unlock[view] ?? 0));
+  }
+
+  function setView(view){
+    if(!canAccess(view)){
+      const need = unlock[view] ?? 0;
+      toast(`Locked — need ${need} renown`);
+      return;
+    }
+    currentView = view;
+    $$(".view").forEach(v => v.hidden = v.dataset.view !== view);
+    $$(".tab").forEach(b => b.classList.toggle("active", b.dataset.go === view));
+    render();
+  }
+
+  // ---- UI render ----
+  function fmt(n){
+    n = Math.floor(n);
+    if(n < 10000) return String(n);
+    if(n < 1_000_000) return (n/1000).toFixed(1).replace(".0","") + "k";
+    if(n < 1_000_000_000) return (n/1_000_000).toFixed(1).replace(".0","") + "m";
+    return (n/1_000_000_000).toFixed(1).replace(".0","") + "b";
+  }
+
+  function renderTabs(){
+    $$(".tab").forEach(btn => {
+      const v = btn.dataset.go;
+      const ok = canAccess(v);
+      btn.disabled = !ok;
+      btn.title = ok ? "" : `Unlock at ${unlock[v]} renown`;
+    });
+  }
+
+  function updateTitleProgress(){
+    const r = S.renown;
+    const {cur, next} = titleInfo();
+    $("#title").textContent = cur.name;
+    $("#nextTitle").textContent = next.name;
+
+    const span = Math.max(1, next.need - cur.need);
+    const t = clamp((r - cur.need) / span, 0, 1);
+    $("#progressFill").style.width = (t*100).toFixed(1) + "%";
+  }
+
+  function statsRows(){
+    const rows = [
+      ["Gold", S.gold],
+      ["Renown", S.renown],
+      ["Power", S.power],
+      ["Income / sec", incomePerSec().toFixed(1)],
+      ["Tap base (tribute)", S.tribute],
+      ["Rank tap bonus", rankTributeBonus(titleInfo().idx)],
+      ["Streak", "x"+S.streak],
+      ["Crit chance", Math.round(critChance()*100)+"%"],
+      ["Farms", S.farmCount],
+      ["Villas", S.villaCount],
+      ["Warriors", S.warriors],
+            ["Legion strength", S.legion],
+      ["Raids won", S.battlesWon],
+      ["Land", S.land],
+      ["Influence", S.influence],
+      ["Population Used", S.populationUsed],
+      ["Population Cap", populationCap()],
+            ["Trade level", S.tradeLvl],
+      ["Tax rate", S.taxRate+"%"],
+      ["Caravans run", S.caravans],
+      ["Faith", S.faith],
+      ["Crowns (prestige)", S.crowns],
+      ["Decrees", S.decrees],
+      ["Multipliers", `Land x${landMult().toFixed(2)} • Market x${marketMult().toFixed(2)} • Decree x${decreeMult().toFixed(2)} • Crown x${crownMult().toFixed(2)}`],
+      ["Lifetime denarii", S.lifetimeGold],
+      ["Lifetime renown", S.lifetimeRenown],
+    ];
+    return rows;
+  }
+
+  function render(){
+    handleRankUps();
+    expireCashoutIfNeeded();
+    expireStreakIfNeeded();
+
+    $("#gold").textContent = fmt(S.gold);
+    $("#renown").textContent = fmt(S.renown);
+    $("#power").textContent = fmt(S.power);
+    $("#landHud").textContent = fmt(S.land || 0);
+
+    $("#incomeRate").textContent = incomePerSec().toFixed(1);
+
+    // Population display (village capacity)
+    const cap = populationCap();
+    const used = (S.populationUsed||0);
+    const pu = $("#popUsed"); const pc = $("#popCap");
+    if(pu && pc){ pu.textContent = fmt(used); pc.textContent = fmt(cap); }
+
+
+
+    // Village
+    const t = tapGain();
+    $("#tributeGain").textContent = `+${fmt(t.gain)} denarii`;
+    $("#tributeHint").textContent = `Streak x${S.streak} • ${Math.ceil(streakTimeLeftMs()/100)/10}s${rushBonus()>0 ? ` • RUSH +${rushBonus()}` : ""}${isBuffed() ? " • BLESSED" : ""}`;
+
+
+    // Cash Out UI
+    const cbtn = $("#btnCashout");
+    if(cbtn){
+      const pot = cashoutPotential();
+      const ready = cashoutReady();
+      cbtn.style.display = "flex";
+      cbtn.disabled = !ready;
+      const cd = Math.max(0, Math.ceil(((S.cashoutCooldownUntil||0) - Date.now())/1000));
+      if(pot <= 0){
+        $("#cashoutDesc").textContent = `Unlock at streak x${CASHOUT_MIN_STREAK}`;
+      }else if(cd>0){
+        $("#cashoutDesc").textContent = `Cooling down (${cd}s)`;
+      }else{
+        const ms = Math.floor((S.streak||1)/10);
+        $("#cashoutDesc").textContent = `Cash out +${fmt(pot)} denarii${ms>0 ? ` • Milestones ${ms}` : ""}`;
+      }
+    }
+
+
+    $("#farmDesc").textContent  = `${fmt(S.farmCount)} farms • Cost ${fmt(costFarm())} • +0.75/s each`;
+    $("#villaDesc").textContent = `${fmt(S.villaCount)} villas • Cost ${fmt(costVilla())} • +3.0/s each`;
+
+    updateTitleProgress();
+
+    // Legion
+    recalcLegionStrength();
+    $("#warriors").textContent = fmt(S.warriors);
+    $("#legionStr").textContent = fmt(S.legion);
+    $("#landLegion").textContent = fmt(S.land);
+    $("#landHud").textContent = fmt(S.land);
+
+    $("#recruitCost").textContent = `Cost ${fmt(recruitCost())}`;
+    $("#recruitGain").textContent = `+${fmt(recruitStrengthGain())} strength`;
+
+    // Battles unlock progressively with strength
+    const cd = Math.max(0, Math.ceil(((S.battleReadyAt||0) - Date.now())/1000));
+
+    const canVillage = (S.warriors||0) >= 1;
+    const canBandits = (S.warriors||0) >= 3;
+    const canTown    = (S.warriors||0) >= 7;
+
+    $("#btnBattleVillage").disabled = !canVillage || cd>0;
+    $("#btnBattleBandits").disabled = !canBandits || cd>0;
+    $("#btnBattleTown").disabled = !canTown || cd>0;
+
+    $("#battleVillageDesc").textContent = canVillage ? (cd>0 ? `Cooling down (${cd}s)` : `Gain land • small loot`) : `Need 1 warrior`;
+    $("#battleBanditsDesc").textContent = canBandits ? (cd>0 ? `Cooling down (${cd}s)` : `Loot chest • casualties`) : `Need 3 warriors`;
+    $("#battleTownDesc").textContent = canTown ? (cd>0 ? `Cooling down (${cd}s)` : `Big land • big risk`) : `Need 7 warriors`;
+
+
+    // Village capacity hint
+    if(!hasVillageCapacity()){
+      $("#battleVillageDesc").textContent = "Village at capacity — build farms or take land";
+    }
+
+
+    // Trade
+    $("#tradeLvl").textContent = fmt(S.tradeLvl);
+    const carCd = Math.max(0, Math.ceil((S.caravanReadyAt - Date.now())/1000));
+    $("#caravanReward").textContent = `+${fmt(caravanReward())} denarii`;
+    $("#caravanCd").textContent = carCd>0 ? `CD ${carCd}s` : "Ready";
+    $("#marketDesc").textContent = `Lvl ${S.tradeLvl} • Cost ${fmt(marketCost())} • boosts income`;
+    $("#taxDesc").textContent = `Costs influence • +renown trickle`;
+    $("#taxRate").textContent = S.taxRate + "%";
+    $("#caravans").textContent = fmt(S.caravans);
+    $("#btnCaravan").disabled = carCd>0;
+
+    // Temple
+    $("#crowns").textContent = fmt(S.crowns);
+    $("#offerCost").textContent = `Cost ${fmt(offerCost())}`;
+    $("#faithNow").textContent = `Faith ${fmt(S.faith)}`;
+    $("#critRate").textContent = Math.round(critChance()*100) + "%";
+    const buffLeft = Math.max(0, Math.ceil((S.buffUntil - Date.now())/1000));
+    $("#buffLeft").textContent = buffLeft + "s";
+    const blessCd = Math.max(0, Math.ceil((S.blessReadyAt - Date.now())/1000));
+    $("#blessDesc").textContent = blessCd>0 ? `CD ${blessCd}s • doubles crits` : `Ready • doubles crits`;
+    $("#btnBless").disabled = blessCd>0;
+    const crownsGain = ascendCrownGain();
+    $("#ascendDesc").textContent = crownsGain>0 ? `Reset for +${crownsGain} crowns` : `Need 25,000 renown`;
+
+    // Court
+    $("#inf2").textContent = fmt(S.influence);
+    $("#decrees").textContent = fmt(S.decrees);
+    $("#courtCost").textContent = `Cost ${fmt(courtCost())} influence`;
+    $("#courtGain").textContent = `+${fmt(courtRenownGain())} renown`;
+    $("#decreeDesc").textContent = `Cost ${fmt(decreeCostGold())}d +${fmt(decreeCostInf())} inf • perm boosts`;
+    const feastCd = Math.max(0, Math.ceil((S.feastReadyAt - Date.now())/1000));
+    $("#feastCd").textContent = feastCd + "s";
+    $("#feastDesc").textContent = feastCd>0 ? `CD ${feastCd}s` : `Cost ${fmt(feastCostGold())} denarii • +${fmt(feastRenown())} renown`;
+    $("#btnFeast").disabled = feastCd>0;
+
+    // Stats
+    const body = $("#statsTable");
+    if(body){
+      body.innerHTML = "";
+      for(const [k,v] of statsRows()){
+        const tr = document.createElement("tr");
+        const td1 = document.createElement("td");
+        const td2 = document.createElement("td");
+        td1.textContent = k;
+        td2.textContent = (typeof v === "number") ? fmt(v) : String(v);
+        tr.appendChild(td1); tr.appendChild(td2);
+        body.appendChild(tr);
+      }
+    }
+
+    // global
+    renderTabs();
+    renderObjectives();
+    $("#subline").textContent = (Date.now() < (S.prosperUntil||0))
+      ? "Prosperity active — income is boosted."
+      : (isBuffed()
+          ? "Blessing active — crits are juiced."
+          : "Unlock tabs by earning renown. Prestige later for crowns.");
+    save(true);
+  }
+
+  // ---- Actions ----
+  $("#btnTribute").addEventListener("click", (e)=>{
+    applyStreak();
+    const {gain, crit} = tapGain();
+
+    // Jackpots: rare huge spikes layered on top of small taps
+    const jp = rollJackpot();
+    let jackpotGain = 0;
+    if(jp){
+      // Jackpot scales with your effective tap gain (already includes multipliers)
+      jackpotGain = Math.round(gain * jp.mult);
+      toast(jp.type + "!");
+      logLine(`${jp.type}! (+${fmt(jackpotGain)} denarii)`, "good");
+    }
+
+    S.gold += (gain + jackpotGain);
+    S.lifetimeGold += (gain + jackpotGain);
+
+    bumpObjective("tap", 1);
+    bumpEarnedDenarii(gain + jackpotGain);
+    const ren = Math.max(1, Math.round(gain/14) + Math.round(jackpotGain/70));
+    S.renown += ren;
+    S.lifetimeRenown += ren;
+    S.power += 1 + (crit ? 1 : 0);
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    sparkAt(rect.left + rect.width*0.78, rect.top + rect.height*0.42);
+
+    if(jp){ for(let i=0;i<3;i++) sparkAt(rect.left + rect.width*(0.55 + i*0.12), rect.top + rect.height*0.30); }
+
+    if(crit){ toast("CRIT!"); logLine(`CRIT tribute! (+${fmt(gain)} denarii)`, "good"); }
+    else if(S.streak % 7 === 0) logLine(`Tribute collected. (+${fmt(gain)} denarii)`, "good");
+
+    // gentle soft cap
+    S.power = clamp(S.power, 0, 99999);
+    
+    // Cash Out: bank some value as you tap; becomes claimable every few taps.
+    S.tapsSinceCashout += 1;
+    bankCashout(gain + Math.round(jackpotGain*0.08));
+    
+render();
+  });
+
+  $("#btnFarm").addEventListener("click", ()=>{
+    const c = costFarm();
+    if(S.gold < c){ toast("Not enough denarii"); return; }
+    S.gold -= c;
+    S.farmCount += 1;
+    bumpObjective("buildFarm", 1);
+    S.renown += 6;
+    logLine("A farm feeds your people. (+income)", "good");
+    toast("Village capacity grows");
+    render();
+  });
+
+  $("#btnVilla").addEventListener("click", ()=>{
+    const c = costVilla();
+    if(S.gold < c){ toast("Not enough denarii"); return; }
+    S.gold -= c;
+    S.villaCount += 1;
+    bumpObjective("buildVilla", 1);
+    S.renown += 10;
+    logLine("A villa rises. The taxes flow.", "good");
+    toast("Built");
+    render();
+  });
+  $("#btnRecruit").addEventListener("click", (e)=>{
+    const c = recruitCost();
+    if(S.gold < c){ toast("Not enough denarii"); return; }
+    if(!hasVillageCapacity()){ toast("Need more farms to support warriors"); return; }
+    S.gold -= c;
+    S.warriors += 1;
+    S.populationUsed = (S.populationUsed || 0) + 1;
+    recalcLegionStrength();
+
+    // Recruiting gives power and renown (feels like progress)
+    S.power += 2;
+    S.renown += 18;
+    bumpObjective("recruit", 1);
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    sparkAt(rect.left + rect.width*0.80, rect.top + rect.height*0.45);
+
+    toast("Recruited");
+    logLine(`A warrior joins your banner. (Warriors: ${fmt(S.warriors)})`, "good");
+    render();
+  });
+  function doBattle(risk, source){
+    const now = Date.now();
+
+    // 3-second streak window
+    if(now - (S.lastTap||0) <= STREAK_WINDOW_MS){ S.streak += 1; } else { S.streak = 1; }
+    S.lastTap = now;
+    if(now < (S.battleReadyAt||0)){ toast("Cooling down"); return; }
+
+    const winP = battleWinProb(risk);
+    const win = chance(winP);
+
+    // casualties always (believable), less if you're strong
+    const losses = battleCasualties(risk);
+    S.warriors = Math.max(0, S.warriors - losses);
+    recalcLegionStrength();
+
+    S.battleReadyAt = now + battleCooldownMs(risk);
+
+    if(win){
+      const landGain = (risk===1) ? 1 : (risk===2 ? rnd(1,2) : rnd(2,4));
+      S.land += landGain;
+
+      const loot = Math.round((120 + risk*140 + (S.battlesWon||0)*35) * landMult() * crownMult());
+      S.gold += loot; S.lifetimeGold += loot; bumpEarnedDenarii(loot);
+
+      const ren = Math.max(1, Math.round((loot/140) + risk*2));
+      S.renown += ren; S.lifetimeRenown += ren;
+
+      // Influence: needed for taxes/court. Winning battles generates it.
+      const inf = Math.max(1, Math.round(risk + landGain));
+      S.influence += inf;
+
+      S.battlesWon = (S.battlesWon||0) + 1;
+
+      toast("Victory!");
+      logLine(`Victory! (+${fmt(loot)} denarii, +${fmt(landGain)} land, -${fmt(losses)} warriors)`, "good");
+    }else{
+      const lost = Math.min(S.gold, Math.round(60 + risk*70));
+      S.gold -= lost;
+      S.power = Math.max(0, S.power - (risk===3 ? 3 : 2));
+
+      toast("Defeat");
+      logLine(`Defeat. (-${fmt(lost)} denarii, -${fmt(losses)} warriors)`, "bad");
+    }
+
+    // Drop a loot chest after battle (fits your dopamine loop)
+    showChest(source);
+    render();
+  }
+
+  $("#btnBattleVillage").addEventListener("click", ()=> doBattle(1, "skirmish"));
+  $("#btnBattleBandits").addEventListener("click", ()=> doBattle(2, "skirmish"));
+  $("#btnBattleTown").addEventListener("click", ()=> doBattle(3, "skirmish"));
+
+
+
+    // Skirmish: optional combat later (tiny screen footprint)
+  
+
+              $("#btnCaravan").addEventListener("click", (e)=>{
+    const now = Date.now();
+    if(now < S.caravanReadyAt){ toast("Caravan on the road"); return; }
+    S.caravanReadyAt = now + 55_000;
+
+    const reward = caravanReward();
+    S.gold += reward;
+    S.lifetimeGold += reward;
+    bumpEarnedDenarii(reward);
+    const r = Math.round(reward/10);
+    S.renown += r;
+    S.lifetimeRenown += r;
+    S.caravans += 1;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    sparkAt(rect.left + rect.width*0.76, rect.top + rect.height*0.45);
+
+    toast("Profit!");
+    showChest("caravan");
+    render();
+  });
+
+  $("#btnMarket").addEventListener("click", ()=>{
+    const c = marketCost();
+    if(S.gold < c){ toast("Not enough denarii"); return; }
+    S.gold -= c;
+    S.tradeLvl += 1;
+    S.renown += 18;
+    toast("Market up");
+    render();
+  });
+
+  $("#btnTax").addEventListener("click", ()=>{
+    const c = taxCostInf();
+    if(S.influence < c){ toast("Need more influence"); return; }
+    S.influence -= c;
+    S.taxRate = clamp(S.taxRate + 5, 0, 50);
+    toast("Taxes set");
+    render();
+  });
+
+  $("#btnOffer").addEventListener("click", ()=>{
+    const c = offerCost();
+    if(S.gold < c){ toast("Not enough denarii"); return; }
+    S.gold -= c;
+    const f = offerFaithGain();
+    S.faith += f;
+    S.renown += 12;
+    toast("Blessed");
+    render();
+  });
+
+  $("#btnBless").addEventListener("click", ()=>{
+    const now = Date.now();
+    if(now < S.blessReadyAt){ toast("Cooling down"); return; }
+    S.blessReadyAt = now + blessCooldownMs();
+    S.buffUntil = now + blessDurationMs();
+    toast("Blessing!");
+    render();
+  });
+
+  $("#btnAscend").addEventListener("click", ()=>{
+    const gain = ascendCrownGain();
+    if(gain <= 0){ toast("Need 25,000 renown"); return; }
+    if(!confirm(`Ascend for +${gain} crowns? (Resets most progress)`)) return;
+
+    const keepCrowns = S.crowns + gain;
+    S = defaultState();
+    S.crowns = keepCrowns;
+    $("#log").innerHTML = "";
+    logLine(`You ascend. Crowns: ${fmt(S.crowns)}.`, "warn");
+    toast("Ascended");
+    save(true);
+    setView("village");
+  });
+
+  $("#btnCourt").addEventListener("click", (e)=>{
+    const c = courtCost();
+    if(S.influence < c){ toast("Need more influence"); return; }
+    S.influence -= c;
+    const g = courtRenownGain();
+    S.renown += g;
+    S.lifetimeRenown += g;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    sparkAt(rect.left + rect.width*0.70, rect.top + rect.height*0.52);
+
+    toast("Applauded");
+    render();
+  });
+
+  $("#btnDecree").addEventListener("click", ()=>{
+    const g = decreeCostGold();
+    const i = decreeCostInf();
+    if(S.gold < g){ toast("Not enough denarii"); return; }
+    if(S.influence < i){ toast("Need more influence"); return; }
+    S.gold -= g; S.influence -= i;
+    S.decrees += 1;
+    S.renown += 60;
+    toast("Decreed");
+    render();
+  });
+
+  $("#btnFeast").addEventListener("click", ()=>{
+    const now = Date.now();
+    if(now < S.feastReadyAt){ toast("Cooling down"); return; }
+    const c = feastCostGold();
+    if(S.gold < c){ toast("Not enough denarii"); return; }
+    S.gold -= c;
+    S.feastReadyAt = now + feastCooldownMs();
+
+    const r = feastRenown();
+    S.renown += r;
+    S.lifetimeRenown += r;
+
+    toast("Feast!");
+    showChest("feast");
+    render();
+  });
+
+  
+  $("#btnCashout").addEventListener("click", (e)=>{
+    if(!cashoutReady()){ toast("Not ready"); return; }
+
+    const payout = cashoutPotential();
+    if(payout <= 0){ toast("No bonus"); return; }
+
+    S.gold += payout;
+    S.lifetimeGold += payout;
+    bumpEarnedDenarii(payout);
+
+    // Small renown kicker (keeps it meaningful)
+    const r = Math.max(1, Math.round(payout/160));
+    S.renown += r;
+    S.lifetimeRenown += r;
+
+    // Cashing out resets streak: this is the decision point.
+    S.streak = 1;
+    S.lastTap = Date.now();
+
+    // Short cooldown so players can't spam-cash at low streaks.
+    S.cashoutCooldownUntil = Date.now() + CASHOUT_COOLDOWN_MS;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    sparkAt(rect.left + rect.width*0.55, rect.top + rect.height*0.55);
+
+    toast("Cashed out!");
+    logLine(`Cashed out for +${fmt(payout)} denarii`, "good");
+    bumpObjective("cashout", 1);
+
+    render();
+  });
+
+$("#btnExport").addEventListener("click", async ()=>{
+    try{
+      await navigator.clipboard.writeText(JSON.stringify(S));
+      toast("Copied");
+    }catch(e){
+      toast("Clipboard blocked");
+    }
+  });
+
+  $("#btnReset").addEventListener("click", ()=>{
+    if(!confirm("Erase save on this device?")) return;
+    localStorage.removeItem(STORAGE_KEY);
+    S = defaultState();
+    $("#log").innerHTML = "";
+    toast("Reset");
+    setView("village");
+  });
+
+  // Tabs click
+  $$(".tab").forEach(btn=>{
+    btn.addEventListener("click", ()=> setView(btn.dataset.go));
+  });
+
+  // Passive tick (keeps progression going)
+  let last = Date.now();
+  setInterval(()=>{
+    const now = Date.now();
+    const dt = (now - last)/1000;
+    last = now;
+
+    // Passive income
+    const inc = incomePerSec() * dt;
+    if(inc > 0){
+      S.gold += inc;
+      S.lifetimeGold += inc;
+    }
+
+    // Gentle renown drip from taxes (optional, low noise)
+    if(S.taxRate > 0){
+      const drip = (S.taxRate/100) * (0.10 + S.tradeLvl*0.025) * dt * crownMult();
+      S.renown += drip;
+      S.lifetimeRenown += drip;
+    }
+
+    // Power slowly decays a tiny bit if huge (keeps choices meaningful)
+    if(S.power > 500) S.power -= (S.power-500) * 0.0006 * dt;
+
+    render();
+  }, 650);
+
+  // First paint
+  $("#log").innerHTML = "";
+  logLine("A small village. A few denarii. A long road to the crown.", "warn");
+  render();
+})();
+</script>
+
+  <!-- Loot Chest Overlay -->
+  <div id="chestOverlay" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:2000;">
+    <div id="chestBackdrop" style="position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);"></div>
+    <div id="chestCard" class="card" style="position:relative;width:min(520px, calc(100vw - 26px));border-radius:26px;overflow:hidden;">
+      <div class="sectionTitle" style="justify-content:center;">
+        <span id="chestTitle" style="color:var(--accent);font-weight:900;">Chest</span>
+      </div>
+      <div class="cardBody" style="text-align:center; padding:16px 14px 14px;">
+        <div id="chestIcon" style="font-size:56px;line-height:1.0;filter:drop-shadow(0 12px 18px rgba(0,0,0,.25));">🧰</div>
+        <div id="chestHint" style="margin-top:10px;font-family:var(--mono);color:var(--muted);font-size:.80rem;">Tap to open</div>
+
+        <div id="revealRow" style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+          <div class="card" style="box-shadow:none;border-radius:18px;border-color:rgba(31,58,42,.75);">
+            <div class="cardBody" style="padding:14px 10px;">
+              <div class="pill" id="rev1" style="display:inline-block;">?</div>
+            </div>
+          </div>
+          <div class="card" style="box-shadow:none;border-radius:18px;border-color:rgba(31,58,42,.75);">
+            <div class="cardBody" style="padding:14px 10px;">
+              <div class="pill" id="rev2" style="display:inline-block;">?</div>
+            </div>
+          </div>
+          <div class="card" style="box-shadow:none;border-radius:18px;border-color:rgba(31,58,42,.75);">
+            <div class="cardBody" style="padding:14px 10px;">
+              <div class="pill" id="rev3" style="display:inline-block;">?</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="chestSub" style="margin-top:12px;font-family:var(--sans);color:var(--muted);font-size:.78rem;line-height:1.25;">
+          Quick rewards. No menus. Back to the grind.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
