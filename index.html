@@ -289,7 +289,6 @@
     }
 
 
-
     /* --- Mobile header compact mode (keeps HUD, removes banner text) --- */
     @media (max-width: 520px){
       .top{padding:6px 0 6px; align-items:center;}
@@ -300,6 +299,14 @@
     }
     /* If description exists anywhere, don't show it */
     .sub{display:none !important;}
+
+
+    /* Battle simulation overlay transitions */
+    #battleSimOverlay{ opacity:0; pointer-events:none; transition: opacity .22s ease-out; }
+    #battleSimOverlay.visible{ opacity:1; pointer-events:auto; }
+    #battleSimCard{ transform: translateY(18px) scale(.94); opacity:0; transition: transform .26s ease-out, opacity .26s ease-out; }
+    #battleSimOverlay.visible #battleSimCard{ transform: translateY(0) scale(1); opacity:1; }
+    .simLine{ margin:0 0 10px; }
 
 </style>
 </head>
@@ -871,6 +878,9 @@ temple: 5200,
     }
     S.lastTap = now;
 
+    // Objective: reach a streak threshold (counts when you hit/hold it)
+    bumpObjective("streak", Math.max(0, S.streak - (prev||0)));
+
     // Track best streak across all runs
     if(!S.bestStreak || S.streak > S.bestStreak){
       S.bestStreak = S.streak;
@@ -934,17 +944,6 @@ temple: 5200,
     return Math.round(420 * Math.pow(1.07, S.villaCount));
   }
 
-  function drillCost(){ return Math.round(140 * Math.pow(1.22, Math.floor(S.legion/4)) * (1 + S.power/220)); }
-  function drillPowerGain(){ return Math.max(2, Math.round(2 + (S.legion/22))); }
-
-  function hireCost(){ return Math.round(220 * Math.pow(1.26, Math.floor(S.legion/5))); }
-  function raidMinStr(){ return 18 + S.battlesWon*2; }
-
-  function raidPowerCost(){
-    // Raids should feel like a commitment; cost scales but stays affordable when strong.
-    return Math.round(5 + S.battlesWon*0.25 + Math.max(0, (raidMinStr() - S.legion)) * 0.05);
-  }
-
 
   function recruitCost(){
     // Scale like farms: gentle growth so armies stay affordable
@@ -980,77 +979,74 @@ temple: 5200,
     const b = BATTLES[key];
     const enemies = rnd(b.enemyMin, b.enemyMax);
 
-    // Your side: warriors + a small boost from "power" (tech/organization)
-    const perWarrior = 6;
+    // --- Power model ---
+    // Bandits should remain easy forever; harder tiers scale slightly with your campaign success.
+    const wins = (S.battlesWon||0);
+
+    const tierMult =
+      (key==="bandits") ? 0.75 :
+      (key==="levy")    ? 1.00 :
+      (key==="village") ? 1.15 :
+      (key==="siege")   ? 1.35 : 1.0;
+
+    // How much enemies "learn" over time (very small for bandits)
+    const learnDiv =
+      (key==="bandits") ? 1000 :
+      (key==="levy")    ? 260  :
+      (key==="village") ? 190  :
+      (key==="siege")   ? 140  : 250;
+
+    const learn = 1 + clamp(wins / learnDiv, 0, 0.18);
+
+    // Your side: warriors are the main factor; power and land give small, readable boosts.
     const yourTroops = Math.max(0, S.warriors||0);
-    const yourPower = (yourTroops * perWarrior) * (1 + clamp((S.power||0)/2500, 0, 0.20));
+    const perWarrior = 6;
 
-    // Enemy: count scales their power; late-game unrest/battles won makes them a bit tougher
-    const enemyPower = enemies * (1.0 + clamp((S.battlesWon||0)/120, 0, 0.25));
+    const org = 1 + clamp((S.power||0)/1800, 0, 0.28);   // organization/gear
+    const terrain = 1 + clamp((S.land||0)/90, 0, 0.18);  // better supply lines
+    const yourPower = (yourTroops * perWarrior) * org * terrain;
 
-    // Win probability: smooth, always uncertain
-    const base = (yourPower <= 0) ? 0.0 : (yourPower / (yourPower + enemyPower));
-    const winP = clamp(0.08 + 0.86*base, 0.05, 0.97);
+    // Enemy power: count * tier difficulty * slight learning
+    const enemyPower = enemies * tierMult * learn;
+
+    // --- Win chance ---
+    // Use a sigmoid on relative advantage so big leads feel *very* safe.
+    // advantage > 0 => you're stronger
+    const denom = Math.max(12, 0.25*(yourPower + enemyPower));
+    const advantage = (yourPower - enemyPower) / denom; // roughly -? .. +?
+    const winP = clamp(1/(1+Math.exp(-advantage)) , 0.03, 0.985);
 
     const win = chance(winP);
 
-    // Casualties depend on relative power and outcome
+    // --- Casualties ---
+    // Losses scale with pressure; overwhelming wins can be clean (0 losses).
     const pressure = clamp(enemyPower / Math.max(1, yourPower + enemyPower), 0.05, 0.95);
-    const outcomeMult = win ? 0.45 : 0.95; // defeats hurt
-    const noise = 0.85 + Math.random()*0.35;
+    const outcomeMult = win ? 0.55 : 1.05; // defeats hurt more
+    const noise = 0.80 + Math.random()*0.45;
 
-    // Troops actually die (warriors are your "troops")
     let losses = Math.round(yourTroops * pressure * outcomeMult * noise);
 
-    // Ensure battles feel costly at higher tiers, but never delete the whole army from one roll
-    const cap = win ? Math.max(1, Math.floor(yourTroops*0.35)) : Math.max(1, Math.floor(yourTroops*0.65));
+    const cap = win ? Math.max(0, Math.floor(yourTroops*0.30)) : Math.max(1, Math.floor(yourTroops*0.70));
     losses = clamp(losses, 0, cap);
 
-    // If you fought with troops, usually lose at least 1 (keeps it believable)
-    if(yourTroops > 0) losses = Math.max(1, losses);
+    // Only enforce a minimum loss when the fight was actually close.
+    if(yourTroops > 0){
+      const closeFight = yourPower < enemyPower * 1.35;
+      if(!win){
+        losses = Math.max(1, losses);
+      }else if(closeFight){
+        losses = Math.max(1, losses);
+      }
+    }
 
     return { enemies, winP, win, losses };
   }
 
 
-  function skirmishUnlocked(){
-    // Available as soon as you have at least one warrior (micro, simple)
-    return (S.warriors || 0) >= 1;
-  }
-  function raidWinProb(){
-    // Probability depends on how much you overmatch the requirement.
-    // If you're barely at the requirement: ~70%. If you're much stronger: up to ~96%.
-    const req = raidMinStr();
-    const ratio = clamp(S.legion / Math.max(1, req), 0, 3);
-    const base = 0.58 + 0.22 * Math.tanh((ratio - 1) * 1.2); // smooth curve around 1.0
-    const powerBoost = clamp(S.power / 2000, 0, 0.06);
-    return clamp(base + 0.18 + powerBoost, 0.70, 0.96);
+  function offerCost(){
+    return Math.round(600 * Math.pow(1.34, Math.floor((S.faith||0)/120)));
   }
 
-  function raidCasualties(win){
-    // Casualties scale with how close you are to the requirement.
-    // Stronger armies take fewer losses. Win losses are small; fail losses are bigger.
-    const req = raidMinStr();
-    const ratio = clamp(S.legion / Math.max(1, req), 0, 3);
-    const closeness = clamp(1.25 - ratio, 0, 1); // 0 when overmatched, 1 when under
-    const minPct = win ? 0.002 : 0.010;
-    const maxPct = win ? 0.020 : 0.070;
-    const pct = minPct + (maxPct - minPct) * closeness;
-    const noise = (rnd(-25, 25) / 1000); // +/-2.5%
-    const loss = Math.max(0, Math.round(S.legion * clamp(pct + noise, minPct, maxPct)));
-    // Always at least 1 loss on a raid if you have a legion (keeps it believable)
-    return (S.legion > 0) ? Math.max(1, loss) : 0;
-  }
-
-  function expandGoldCost(){ return Math.round(1400 * Math.pow(1.62, S.land) * Math.pow(1.18, S.tradeLvl)); }
-  function expandPowerCost(){ return Math.round(22 * Math.pow(1.24, S.land)); }
-
-  function governGain(){ return Math.max(1, Math.round(1 + S.land*0.35)); }
-  function governCostPower(){ return Math.round(6 + S.land*1.2); }
-
-  function roadsCost(){ return Math.round(260 * Math.pow(1.28, S.roads)); }
-
-  function offerCost(){ return Math.round(600 * Math.pow(1.34, Math.floor(S.faith/120))); }
   function offerFaithGain(){
     return Math.round(22 + (S.land*2));
   }
@@ -1215,6 +1211,9 @@ temple: 5200,
     // Easy, always-present tap objective
     pushObj({ type:"tap", min: 10, max: 24, weight: 5 });
 
+    // Streak objective: encourages timing skill; always achievable
+    pushObj({ type:"streak", min: 6, max: 18 + progTier*3, weight: 3 });
+
     // Harder tap chains that scale with progTier
     if(progTier >= 2){
       const baseTap = 25 + (progTier-1)*10;
@@ -1255,13 +1254,6 @@ temple: 5200,
 
     // --- Legion / land objectives ---
     if(r >= unlock.legion){
-      // Win battles
-      pushObj({
-        type:"winBattle",
-        min: 1,
-        max: Math.min(4, 1 + progTier),
-        weight: 3
-      });
       // Gain land
       pushObj({
         type:"gainLand",
@@ -1307,14 +1299,6 @@ temple: 5200,
       });
     }
 
-    // Cashout is always possible but not spammed
-    pushObj({
-      type:"cashout",
-      min: 1,
-      max: 1,
-      weight: (r < 900 ? 1 : 2)
-    });
-
     // Fallback if somehow pool is empty
     if(pool.length === 0){
       pushObj({ type:"tap", min: 10, max: 20, weight: 1 });
@@ -1350,7 +1334,7 @@ temple: 5200,
 
     // Power reward: small but scales with target + tier
     let rewardPower = Math.max(1, Math.round(1 + target*0.05 + progTier*0.4));
-    rewardPower = clamp(rewardPower, 1, 30);
+    rewardPower = clamp(rewardPower, 1, 45);
 
     return {
       id,
@@ -1369,6 +1353,23 @@ temple: 5200,
     if(o.type==="tap")
       return `Tap ${o.target} times (${left} left)`;
 
+
+    if(o.type==="streak")
+      return `Reach streak x${o.target} (best this run: x${Math.max(1, S.streak||1)})`;
+
+    if(o.type==="winBandits")
+      return `Win ${o.target} bandit skirmish${o.target>1?"es":""} (${left} left)`;
+
+    if(o.type==="winLevy")
+      return `Win ${o.target} levy battle${o.target>1?"s":""} (${left} left)`;
+
+    if(o.type==="winVillage")
+      return `Win ${o.target} village assault${o.target>1?"s":""} (${left} left)`;
+
+    if(o.type==="winSiege")
+      return `Win ${o.target} siege${o.target>1?"s":""} (${left} left)`;
+
+
     if(o.type==="buildFarm")
       return `Build ${o.target} farm${o.target>1?"s":""} (${left} left)`;
 
@@ -1380,9 +1381,6 @@ temple: 5200,
 
     if(o.type==="recruit")
       return `Recruit ${o.target} warrior${o.target>1?"s":""} (${left} left)`;
-
-    if(o.type==="cashout")
-      return `Cash out ${o.target} time${o.target>1?"s":""} (${left} left)`;
 
     if(o.type==="winBattle")
       return `Win ${o.target} battle${o.target>1?"s":""} (${left} left)`;
@@ -1764,7 +1762,6 @@ temple: 5200,
   }
 
 
-
   function canAccess(view){
     return (S.renown >= (unlock[view] ?? 0));
   }
@@ -1859,7 +1856,6 @@ temple: 5200,
     const used = (S.populationUsed||0);
     const pu = $("#popUsed"); const pc = $("#popCap");
     if(pu && pc){ pu.textContent = fmt(used); pc.textContent = fmt(cap); }
-
 
 
     // Village
@@ -2103,6 +2099,140 @@ render();
   // expose for overlay inline buttons
   window.closeBattleReport = closeBattleReport;
   window.showBattleReport = showBattleReport;
+  // --- Battle Simulation (cinematic log before the report) ---
+  function battleFlavor(key){
+    if(key==="bandits") return { place:["dusty ravine","cracked road","olive grove","dry creekbed"], foe:["bandits","raiders","cutthroats","brigands"] };
+    if(key==="levy")    return { place:["lord's fields","river ford","stone bridge","low hills"], foe:["levy militia","local host","armed retainers","spearmen"] };
+    if(key==="village") return { place:["outskirts of the village","walled hamlet","grain stores","market square"], foe:["village defenders","militia line","watchmen","shield wall"] };
+    if(key==="siege")   return { place:["town gates","outer palisade","city walls","battered breach"], foe:["garrison","town guard","veterans","bowmen"] };
+    return { place:["battlefield"], foe:["enemy"] };
+  }
+
+  function generateBattleLines(rep, key){
+    const f = battleFlavor(key);
+    const place = f.place[rnd(0, f.place.length-1)];
+    const foe = f.foe[rnd(0, f.foe.length-1)];
+
+    // Derived "tempo"
+    const before = Math.max(1, rep.beforeWarriors||1);
+    const lossPct = (rep.losses||0) / before;
+    const cleanWin = rep.win && lossPct <= 0.03;
+    const costlyWin = rep.win && lossPct >= 0.18;
+    const close = rep.winP < 0.62;
+    const stomp = rep.winP > 0.93;
+
+    const lines = [];
+    lines.push(`The battle commences at the ${place}.`);
+    lines.push(`Scouts report ${fmt(rep.enemies)} ${foe} ahead.`);
+
+    if(stomp) lines.push("Your warriors advance in tight order. Confidence runs through the ranks.");
+    else if(close) lines.push("The omens are uncertain. Your line steadies as the enemy surges forward.");
+    else lines.push("Steel flashes as both sides collide. Standards rise above the dust.");
+
+    // Mid-fight variation
+    if(rep.win){
+      if(cleanWin){
+        lines.push("Your forces flank the enemy and break their will.");
+        lines.push("Momentum builds—shields slam, spears drive, and the foe scatters.");
+      }else if(costlyWin){
+        lines.push("The enemy fights savagely. Your front buckles, then holds.");
+        lines.push("A desperate push turns the tide. The line reforms and presses on.");
+      }else{
+        lines.push("Your warriors find an opening and press it hard.");
+        lines.push("The enemy line wavers under sustained pressure.");
+      }
+
+      lines.push("The foe collapses—routs begin, and your banner remains standing.");
+
+      // Loss flavor
+      if(rep.losses <= 2) lines.push("Few fall. The men cheer and regroup.");
+      else if(rep.losses <= 8) lines.push("You count the fallen. Veterans drag the wounded from the field.");
+      else lines.push("The victory is paid in blood. Names are spoken over the dead.");
+    }else{
+      lines.push("The enemy holds firm and answers every charge.");
+      lines.push("Your formation frays. A gap opens—then widens.");
+      lines.push("A horn sounds retreat. Survivors pull back under a hail of stones and arrows.");
+      if(rep.losses <= 4) lines.push("You escape with minor losses, but the shame stings.");
+      else if(rep.losses <= 12) lines.push("The retreat is costly. You vow to return stronger.");
+      else lines.push("It is a rout. You regroup with what remains of your warriors.");
+    }
+
+    return lines;
+  }
+
+  function showBattleSimulation(rep, key){
+    const overlay = document.getElementById("battleSimOverlay");
+    const title = document.getElementById("battleSimTitle");
+    const log = document.getElementById("battleSimLog");
+    const enemies = document.getElementById("battleSimEnemies");
+    const odds = document.getElementById("battleSimOdds");
+    const btnSkip = document.getElementById("battleSimSkip");
+    const btnContinue = document.getElementById("battleSimContinue");
+
+    if(!overlay || !log || !title || !enemies || !odds) return false;
+
+    title.textContent = rep.label;
+    enemies.textContent = fmt(rep.enemies);
+    odds.textContent = `${Math.round(rep.winP*100)}%`;
+
+    log.innerHTML = "";
+    btnContinue.style.display = "none";
+    btnContinue.onclick = null;
+
+    overlay.style.display = "flex";
+    overlay.classList.add("visible");
+
+    const lines = generateBattleLines(rep, key);
+    let i = 0;
+    let done = false;
+
+    function appendLine(text, tone=""){
+      const p = document.createElement("p");
+      p.className = "simLine";
+      if(tone) p.innerHTML = `<span class="${tone}">${text}</span>`;
+      else p.textContent = text;
+      log.appendChild(p);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function finish(){
+      if(done) return;
+      done = true;
+      btnContinue.style.display = "inline-flex";
+      btnContinue.onclick = ()=>{
+        overlay.classList.remove("visible");
+        setTimeout(()=>{ overlay.style.display = "none"; }, 220);
+    showBattleSimulation(rep, key);
+      };
+    }
+
+    function step(){
+      if(done) return;
+      if(i >= lines.length){
+        finish();
+        return;
+      }
+      const text = lines[i++];
+      const tone = (i === lines.length) ? (rep.win ? "good" : "bad") : "";
+      appendLine(text, tone);
+      setTimeout(step, 520 + rnd(-120, 160));
+    }
+
+    btnSkip.onclick = ()=>{
+      if(done) return;
+      // dump remaining lines quickly then finish
+      while(i < lines.length){
+        const text = lines[i++];
+        appendLine(text);
+      }
+      finish();
+    };
+
+    // Start with a small dramatic pause
+    setTimeout(step, 280);
+    return true;
+  }
+
 
 
 function doBattle(key){
@@ -2150,7 +2280,10 @@ function doBattle(key){
 
       S.battlesWon = (S.battlesWon||0) + 1;
 
-      bumpObjective("winBattle", 1);
+      if(key==="bandits") bumpObjective("winBandits", 1);
+      else if(key==="levy") bumpObjective("winLevy", 1);
+      else if(key==="village") bumpObjective("winVillage", 1);
+      else if(key==="siege") bumpObjective("winSiege", 1);
       bumpObjective("gainLand", landGain);
 
       maybeBurst("battle");
@@ -2196,7 +2329,6 @@ function doBattle(key){
   $("#btnBattleLevy").addEventListener("click", ()=> doBattle("levy"));
   $("#btnBattleVillageRaid").addEventListener("click", ()=> doBattle("village"));
   $("#btnBattleSiege").addEventListener("click", ()=> doBattle("siege"));
-
 
 
     // Skirmish: optional combat later (tiny screen footprint)
@@ -2376,6 +2508,10 @@ $("#btnExport").addEventListener("click", async ()=>{
       S.lifetimeGold += inc;
     }
 
+    // Objectives: passive income counts toward "Earn denarii"
+    if(inc > 0) bumpEarnedDenarii(inc);
+
+
     // Power slowly decays a tiny bit if huge (keeps choices meaningful)
     if(S.power > 500) S.power -= (S.power-500) * 0.0006 * dt;
 
@@ -2429,7 +2565,6 @@ $("#btnExport").addEventListener("click", async ()=>{
   </div>
 
 
-
   <!-- Battle Report Overlay -->
   <div id="battleOverlay" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:2100;">
     <div style="position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);" onclick="closeBattleReport()"></div>
@@ -2440,6 +2575,29 @@ $("#btnExport").addEventListener("click", async ()=>{
       </div>
       <div class="cardBody" style="padding:14px;">
         <div id="battleBody"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Battle Simulation Overlay -->
+  <div id="battleSimOverlay" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:2050;">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);"></div>
+    <div id="battleSimCard" class="card" style="position:relative;width:min(560px, calc(100vw - 26px));border-radius:26px;overflow:hidden;">
+      <div class="sectionTitle" style="justify-content:space-between;">
+        <span id="battleSimTitle" style="color:var(--accent);font-weight:900;">Engagement</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="tab" style="padding:8px 12px;" id="battleSimSkip">Skip</button>
+        </div>
+      </div>
+      <div class="cardBody" style="padding:14px;">
+        <div style="font-family:var(--mono);color:var(--muted);font-size:.78rem;margin-bottom:10px;">
+          Enemies: <b id="battleSimEnemies">0</b> • Estimated odds: <b id="battleSimOdds">0%</b>
+        </div>
+        <div id="battleSimLog" class="log" style="max-height:34vh;"></div>
+        <button id="battleSimContinue" class="tab active" style="margin-top:10px;width:100%;justify-content:center;display:none;">
+          <span class="dot"></span>View Report
+        </button>
       </div>
     </div>
   </div>
