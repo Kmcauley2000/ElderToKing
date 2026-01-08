@@ -495,6 +495,8 @@ body::after{
       display:flex;
       align-items:center;
       justify-content:center;
+    
+      z-index:2;
     }
     .introNameHitbox input{
       width:100%;
@@ -518,13 +520,13 @@ body::after{
     }
 
     
+    
     .introEnterBtn{
       position:absolute;
       left:50%;
       transform:translateX(-50%);
-      bottom:12.5%;
-      width:82%;
-      /* height will follow image */
+      bottom:9.5%;
+      width:90%;
       background:none;
       border:none;
       padding:0;
@@ -536,18 +538,22 @@ body::after{
       display:flex;
       align-items:center;
       justify-content:center;
+      z-index:1;
       transition:
         transform .08s ease,
         filter .08s ease,
         opacity .15s ease;
     }
+    
 
+    
     .introEnterImg{
-      width:80%;
+      width:100%;
       height:auto;
       image-rendering:pixelated;
       display:block;
     }
+    
 
 
     .introEnterBtn:disabled{
