@@ -517,17 +517,15 @@ body::after{
       background-color:rgba(255,255,255,.12);
     }
 
+    
     .introEnterBtn{
       position:absolute;
       left:50%;
       transform:translateX(-50%);
       bottom:12.5%;
-      width:90%;
-      height:16%;
-      background-image:url("Sprites/Tutorial Menu Sprites/Enter The Village Icon.png");
-      background-size:contain;
-      background-repeat:no-repeat;
-      background-position:center;
+      width:82%;
+      /* height will follow image */
+      background:none;
       border:none;
       padding:0;
       margin:0;
@@ -535,11 +533,22 @@ body::after{
       background-color:transparent;
       outline:none;
       touch-action:manipulation;
+      display:flex;
+      align-items:center;
+      justify-content:center;
       transition:
         transform .08s ease,
         filter .08s ease,
         opacity .15s ease;
     }
+
+    .introEnterImg{
+      width:80%;
+      height:auto;
+      image-rendering:pixelated;
+      display:block;
+    }
+
 
     .introEnterBtn:disabled{
       opacity:.45;
@@ -581,11 +590,17 @@ body::after{
             placeholder="Type your name…"
           />
         </div>
+        
         <button
           class="introEnterBtn introStartBtn"
           id="introStartBtn"
           type="button"
         >
+          <img
+            class="introEnterImg"
+            src="Sprites/Tutorial Menu Sprites/Enter The Village Icon.png"
+            alt="Enter the village"
+          />
           <span class="visuallyHidden">Enter the village</span>
         </button>
       </div>
