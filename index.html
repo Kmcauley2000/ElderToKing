@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
- <meta charset="utf-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 
 
@@ -542,49 +542,59 @@
     stats: 0
   };
 
+  // Define the title progression and the renown required to reach each rank.
+  //
+  // The original thresholds allowed players to race through the early ranks too
+  // quickly, which in turn unlocked tougher battle tiers before they had
+  // enough warriors. To slow early progression and make rank‑ups feel like
+  // meaningful milestones, the renown requirements have been increased.
+  // Each threshold below (except the starting Elder rank) is roughly
+  // twice the former value. This keeps later titles at a similar cadence
+  // while forcing players to invest more in early renown before the next
+  // tier of enemies appears.
   const titles = [
-    // Tier 1 — Intra-Village Prestige
-    { name:"Elder", need: 0 },
-    { name:"Respected Elder", need: 150 },
-    { name:"Clan Speaker", need: 350 },
-    { name:"Council Elder", need: 600 },
-    { name:"First Elder", need: 900 },
+    // Tier 1 — Intra‑Village Prestige
+    { name: "Elder", need: 0 },
+    { name: "Respected Elder", need: 300 },    // 150×2 → 300
+    { name: "Clan Speaker", need: 700 },        // 350×2 → 700
+    { name: "Council Elder", need: 1200 },      // 600×2 → 1200
+    { name: "First Elder", need: 1800 },        // 900×2 → 1800
 
     // Tier 2 — Clan Leadership
-    { name:"Patriarch/Matriarch", need: 1300 },
-    { name:"High Patriarch", need: 1800 },
-    { name:"Great Patriarch", need: 2400 },
-    { name:"Clan Warden", need: 3100 },
-    { name:"Clan Protector", need: 3900 },
+    { name: "Patriarch/Matriarch", need: 2600 }, // 1300×2 → 2600
+    { name: "High Patriarch", need: 3600 },      // 1800×2 → 3600
+    { name: "Great Patriarch", need: 4800 },     // 2400×2 → 4800
+    { name: "Clan Warden", need: 6200 },         // 3100×2 → 6200
+    { name: "Clan Protector", need: 7800 },      // 3900×2 → 7800
 
     // Tier 3 — Tribal Influence
-    { name:"Village Chief", need: 4800 },
-    { name:"Senior Chief", need: 5800 },
-    { name:"Paramount Chief", need: 6900 },
-    { name:"Tribal Speaker", need: 8100 },
-    { name:"War Chief", need: 9400 },
-    { name:"Peace Chief", need: 10800 },
+    { name: "Village Chief", need: 9600 },       // 4800×2 → 9600
+    { name: "Senior Chief", need: 11600 },      // 5800×2 → 11600
+    { name: "Paramount Chief", need: 13800 },   // 6900×2 → 13800
+    { name: "Tribal Speaker", need: 16200 },    // 8100×2 → 16200
+    { name: "War Chief", need: 18800 },         // 9400×2 → 18800
+    { name: "Peace Chief", need: 21600 },       // 10800×2 → 21600
 
     // Tier 4 — Confederation Level
-    { name:"High Chief", need: 12300 },
-    { name:"Warlord", need: 14000 },
-    { name:"Lawgiver", need: 16000 },
-    { name:"First Magistrate", need: 18300 },
-    { name:"Sacred Chief", need: 20900 },
-    { name:"Lord of Clans", need: 23800 },
+    { name: "High Chief", need: 24600 },       // 12300×2 → 24600
+    { name: "Warlord", need: 28000 },          // 14000×2 → 28000
+    { name: "Lawgiver", need: 32000 },         // 16000×2 → 32000
+    { name: "First Magistrate", need: 36600 }, // 18300×2 → 36600
+    { name: "Sacred Chief", need: 41800 },      // 20900×2 → 41800
+    { name: "Lord of Clans", need: 47600 },     // 23800×2 → 47600
 
-    // Tier 5 — Protoking / Chiefdom-State
-    { name:"Protector of the People", need: 27000 },
-    { name:"Heir of the Ancestors", need: 30500 },
-    { name:'Princeps ("First Among Equals")', need: 34400 },
-    { name:"Rex Designatus", need: 38700 },
-    { name:"High Lord", need: 43500 },
-    { name:"Sovereign Chief", need: 48800 },
+    // Tier 5 — Protoking / Chiefdom‑State
+    { name: "Protector of the People", need: 54000 }, // 27000×2 → 54000
+    { name: "Heir of the Ancestors", need: 61000 },   // 30500×2 → 61000
+    { name: 'Princeps ("First Among Equals")', need: 68800 }, // 34400×2 → 68800
+    { name: "Rex Designatus", need: 77400 },   // 38700×2 → 77400
+    { name: "High Lord", need: 87000 },        // 43500×2 → 87000
+    { name: "Sovereign Chief", need: 97600 },  // 48800×2 → 97600
 
     // Tier 6 — Kingship
-    { name:"King (Rex)", need: 55000 },
-    { name:"High King", need: 62000 },
-    { name:"Divine King", need: 70000 }
+    { name: "King (Rex)", need: 110000 },      // 55000×2 → 110000
+    { name: "High King", need: 124000 },       // 62000×2 → 124000
+    { name: "Divine King", need: 140000 }      // 70000×2 → 140000
   ];
 
   const defaultState = () => ({
@@ -608,7 +618,9 @@
     influence: 0,
 
     // village capacity
-    populationUsed: 0,
+    population: 0,          // total settlers (includes milites)
+    populationUsed: 0,      // milites using population (kept for compatibility)
+    settlerProg: 0,         // fractional settlers progress
 
     // temple / prestige
     faith: 0,
@@ -665,6 +677,15 @@
   }
 
   let S = normalizeState(load()) || defaultState();
+  // --- Population migration / compatibility ---
+  // population = total settlers (civilians + milites). populationUsed tracks milites.
+  if(typeof S.population !== "number") S.population = Math.max(0, S.populationUsed||0, S.warriors||0);
+  if(typeof S.settlerProg !== "number") S.settlerProg = 0;
+  if(typeof S.populationUsed !== "number") S.populationUsed = 0;
+  // Ensure milites never exceed population
+  if((S.warriors||0) > (S.population||0)) S.warriors = S.population;
+  S.populationUsed = S.warriors;
+
   // If localStorage is empty/evicted, try IndexedDB recovery (especially on iPhone).
   recoverSaveFromIDB();
   let currentView = "village";
@@ -898,7 +919,7 @@
     return Math.floor(base * (1 + S.land * 0.08));
   }
   function hasVillageCapacity(){
-    return (S.populationUsed || 0) < populationCap();
+    return (S.population || 0) < populationCap();
   }
 
   function applyStreak(){
@@ -1201,67 +1222,109 @@
   function battleCooldownMs(){ return 35_000; }
 
   function battleSim(slot){
-    const b = currentBattleSet()[slot];
-    const enemies = rnd(b.enemyMin, b.enemyMax);
+    // The battle simulator models clashes between your warriors and enemy forces.
+    // Earlier revisions always produced a very high win chance and only a
+    // couple of casualties regardless of enemy size. To inject more
+    // meaningful decision making and uncertainty, this version assigns
+    // randomized "stats" to both sides, uses those stats when
+    // calculating power, and introduces a small chance for underdog or
+    // misfortune events. Casualty counts scale with the relative
+    // strengths of the armies and have greater variance.
 
-    // --- Power model ---
+    const b = currentBattleSet()[slot];
+    const enemyCount = rnd(b.enemyMin, b.enemyMax);
+
+    // The number of battles won influences how quickly enemies adapt.
     const wins = (S.battlesWon || 0);
 
-    // Determine tier from current title index
+    // Determine tier based on current title (affects scaling of enemies).
     const tier = battleTierFromTitleIdx(titleInfo().idx);
-
-    // Base difficulty by tier (1–6) – tweak if you like
     const baseTierMult = [0.85, 1.0, 1.2, 1.4, 1.7, 2.0];
     let tierMult = baseTierMult[tier - 1] || 1.0;
-
-    // Within a rank, later battles are harder
-    const slotMult = [0.9, 1.0, 1.1, 1.22]; // 0 = easiest, 3 = hardest
+    const slotMult = [0.9, 1.0, 1.1, 1.22];
     tierMult *= (slotMult[slot] || 1.0);
 
-    // How fast enemies “learn” as you win more
-    const learnDivBase = [1000, 260, 190, 140]; // similar to bandits/levy/village/siege pacing
+    // Enemies "learn" from your successes; the more you win, the tougher
+    // subsequent skirmishes become. The learnDiv values loosely mirror
+    // the pacing of different battle types (bandits, levy, village raid, siege).
+    const learnDivBase = [1000, 260, 190, 140];
     const learnDiv = learnDivBase[Math.min(slot, learnDivBase.length - 1)] || 250;
     const learn = 1 + clamp(wins / learnDiv, 0, 0.18);
 
-    // Your side
+    // Pull your current headcount. If you have zero warriors you cannot
+    // realistically fight; battleSim will still produce a result but losses
+    // will reduce you to zero.
     const yourTroops = Math.max(0, S.warriors || 0);
-    const perWarrior = 6;
 
-    const org = 1 + clamp((S.power || 0) / 1800, 0, 0.28);   // organization/gear
-    const terrain = 1 + clamp((S.land || 0) / 90, 0, 0.18);  // logistics/supply
-    const yourPower = (yourTroops * perWarrior) * org * terrain;
+    // Each warrior has a base strength, but individual prowess varies.
+    // The ±10% variation adds uncertainty and prevents identical fights from
+    // always having the same outcome. A larger spread of stats could be
+    // introduced later for equipment upgrades or training buffs.
+    const baseWarriorStrength = 6;
+    const warriorStatFactor = baseWarriorStrength * (1 + (Math.random() * 0.2 - 0.1));
 
-    // Enemy power
-    const enemyPower = enemies * tierMult * learn;
+    // Likewise, enemy soldiers are not all equal. Their average combat
+    // effectiveness fluctuates by ±15% around a nominal value of 1.0.
+    const baseEnemyStrength = 1.0;
+    const enemyStatFactor = baseEnemyStrength * (1 + (Math.random() * 0.3 - 0.15));
 
-    // --- Win chance ---
+    // Organization and terrain bonuses remain as before; these encourage
+    // investment in infrastructure (power) and land holdings.
+    const org = 1 + clamp((S.power || 0) / 1800, 0, 0.28);
+    const terrain = 1 + clamp((S.land || 0) / 90, 0, 0.18);
+
+    // Compute the aggregate power of your force.
+    const yourPower = (yourTroops * warriorStatFactor) * org * terrain;
+
+    // Compute enemy power taking into account tier scaling, learning,
+    // and per‑enemy strength variation.
+    const enemyPower = (enemyCount * enemyStatFactor) * tierMult * learn;
+
+    // The win probability follows a logistic function of the difference
+    // between the two sides, capped to avoid 0%/100% extremes. A small
+    // chance exists for an "upset" in either direction: when triggered,
+    // the advantage sign flips, representing heroic underdog victories or
+    // catastrophic blunders.
     const denom = Math.max(12, 0.25 * (yourPower + enemyPower));
-    const advantage = (yourPower - enemyPower) / denom;
-    const winP = clamp(1 / (1 + Math.exp(-advantage)), 0.03, 0.985);
+    let advantage = (yourPower - enemyPower) / denom;
+    // 3% chance of an upset: invert the perceived advantage.
+    if (Math.random() < 0.03) {
+      advantage = -advantage;
+    }
+    const winP = clamp(1 / (1 + Math.exp(-advantage)), 0.02, 0.98);
     const win = chance(winP);
 
-    // --- Casualties ---
-    const pressure = clamp(enemyPower / Math.max(1, yourPower + enemyPower), 0.05, 0.95);
-    const outcomeMult = win ? 0.55 : 1.05;
-    const noise = 0.80 + Math.random() * 0.45;
-
-    let losses = Math.round(yourTroops * pressure * outcomeMult * noise);
-
-    const cap = win
-      ? Math.max(0, Math.floor(yourTroops * 0.30))
-      : Math.max(1, Math.floor(yourTroops * 0.70));
-    losses = clamp(losses, 0, cap);
+    // Casualties scale with the enemy pressure. When you win, the factor is
+    // lower; when you lose, more of your troops fall. Noise adds
+    // variability. The minimum casualty thresholds guarantee that close
+    // fights always come at a cost.
+    const pressure = enemyPower / (yourPower + enemyPower);
+    let baseLosses = yourTroops * pressure;
+    baseLosses *= win ? 0.60 : 1.20;
+    baseLosses *= (0.75 + Math.random() * 0.5); // 0.75–1.25
+    let losses = Math.round(baseLosses);
 
     if (yourTroops > 0) {
-      const closeFight = yourPower < enemyPower * 1.35;
       if (!win) {
-        losses = Math.max(1, losses);
-      } else if (closeFight) {
-        losses = Math.max(1, losses);
+        // Ensure at least 5% losses when you lose.
+        const minLoss = Math.round(yourTroops * 0.05);
+        losses = Math.max(minLoss, losses);
+      } else {
+        // Close victories still cost lives. If enemy power was within 20% of yours,
+        // ensure at least 2% losses.
+        const closeFight = yourPower < enemyPower * 1.2;
+        if (closeFight) {
+          const minLoss = Math.round(yourTroops * 0.02);
+          losses = Math.max(minLoss, losses);
+        }
       }
     }
+    // Impose sensible caps: victories never cost more than 35% of your force,
+    // defeats never more than 70%.
+    const cap = win ? Math.floor(yourTroops * 0.35) : Math.floor(yourTroops * 0.70);
+    losses = clamp(losses, 0, cap);
 
-    return { enemies, winP, win, losses, tier };
+    return { enemies: enemyCount, winP, win, losses, tier };
   }
 
 
@@ -2047,7 +2110,8 @@
       ["Raids won", S.battlesWon],
       ["Land", S.land],
       ["Influence", S.influence],
-      ["Population Used", S.populationUsed],
+      ["Population", S.population],
+      ["Milites (pop used)", S.populationUsed],
       ["Population Cap", populationCap()],
             ["Faith", S.faith],
       ["Crowns (prestige)", S.crowns],
@@ -2076,7 +2140,7 @@
 
     // Population display (village capacity)
     const cap = populationCap();
-    const used = (S.populationUsed||0);
+    const used = (S.population||0);
     const pu = $("#popUsed"); const pc = $("#popCap");
     if(pu && pc){ pu.textContent = fmt(used); pc.textContent = fmt(cap); }
 
@@ -2275,10 +2339,28 @@ render();
   $("#btnRecruit").addEventListener("click", (e)=>{
     const c = recruitCost();
     if(S.gold < c){ toast("Not enough denarii"); return; }
-    if(!hasVillageCapacity()){ toast("Need more farms to support milites"); return; }
+
+    // You can only recruit if you have an unassigned settler to train.
+    // (Population is filled slowly up to the cap by "settlers".)
+    const pop = (S.population||0);
+    const warriors = (S.warriors||0);
+    const civilians = Math.max(0, pop - warriors);
+
+    if(civilians < 1){
+      toast("No free settlers — wait for population to grow");
+      return;
+    }
+    if(!hasVillageCapacity()){
+      toast("Need more housing (farms/villas) to grow population");
+      return;
+    }
+
     S.gold -= c;
+
+    // Convert 1 civilian into a milites (total population stays the same)
     S.warriors += 1;
-    S.populationUsed = (S.populationUsed || 0) + 1;
+    S.populationUsed = S.warriors; // keep pop-used in sync with milites
+
     recalcLegionStrength();
 
     // Recruiting gives power and renown (feels like progress)
@@ -2470,8 +2552,16 @@ function doBattle(slot){
   // Apply casualties
   const losses = Math.min(beforeWarriors, sim.losses);
   S.warriors = Math.max(0, beforeWarriors - losses);
-  // If you lose troops, free up pop used
-  S.populationUsed = Math.max(0, (S.populationUsed||0) - losses);
+
+  // Deaths remove population permanently.
+  S.population = Math.max(0, (S.population||0) - losses);
+
+  // Keep pop-used in sync with milites
+  if((S.population||0) < (S.warriors||0)){
+    // Safety clamp (shouldn't happen, but protects old saves)
+    S.warriors = S.population;
+  }
+  S.populationUsed = S.warriors;
 
   recalcLegionStrength();
 
@@ -2722,6 +2812,37 @@ $("#btnExport").addEventListener("click", async ()=>{
 
     // Objectives: passive income counts toward "Earn denarii"
     if(inc > 0) bumpEarnedDenarii(inc);
+
+
+    // --- Settlers: population slowly fills up to your housing cap ---
+    const cap = populationCap();
+    if(typeof S.population !== "number") S.population = Math.max(0, S.populationUsed||0, S.warriors||0);
+    if(typeof S.settlerProg !== "number") S.settlerProg = 0;
+
+    // "Doing well" = better income + bigger settlement attracts more people
+    const prosper = (Date.now() < (S.prosperUntil||0)) ? 1.35 : 1.0;
+    const baseRate = 0.015;
+    const incomeRate = clamp(incomePerSec()/250, 0, 0.14);
+    const sizeRate = (S.villaCount||0)*0.004 + (S.farmCount||0)*0.001;
+    const landRate = (S.land||0)*0.0008;
+
+    const settleRatePerSec = clamp((baseRate + incomeRate + sizeRate + landRate) * prosper, 0.01, 0.35);
+
+    if((S.population||0) < cap){
+      S.settlerProg += settleRatePerSec * dt;
+      const add = Math.floor(S.settlerProg);
+      if(add > 0){
+        S.settlerProg -= add;
+        S.population = Math.min(cap, (S.population||0) + add);
+      }
+    }else{
+      // bleed off progress so you don't "bank" settlers while capped
+      S.settlerProg = Math.max(0, S.settlerProg - 0.25*dt);
+    }
+
+    // Keep pop-used synced with milites, and clamp old saves
+    if((S.population||0) < (S.warriors||0)) S.warriors = S.population;
+    S.populationUsed = S.warriors;
 
 
     // Power slowly decays a tiny bit if huge (keeps choices meaningful)
