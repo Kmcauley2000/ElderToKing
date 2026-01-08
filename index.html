@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+ <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 
 
@@ -222,14 +222,17 @@
     /* tiny dopamine confetti */
     .spark{
       position: fixed;
-      width: 10px; height: 10px;
-      border-radius: 999px;
+      width: 26px; height: 26px;
       pointer-events:none;
-      opacity:.95;
+      opacity:.98;
       transform: translate(-50%,-50%);
       animation: fly 650ms ease-out forwards;
-      filter: drop-shadow(0 10px 18px rgba(0,0,0,.25));
+      filter: drop-shadow(0 10px 18px rgba(0,0,0,.35));
       z-index: 1300;
+      background-image: url("Sprites/Denarii Icon.png");
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
     }
     @keyframes fly{to{ transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(.65); opacity:0; }}
 
@@ -333,8 +336,18 @@
           <p class="sub" id="subline">One main action per tab. Everything else is optional.</p>
         </div>
         <div class="hud">
-          <div class="pill">Denarii <b id="gold">0</b></div>
-          <div class="pill">Renown <b id="renown">0</b></div>
+          <div class="pill">
+            <span style="display:inline-flex;align-items:center;gap:6px;">
+              <img src="Sprites/Denarii Icon.png" alt="Denarii" style="width:18px;height:18px;image-rendering:pixelated;">
+              <span>Denarii <b id="gold">0</b></span>
+            </span>
+          </div>
+          <div class="pill">
+            <span style="display:inline-flex;align-items:center;gap:6px;">
+              <img src="Sprites/Renown Icon.png" alt="Renown" style="width:18px;height:18px;image-rendering:pixelated;">
+              <span>Renown <b id="renown">0</b></span>
+            </span>
+          </div>
           <div class="pill">Power <b id="power">0</b></div>
           <div class="pill">Land <b id="landHud">0</b></div>
         </div>
@@ -888,18 +901,28 @@
     log.scrollTop = log.scrollHeight;
   }
 
-  function sparkAt(x,y){
+  function sparkAt(x,y,gold=0.25){
     const n = 6;
+    // gold: 0..1. Higher = warmer, brighter coins.
+    const g = clamp(gold, 0, 1);
+    const bright = 1 + g*0.45;     // 1.00 .. 1.45
+    const sat    = 1 + g*1.10;     // 1.00 .. 2.10
+    const hue    = g*12;           // subtle warm shift
+    const glowA  = 0.10 + g*0.55;  // glow alpha
     for(let i=0;i<n;i++){
       const s = document.createElement("div");
       s.className = "spark";
       s.style.left = x+"px";
       s.style.top  = y+"px";
-      s.style.background = `hsla(${rnd(35,95)}, 90%, ${rnd(55,70)}%, 0.95)`;
       s.style.setProperty("--dx", `${rnd(-90,90)}px`);
       s.style.setProperty("--dy", `${rnd(-140,-40)}px`);
+      // Tint coins based on intensity (crit/cashout/jackpot)
+      s.style.filter =
+        `drop-shadow(0 10px 18px rgba(0,0,0,.35)) `+
+        `drop-shadow(0 0 ${8 + g*18}px rgba(255, 215, 120, ${glowA})) `+
+        `hue-rotate(${hue}deg) saturate(${sat}) brightness(${bright})`;
       document.body.appendChild(s);
-      setTimeout(()=>s.remove(), 700);
+      setTimeout(()=> s.remove(), 700);
     }
   }
 
@@ -1888,7 +1911,7 @@
       for(let i=0;i<10;i++){
         const x = rnd(Math.floor(vw*0.1), Math.floor(vw*0.9));
         const y = rnd(Math.floor(vh*0.15), Math.floor(vh*0.7));
-        sparkAt(x,y);
+        sparkAt(x,y, 0.60);
       }
     }catch(e){}
     logLine(`Gold storm! (+${fmt(gain)} denarii)`, "good");
@@ -2380,9 +2403,11 @@
     S.power += 1 + (crit ? 1 : 0);
 
     const rect = e.currentTarget.getBoundingClientRect();
-    sparkAt(rect.left + rect.width*0.78, rect.top + rect.height*0.42);
+    const ref = Math.max(1, (S.biggestCashout||0), payout);
+    const goldness = clamp(Math.log10(1+payout) / Math.log10(1+ref), 0.25, 1.0);
+    sparkAt(rect.left + rect.width*0.78, rect.top + rect.height*0.42, crit ? 0.95 : 0.25, goldness);
 
-    if(jp){ for(let i=0;i<3;i++) sparkAt(rect.left + rect.width*(0.55 + i*0.12), rect.top + rect.height*0.30); }
+    if(jp){ for(let i=0;i<3;i++) sparkAt(rect.left + rect.width*(0.55 + i*0.12), rect.top + rect.height*0.30, 0.70); }
 
     if(crit){ toast("CRIT!"); logLine(`CRIT tribute! (+${fmt(gain)} denarii)`, "good"); }
     else if(S.streak % 7 === 0) logLine(`Tribute collected. (+${fmt(gain)} denarii)`, "good");
