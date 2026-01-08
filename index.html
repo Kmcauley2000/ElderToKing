@@ -49,6 +49,18 @@
         linear-gradient(180deg, #070a08, var(--bg));
       -webkit-tap-highlight-color: transparent;
     }
+body::after{
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      background: radial-gradient(circle at center,
+                  rgba(0,0,0,0) 40%,
+                  rgba(0,0,0,0.45) 100%);
+      z-index: 0;
+    }
+
+
     .wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:12px;}
     header{
       position:relative; z-index:10;
@@ -382,13 +394,40 @@
     .sub{display:none !important;}
 
 
-    /* Battle simulation overlay transitions */
-    #battleSimOverlay{ opacity:0; pointer-events:none; transition: opacity .22s ease-out; }
-    #battleSimOverlay.visible{ opacity:1; pointer-events:auto; }
-    #battleSimCard{ transform: translateY(18px) scale(.94); opacity:0; transition: transform .26s ease-out, opacity .26s ease-out; }
-    #battleSimOverlay.visible #battleSimCard{ transform: translateY(0) scale(1); opacity:1; }
-    .simLine{ margin:0 0 10px; }
-
+    
+/* Battle simulation overlay transitions */
+#battleSimOverlay{
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(3px);
+  opacity:0;
+  pointer-events:none;
+  transition: opacity .22s ease-out;
+  z-index:1600;
+}
+#battleSimOverlay.visible{
+  opacity:1;
+  pointer-events:auto;
+}
+#battleSimCard{
+  transform: translateY(18px) scale(.94);
+  opacity:0;
+  transition: transform .26s ease-out, opacity .26s ease-out;
+}
+#battleSimOverlay.visible #battleSimCard{
+  transform: translateY(0) scale(1);
+  opacity:1;
+}
+.simLine{
+  margin:0 0 10px;
+  font-family:var(--sans);
+  font-size:.86rem;
+  line-height:1.35;
+}
 
     /* Intro overlay */
     .introOverlay{
@@ -521,6 +560,11 @@
     .introOverlay[hidden]{
       display:none;
     }
+
+.blur{
+  backdrop-filter: blur(4px);
+}
+
 </style>
 </head>
 <body>
@@ -1662,111 +1706,112 @@ function decreeMult(){
   function battleCooldownMs(){ return 35_000; }
 
   function battleSim(slot){
-    // The battle simulator models clashes between your warriors and enemy forces.
-    // Earlier revisions always produced a very high win chance and only a
-    // couple of casualties regardless of enemy size. To inject more
-    // meaningful decision making and uncertainty, this version assigns
-    // randomized "stats" to both sides, uses those stats when
-    // calculating power, and introduces a small chance for underdog or
-    // misfortune events. Casualty counts scale with the relative
-    // strengths of the armies and have greater variance.
+  const b = currentBattleSet()[slot];
+  const enemyCount = rnd(b.enemyMin, b.enemyMax);
 
-    const b = currentBattleSet()[slot];
-    const enemyCount = rnd(b.enemyMin, b.enemyMax);
+  const wins = (S.battlesWon || 0);
+  const tier = battleTierFromTitleIdx(titleInfo().idx);
 
-    // The number of battles won influences how quickly enemies adapt.
-    const wins = (S.battlesWon || 0);
+  // --- YOUR POWER ---
+  const yourTroops = Math.max(0, S.warriors || 0);
+  const baseWarriorStrength = 6;
+  let yourPower = yourTroops * baseWarriorStrength;
 
-    // Determine tier based on current title (affects scaling of enemies).
-    const tier = battleTierFromTitleIdx(titleInfo().idx);
-    const baseTierMult = [0.85, 1.0, 1.2, 1.4, 1.7, 2.0];
-    let tierMult = baseTierMult[tier - 1] || 1.0;
-    const slotMult = [0.9, 1.0, 1.1, 1.22];
-    tierMult *= (slotMult[slot] || 1.0);
+  const crowns = S.crowns || 0;
+  const crownMult = 1 + Math.min(crowns * 0.045, 0.7);
 
-    // Enemies "learn" from your successes; the more you win, the tougher
-    // subsequent skirmishes become. The learnDiv values loosely mirror
-    // the pacing of different battle types (bandits, levy, village raid, siege).
-    const learnDivBase = [1000, 260, 190, 140];
-    const learnDiv = learnDivBase[Math.min(slot, learnDivBase.length - 1)] || 250;
-    const learn = 1 + clamp(wins / learnDiv, 0, 0.18);
+  const decrees = S.decrees || 0;
+  const decreeMult = 1 + Math.min(decrees * 0.03, 0.5);
 
-    // Pull your current headcount. If you have zero warriors you cannot
-    // realistically fight; battleSim will still produce a result but losses
-    // will reduce you to zero.
-    const yourTroops = Math.max(0, S.warriors || 0);
+  const land = S.land || 0;
+  const landMult = 1 + Math.min(land * 0.012, 0.45);
 
-    // Each warrior has a base strength, but individual prowess varies.
-    // The ±10% variation adds uncertainty and prevents identical fights from
-    // always having the same outcome. A larger spread of stats could be
-    // introduced later for equipment upgrades or training buffs.
-    const baseWarriorStrength = 6;
-    const warriorStatFactor = baseWarriorStrength * (1 + (Math.random() * 0.2 - 0.1));
-
-    // Likewise, enemy soldiers are not all equal. Their average combat
-    // effectiveness fluctuates by ±15% around a nominal value of 1.0.
-    const baseEnemyStrength = 1.0;
-    const enemyStatFactor = baseEnemyStrength * (1 + (Math.random() * 0.3 - 0.15));
-
-    // Organization and terrain bonuses remain as before; these encourage
-    // investment in infrastructure (power) and land holdings.
-    const org = 1 + clamp((S.power || 0) / 1800, 0, 0.28);
-    const terrain = 1 + clamp((S.land || 0) / 90, 0, 0.18);
-
-    // Compute the aggregate power of your force.
-    const yourPower = (yourTroops * warriorStatFactor) * org * terrain;
-
-    // Compute enemy power taking into account tier scaling, learning,
-    // and per‑enemy strength variation.
-    const enemyPower = (enemyCount * enemyStatFactor) * tierMult * learn;
-
-    // The win probability follows a logistic function of the difference
-    // between the two sides, capped to avoid 0%/100% extremes. A small
-    // chance exists for an "upset" in either direction: when triggered,
-    // the advantage sign flips, representing heroic underdog victories or
-    // catastrophic blunders.
-    const denom = Math.max(12, 0.25 * (yourPower + enemyPower));
-    let advantage = (yourPower - enemyPower) / denom;
-    // 3% chance of an upset: invert the perceived advantage.
-    if (Math.random() < 0.03) {
-      advantage = -advantage;
+  const faith = S.faith || 0;
+  let faithMult = 1 + Math.min(faith / 18000, 0.25);
+  try{
+    if(typeof isBuffed === "function" && isBuffed()){
+      faithMult *= 1.15;
     }
-    const winP = clamp(1 / (1 + Math.exp(-advantage)), 0.02, 0.98);
-    const win = chance(winP);
+  }catch(e){}
 
-    // Casualties scale with the enemy pressure. When you win, the factor is
-    // lower; when you lose, more of your troops fall. Noise adds
-    // variability. The minimum casualty thresholds guarantee that close
-    // fights always come at a cost.
-    const pressure = enemyPower / (yourPower + enemyPower);
-    let baseLosses = yourTroops * pressure;
-    baseLosses *= win ? 0.60 : 1.20;
-    baseLosses *= (0.75 + Math.random() * 0.5); // 0.75–1.25
-    let losses = Math.round(baseLosses);
+  yourPower *= crownMult * decreeMult * landMult * faithMult;
 
-    if (yourTroops > 0) {
-      if (!win) {
-        // Ensure at least 5% losses when you lose.
-        const minLoss = Math.round(yourTroops * 0.05);
-        losses = Math.max(minLoss, losses);
-      } else {
-        // Close victories still cost lives. If enemy power was within 20% of yours,
-        // ensure at least 2% losses.
-        const closeFight = yourPower < enemyPower * 1.2;
-        if (closeFight) {
-          const minLoss = Math.round(yourTroops * 0.02);
-          losses = Math.max(minLoss, losses);
-        }
-      }
-    }
-    // Impose sensible caps: victories never cost more than 35% of your force,
-    // defeats never more than 70%.
-    const cap = win ? Math.floor(yourTroops * 0.35) : Math.floor(yourTroops * 0.70);
-    losses = clamp(losses, 0, cap);
+  // --- ENEMY POWER ---
+  const baseEnemyStrength = 6;
+  let enemyPower = enemyCount * baseEnemyStrength;
 
-    return { enemies: enemyCount, winP, win, losses, tier };
+  const tierMults = [0.9, 1.0, 1.2, 1.4, 1.7, 2.0];
+  const slotMults = [0.9, 1.0, 1.15, 1.3];
+  const tierMult = tierMults[tier - 1] || 1.0;
+  const slotMult = slotMults[slot] || 1.0;
+
+  enemyPower *= tierMult * slotMult;
+
+  const learnDivBase = [1000, 260, 190, 140];
+  const learnDiv = learnDivBase[Math.min(slot, learnDivBase.length - 1)] || 250;
+  const learn = 1 + Math.min(wins / learnDiv, 0.18);
+  enemyPower *= learn;
+
+  // If you somehow have no troops, it's an automatic loss.
+  if (yourTroops <= 0){
+    return {
+      enemies: enemyCount,
+      winP: 0,
+      win: false,
+      losses: 0,
+      tier
+    };
   }
 
+  // --- DETERMINISTIC ODDS BASED ON POWER RATIO ---
+
+  const ratio = yourPower / Math.max(enemyPower, 1); // >1 means stronger
+  let winP = ratio / (1 + ratio); // 0..1 curve: 1 -> 0.5, 2 -> 0.67, etc.
+  winP = clamp(winP, 0.02, 0.98);
+
+  const win = winP >= 0.5; // no coin flip: stronger side wins
+
+  // --- CASUALTIES ---
+
+  let pressure = enemyPower / Math.max(yourPower + enemyPower, 1);
+  pressure = clamp(pressure, 0.05, 0.95);
+
+  let baseLossFrac;
+  if (win){
+    // Victorious but losses depend on how hard the fight was.
+    if (ratio >= 2.0) baseLossFrac = 0.01 + pressure * 0.10;      // overwhelming win
+    else if (ratio >= 1.5) baseLossFrac = 0.03 + pressure * 0.18;  // strong edge
+    else if (ratio >= 1.2) baseLossFrac = 0.06 + pressure * 0.22;  // modest edge
+    else baseLossFrac = 0.10 + pressure * 0.30;                    // knife-edge win
+  }else{
+    // Defeats always hurt more.
+    if (ratio >= 0.8) baseLossFrac = 0.16 + pressure * 0.35;
+    else if (ratio >= 0.6) baseLossFrac = 0.22 + pressure * 0.45;
+    else baseLossFrac = 0.32 + pressure * 0.55;
+  }
+
+  baseLossFrac *= (0.9 + Math.random() * 0.2); // 10% variation
+  let losses = Math.round(yourTroops * baseLossFrac);
+
+  if (yourTroops > 0){
+    if (win){
+      const underdog = ratio < 1.1;
+      const closeFight = ratio < 1.35;
+      const minLossFrac = underdog ? 0.10 : (closeFight ? 0.05 : 0.02);
+      const minLoss = Math.round(yourTroops * minLossFrac);
+      if (losses < minLoss) losses = minLoss;
+    }else{
+      const minLoss = Math.round(yourTroops * 0.15);
+      if (losses < minLoss) losses = minLoss;
+    }
+  }
+
+  const maxLossFrac = win ? 0.35 : 0.70;
+  const maxLosses = Math.floor(yourTroops * maxLossFrac);
+  losses = clamp(losses, 0, maxLosses);
+
+  return { enemies: enemyCount, winP, win, losses, tier };
+}
 
   function offerCost(){
     return Math.round(600 * Math.pow(1.34, Math.floor((S.faith||0)/120)));
@@ -3094,49 +3139,71 @@ function doBattle(slot){
   recalcLegionStrength();
 
   // Loot / penalties
-  let loot = 0;
-  let landGain = 0;
+let loot = 0;
+let landGain = 0;
 
-  if(sim.win){
-    S.battlesWon = (S.battlesWon||0) + 1;
+if(sim.win){
+  S.battlesWon = (S.battlesWon||0) + 1;
 
-    // Loot scales gently with enemy count and tier
-    const tier = sim.tier;
-    const tierLootMult = [1.0, 1.2, 1.45, 1.75, 2.1, 2.6][tier-1] || 1.0;
-    loot = Math.round((12 + sim.enemies*0.55) * tierLootMult);
+  const tier = sim.tier;
+  const enemies = sim.enemies;
+  const winP = sim.winP;
 
-    S.gold += loot;
-    S.lifetimeGold += loot;
-    bumpEarnedDenarii(loot);
+  // Base loot scales strongly with enemy count and tier
+  const basePerEnemy = 4 + tier * 1.4; // 5.4–12.4 denarii per enemy
+  let baseLoot = enemies * basePerEnemy;
 
-    landGain = Math.max(0, Math.floor(sim.enemies / 45) - 1);
-    if(tier >= 4) landGain += Math.floor(sim.enemies / 220);
-    landGain = clamp(landGain, 0, 8 + tier);
+  // Risk bonus: riskier fights (lower winP) pay more
+  const riskBonus = 0.9 + (1 - winP) * 1.6; // 0.9x at 100% win, up to ~2.5x at very risky
 
-    S.land = (S.land||0) + landGain;
-    S.power += 3 + Math.floor(tier*0.6);
+  // Slight extra for higher tiers so late-game fights feel chunky
+  const tierBonus = 1 + Math.max(0, tier - 1) * 0.18;
 
-    bumpObjective("winBattle", 1);
-    bumpObjective("gainLand", landGain);
+  loot = Math.round(baseLoot * riskBonus * tierBonus);
 
-    maybeBurst("battle");
+  S.gold += loot;
+  S.lifetimeGold += loot;
+  bumpEarnedDenarii(loot);
 
-    toast("Victory!");
-    logLine(`Victory: ${b.label}. (+${fmt(loot)} denarii, +${fmt(landGain)} land, -${fmt(losses)} milites)`, "good");
-  }else{
-    const tier = sim.tier;
-    const lost = Math.min(S.gold, Math.round((10 + sim.enemies*0.15) * (0.6 + tier*0.18)));
-    S.gold -= lost;
-    S.power = Math.max(0, S.power - (2 + Math.floor(tier/2)));
+  // Land gain: larger and higher-tier fights grant more territory
+  let baseLand = enemies / (42 - tier * 3); // generous at high tiers
+  if(winP < 0.45) baseLand *= 1.35; // reward gutsy wins
 
-    toast("Defeat");
-    logLine(`Defeat: ${b.label}. (-${fmt(lost)} denarii, -${fmt(losses)} milites)`, "bad");
-  }
+  landGain = Math.floor(Math.max(0, baseLand));
+  landGain = clamp(landGain, 0, 10 + tier * 2);
 
-  // Cooldown
-  S.battleReadyAt = Date.now() + battleCooldownMs();
+  S.land = (S.land||0) + landGain;
 
-  const rep = {
+  // Power scales a bit more with tier to reflect renown of victory
+  S.power += 4 + Math.floor(tier * 1.1);
+
+  bumpObjective("winBattle", 1);
+  bumpObjective("gainLand", landGain);
+
+  maybeBurst("battle");
+
+  toast("Victory!");
+  logLine(`Victory: ${b.label}. (+${fmt(loot)} denarii, +${fmt(landGain)} land, -${fmt(losses)} milites)`, "good");
+}else{
+  const tier = sim.tier;
+
+  // Losses still sting, but not catastrophically
+  const enemies = sim.enemies;
+  const baseLoss = 14 + enemies * 0.22;
+  const scaledLoss = baseLoss * (0.7 + tier * 0.22);
+  const lost = Math.min(S.gold, Math.round(scaledLoss));
+
+  S.gold -= lost;
+  S.power = Math.max(0, S.power - (3 + Math.floor(tier/2)));
+
+  toast("Defeat");
+  logLine(`Defeat: ${b.label}. (-${fmt(lost)} denarii, -${fmt(losses)} milites)`, "bad");
+}
+
+// Cooldown
+S.battleReadyAt = Date.now() + battleCooldownMs();
+
+const rep = {
     label: b.label,
     enemies: sim.enemies,
     winP: sim.winP,
