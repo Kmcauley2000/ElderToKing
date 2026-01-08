@@ -585,7 +585,6 @@ body::after{
           class="introEnterBtn introStartBtn"
           id="introStartBtn"
           type="button"
-          disabled
         >
           <span class="visuallyHidden">Enter the village</span>
         </button>
@@ -1253,7 +1252,7 @@ body::after{
         S.playerName = trimmed;
         const ok = trimmed.length >= 1;
         if(startBtn){
-          startBtn.disabled = !ok;
+          // visual state handled via CSS; click handler checks name
         }
         if(introHint){
           introHint.textContent = ok ? "Tap to enter the village" : "Pick a name to continue";
