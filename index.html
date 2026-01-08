@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 
 
@@ -18,6 +18,14 @@
 
   <title>ElderToKing</title>
   <style>
+body {
+  background-image: url("./Sprites/Game Background ElderToKing.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
     :root{
       --bg:#0b0f0c;
       --panel:#101a14;
@@ -57,9 +65,10 @@
       border-bottom:1px solid rgba(31,58,42,.65);
     }
     .top{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;padding:10px 2px 10px;}
+    .top > div:first-child{display:none;}
     h1{margin:0;font-family:var(--mono);font-size:.85rem;letter-spacing:.5px;color:var(--accent);text-shadow: 0 0 14px rgba(244,208,111,.16);}
     .sub{margin:4px 0 0;color:var(--muted);font-size:.78rem;line-height:1.3;max-width:52ch;}
-    .hud{display:flex;gap:8px;align-items:center;justify-content:flex-end;overflow:auto;scrollbar-width:none;}
+    .hud{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-start;overflow:visible;scrollbar-width:none;}
     .hud::-webkit-scrollbar{display:none;}
     .pill{
       border:1px solid rgba(31,58,42,.9);
@@ -145,26 +154,88 @@
     .meta b{color:var(--text);}
     details{margin-top:12px;border-top:1px solid rgba(31,58,42,.55);padding-top:10px;}
     summary{cursor:pointer;font-family:var(--mono);color:var(--muted);user-select:none;}
-    .log{
-      margin-top:10px;
-      max-height: 28vh;
-      overflow:auto;
-      border-radius:18px;
-      border:1px solid rgba(31,58,42,.85);
-      background: linear-gradient(180deg, rgba(10,16,13,.78), rgba(7,10,8,.78));
-      padding:12px;
-      font-family:var(--mono);
-      font-size:.76rem;
-      line-height:1.45;
-      -webkit-overflow-scrolling: touch;
-    }
-    .log p{margin:0 0 10px;}
-    .log p span{color:var(--muted);}
-    .good{color:var(--ok);font-weight:900;}
-    .bad{color:var(--danger);font-weight:900;}
-    .warn{color:var(--warn);font-weight:900;}
+    .miniLog{
+  margin-top:10px;
+  border-radius:16px;
+  border:1px solid rgba(31,58,42,.85);
+  background: linear-gradient(180deg, rgba(10,16,13,.82), rgba(7,10,8,.92));
+  overflow:hidden;
+}
+.miniLogHeader{
+  padding:6px 10px;
+  font-family:var(--mono);
+  font-size:.76rem;
+  letter-spacing:.02em;
+  text-transform:uppercase;
+  color:var(--muted);
+  border-bottom:1px solid rgba(31,58,42,.75);
+  background: linear-gradient(180deg, rgba(8,12,10,.95), rgba(8,12,10,.88));
+}
+.log{
+  margin-top:10px;
+  max-height: 28vh;
+  overflow:auto;
+  border-radius:18px;
+  border:1px solid rgba(31,58,42,.85);
+  background: linear-gradient(180deg, rgba(10,16,13,.78), rgba(7,10,8,.78));
+  padding:12px;
+  font-family:var(--mono);
+  font-size:.76rem;
+  line-height:1.45;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width:none; /* Firefox */
+}
+.log::-webkit-scrollbar{
+  display:none; /* WebKit */
+}
 
-    /* Bottom tabs */
+/* Each log line as a row */
+.log-entry{
+  display:flex;
+  gap:8px;
+  align-items:flex-start;
+  margin:0 0 6px;
+  opacity:0;
+  transform:translateY(-4px);
+  animation: logIn .18s ease-out forwards;
+}
+
+@keyframes logIn{
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
+}
+
+/* Timestamp: small + dim */
+.log-time{
+  opacity:.55;
+  font-size:.72rem;
+  min-width:44px;
+  text-align:right;
+  user-select:none;
+}
+
+/* Tone colours (same class names you already use) */
+.good{color:var(--ok);font-weight:900;}
+.bad{color:var(--danger);font-weight:900;}
+.warn{color:var(--warn);font-weight:900;}
+
+/* Optional: tiny resource tags if you ever want them */
+.log-tag{
+  padding:1px 4px;
+  border-radius:4px;
+  font-size:.72rem;
+  opacity:.9;
+  user-select:none;
+  border:1px solid rgba(31,58,42,.65);
+  margin-left:6px;
+}
+.log-tag-gold{color:var(--accent);}
+.log-tag-renown{color:var(--muted);}
+.log-tag-land{color:var(--muted);}
+
+/* Bottom tabs */
     .tabbar{
       position:fixed; left:0; right:0; bottom:0;
       padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
@@ -325,9 +396,192 @@
     #battleSimOverlay.visible #battleSimCard{ transform: translateY(0) scale(1); opacity:1; }
     .simLine{ margin:0 0 10px; }
 
+
+    /* Intro overlay */
+    .introOverlay{
+      position:fixed;
+      inset:0;
+      z-index:2000;
+      display:flex;
+      align-items:stretch;
+      justify-content:center;
+      pointer-events:auto;
+    }
+    .introBackdrop{
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(900px 700px at 10% 0%, rgba(244,208,111,.12), transparent 55%),
+        radial-gradient(900px 650px at 90% 25%, rgba(192,108,59,.12), transparent 55%),
+        linear-gradient(180deg, rgba(7,10,8,.96), rgba(7,10,8,.98));
+      opacity:0.98;
+    }
+    .introCenter{
+      position:relative;
+      z-index:1;
+      flex:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px 14px 82px;
+    }
+    .introCard{
+      max-width:720px;
+      width:100%;
+      transform: translateY(12px) scale(.97);
+      opacity:0;
+      animation: introPop .28s ease-out forwards;
+    }
+    @keyframes introPop{
+      from{ transform: translateY(22px) scale(.96); opacity:0; }
+      to{ transform: translateY(0) scale(1); opacity:1; }
+    }
+    .introNameBlock{
+      margin:10px 0 12px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .introLabel{
+      font-family:var(--mono);
+      font-size:.8rem;
+      color:var(--muted);
+    }
+    .introNameBlock input{
+      border-radius:18px;
+      border:1px solid rgba(31,58,42,.9);
+      background: linear-gradient(180deg, rgba(10,16,13,.95), rgba(7,10,8,.95));
+      padding:10px 12px;
+      font-family:var(--mono);
+      font-size:.86rem;
+      color:var(--text);
+      outline:none;
+      width:100%;
+    }
+    .introNameBlock input::placeholder{
+      color:rgba(166,212,172,.65);
+    }
+    .introNameBlock input:focus{
+      border-color: rgba(244,208,111,.6);
+      box-shadow: 0 0 0 1px rgba(244,208,111,.25);
+    }
+    .introDemo{
+      margin-top:4px;
+      border-radius:18px;
+      border:1px solid rgba(31,58,42,.85);
+      padding:10px 10px;
+      display:flex;
+      gap:10px;
+      align-items:stretch;
+      background: linear-gradient(180deg, rgba(10,16,13,.9), rgba(7,10,8,.9));
+    }
+    .introDemoText{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      min-width:0;
+      padding-right:4px;
+    }
+    .introDemoTitle{
+      font-family:var(--mono);
+      font-size:.84rem;
+      color:var(--accent);
+      font-weight:900;
+    }
+    .introDemoDesc{
+      font-family:var(--sans);
+      font-size:.8rem;
+      color:var(--muted);
+      line-height:1.35;
+    }
+    .introDemoBtn{
+      border-radius:18px;
+      border:1px solid rgba(244,208,111,.45);
+      background: linear-gradient(180deg, rgba(244,208,111,.18), rgba(244,208,111,.08));
+      padding:10px 10px;
+      font-family:var(--mono);
+      font-size:.76rem;
+      color:var(--text);
+      cursor:pointer;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      gap:4px;
+      min-width:0;
+      box-shadow: 0 10px 26px rgba(0,0,0,.42);
+      touch-action:manipulation;
+    }
+    .introDemoBtn:active{
+      transform: translateY(1px) scale(.985);
+    }
+    .introDemoMain{
+      font-size:.86rem;
+    }
+    .introDemoMeta{
+      font-size:.78rem;
+      color:var(--muted);
+    }
+    .introStartBtn{
+      margin-top:12px;
+    }
+    .introOverlay[hidden]{
+      display:none;
+    }
 </style>
 </head>
 <body>
+  <div id="introOverlay" class="introOverlay">
+    <div class="introBackdrop"></div>
+    <div class="introCenter">
+      <section class="card introCard" id="introCard">
+        <div class="sectionTitle">
+          <span><b>Welcome, would-be ruler</b></span>
+          <span style="font-size:.76rem;color:var(--muted);">1 / 1 • Basics</span>
+        </div>
+        <div class="cardBody">
+          <p style="margin-top:0;margin-bottom:8px;font-size:.9rem;line-height:1.4;color:var(--text);">
+            In <b>ElderToKing</b> you start as a village elder and climb your way to kingship.
+            There is <b>one main button</b> on each tab. Everything else is support.
+          </p>
+          <ul style="margin:0 0 10px 18px;padding:0;font-size:.8rem;color:var(--muted);line-height:1.4;">
+            <li><b>Village</b>: tap Tribute for denarii and streaks.</li>
+            <li><b>Legion</b>: enlist milites and win land.</li>
+            <li><b>Temple</b>: faith, crits and prestige.</li>
+            <li><b>Court</b>: spend influence for big renown bursts.</li>
+          </ul>
+
+          <div class="introNameBlock">
+            <label for="introNameInput" class="introLabel">What do they call you?</label>
+            <input id="introNameInput" maxlength="18" autocomplete="off" placeholder="Type your name…" />
+          </div>
+
+          <div class="introDemo">
+            <div class="introDemoText">
+              <div class="introDemoTitle">Practice Tribute</div>
+              <div class="introDemoDesc">This demo button is just to feel the taps. It doesn&apos;t affect your real save.</div>
+            </div>
+            <button class="introDemoBtn" id="introTapBtn" type="button">
+              <span class="introDemoMain">Tap for +1 demo coin</span>
+              <span class="introDemoMeta">Demo coins: <b id="introDemoGold">0</b></span>
+            </button>
+          </div>
+
+          <button class="bigBtn introStartBtn" id="introStartBtn" type="button" disabled style="margin-top:12px;">
+            <div class="bigLeft">
+              <div class="bigName">Begin your story</div>
+              <div class="bigDesc">Save your name and enter the village.</div>
+            </div>
+            <div class="bigRight">
+              <div class="gain">Continue</div>
+              <div class="hint" id="introHint">Pick a name to continue</div>
+            </div>
+          </button>
+        </div>
+      </section>
+    </div>
+  </div>
+
   <header>
     <div class="wrap">
       <div class="top">
@@ -350,6 +604,9 @@
           </div>
           <div class="pill">Power <b id="power">0</b></div>
           <div class="pill">Land <b id="landHud">0</b></div>
+          <div class="pill" id="playerPill" style="display:none;">
+            <span>Ruler <b id="playerNameHud"></b></span>
+          </div>
         </div>
       </div>
     </div>
@@ -408,10 +665,10 @@
           <div>Next: <b id="nextTitle">Elder</b></div>
         </div>
 
-        <details>
-          <summary>Chronicle (optional)</summary>
+        <div class="miniLog">
+          <div class="miniLogHeader">Recent Events</div>
           <div class="log" id="log"></div>
-        </details>
+        </div>
       </div>
     </section>
 
@@ -664,6 +921,9 @@
     decrees: 0,
     feastReadyAt: 0,
 
+    // renown soft-tech progression
+    renownPerkLevel: 0,
+
     // streak + lifetime
     streak: 1,
     lastTap: 0,
@@ -692,6 +952,9 @@
     bestStreak: 0,
     biggestCashout: 0,
     lastSettlerToastAt: 0,
+
+    // identity
+    playerName: "",
   });
 
   function normalizeState(state){
@@ -853,12 +1116,12 @@
   let _svT = 0;
   window.scheduleSave = function scheduleSave(){
     clearTimeout(_svT);
-    _svT = setTimeout(()=>{ try{ save(true); }catch(e){} }, 500);
+    _svT = setTimeout(()=>{ try{ save(true); }catch(e){} }, 250);
   };
 
   // Autosave: iOS may kill the page without firing beforeunload reliably.
   // Keep it lightweight and frequent.
-  setInterval(()=>{ try{ save(true); }catch(e){} }, 5000);
+  setInterval(()=>{ try{ save(true); }catch(e){} }, 2500);
 
   // Save when the page is being backgrounded / suspended.
   function flushSave(){
@@ -880,26 +1143,125 @@
     toast._tm = setTimeout(()=>t.classList.remove("show"), 900);
   }
 
-  function logLine(text, tone=""){
-    const log = $("#log");
-    if(!log) return;
-    const p = document.createElement("p");
-    const ts = new Date();
-    const stamp = `${ts.getHours().toString().padStart(2,"0")}:${ts.getMinutes().toString().padStart(2,"0")}`;
-    const span = document.createElement("span");
-    span.textContent = `[${stamp}] `;
-    p.appendChild(span);
-    if(tone){
-      const s = document.createElement("span");
-      s.className = tone;
-      s.textContent = text;
-      p.appendChild(s);
-    }else{
-      p.appendChild(document.createTextNode(text));
-    }
-    log.appendChild(p);
-    log.scrollTop = log.scrollHeight;
+  function logLine(text, tone="") {
+  const log = $("#log");
+  if (!log) return;
+
+  const wrap = document.createElement("div");
+  wrap.className = "log-entry";
+
+  const ts = new Date();
+  const stamp =
+    `${ts.getHours().toString().padStart(2,"0")}:` +
+    `${ts.getMinutes().toString().padStart(2,"0")}`;
+
+  // Time column
+  const timeEl = document.createElement("span");
+  timeEl.className = "log-time";
+  timeEl.textContent = stamp;
+
+  // Message column
+  const msgEl = document.createElement("span");
+  if (tone === "good" || tone === "bad" || tone === "warn") {
+    msgEl.classList.add(tone);
   }
+  msgEl.textContent = text;
+
+  wrap.appendChild(timeEl);
+  wrap.appendChild(msgEl);
+
+  // Prepend newest entry at the top
+  if (log.firstChild) {
+    log.insertBefore(wrap, log.firstChild);
+  } else {
+    log.appendChild(wrap);
+  }
+
+  // Keep only the latest 4 entries
+  while (log.childNodes.length > 4) {
+    log.removeChild(log.lastChild);
+  }
+
+  // Always show top (newest) entries
+  log.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+}
+  // ---- Intro / naming flow ----
+  let introDemoGold = 0;
+
+  function updatePlayerNameHud(){
+    const pill = $("#playerPill");
+    const nameEl = $("#playerNameHud");
+    if(!pill || !nameEl) return;
+    if(S.playerName && S.playerName.trim()){
+      nameEl.textContent = S.playerName.trim();
+      pill.style.display = "inline-block";
+    }else{
+      pill.style.display = "none";
+    }
+  }
+
+  function maybeShowIntro(){
+    const overlay = $("#introOverlay");
+    if(!overlay) return;
+
+    const nameInput = $("#introNameInput");
+    const startBtn  = $("#introStartBtn");
+    const demoBtn   = $("#introTapBtn");
+    const demoGold  = $("#introDemoGold");
+    const introHint = $("#introHint");
+
+    // If player already has a name, skip intro.
+    if(S.playerName && S.playerName.trim()){
+      overlay.setAttribute("hidden","hidden");
+      updatePlayerNameHud();
+      return;
+    }
+
+    // Show overlay
+    overlay.removeAttribute("hidden");
+
+    // Wire once
+    if(demoBtn && !demoBtn._wired){
+      demoBtn._wired = true;
+      demoBtn.addEventListener("click", (e)=>{
+        introDemoGold += 1;
+        if(demoGold) demoGold.textContent = introDemoGold;
+        const rect = e.currentTarget.getBoundingClientRect();
+        sparkAt(rect.left + rect.width*0.75, rect.top + rect.height*0.35, 0.55);
+      });
+    }
+
+    if(nameInput && !nameInput._wired){
+      nameInput._wired = true;
+      nameInput.addEventListener("input", ()=>{
+        const raw = nameInput.value || "";
+        const trimmed = raw.trim();
+        S.playerName = trimmed;
+        const ok = trimmed.length >= 1;
+        if(startBtn){
+          startBtn.disabled = !ok;
+        }
+        if(introHint){
+          introHint.textContent = ok ? "Tap to enter the village" : "Pick a name to continue";
+        }
+      });
+    }
+
+    if(startBtn && !startBtn._wired){
+      startBtn._wired = true;
+      startBtn.addEventListener("click", ()=>{
+        if(!S.playerName || !S.playerName.trim()) return;
+        overlay.setAttribute("hidden","hidden");
+        updatePlayerNameHud();
+        if(typeof scheduleSave === "function") scheduleSave();
+        toast(`Welcome, ${S.playerName}`);
+      });
+    }
+  }
+
 
   function sparkAt(x,y,gold=0.25){
     const n = 6;
@@ -934,8 +1296,7 @@
   function landMult(){
     return 1 + (S.land * 0.05);
   }
-  function marketMult(){ return 1; }
-  function decreeMult(){
+function decreeMult(){
     return 1 + (S.decrees * 0.07);
   }
   function incomePerSec(){
@@ -957,28 +1318,34 @@
   // --- Migration rate (settlers per second) ---
   // Includes infinite scaling from tap streak (logarithmic, no hard cap)
   function migrationPerSec(){
-    const prosper = (Date.now() < (S.prosperUntil||0)) ? 1.35 : 1.0;
+    // How fast new settlers join per second.
+    // Slightly more generous than before so population feels less "stuck",
+    // especially when you are actively playing well.
+    const prosper = (Date.now() < (S.prosperUntil||0)) ? 1.5 : 1.0;
 
-    const baseRate = 0.03; // baseline migration
-    const incomeRate = clamp(incomePerSec()/250, 0, 0.14);
+    const baseRate = 0.05; // baseline trickle
+    const incomeRate = clamp(incomePerSec()/180, 0, 0.25);
     const sizeRate =
-      (S.villaCount||0)*0.004 +
-      (S.farmCount||0)*0.001 +
-      (S.hutCount||0)*0.002;
-    const landRate = (S.land||0)*0.0008;
+      (S.villaCount||0)*0.006 +
+      (S.farmCount||0)*0.0025 +
+      (S.hutCount||0)*0.0035;
+    const landRate = (S.land||0)*0.0012;
 
     // 🔥 Streak-based attraction (infinite, diminishing returns)
-    // 10 streak ≈ +15%, 100 ≈ +35%, 1,000 ≈ +60%, 10k ≈ +85%
+    // Long streaks and good play make people want to move in.
     const streak = Math.max(1, S.streak||1);
-    const streakMult = 1 + Math.log10(streak) * 0.25;
+    const streakMult = 1 + Math.log10(streak) * 0.30;
 
-    return clamp(
-      (baseRate + incomeRate + sizeRate + landRate)
+    // 🌟 Renown perk: famous realms attract more settlers.
+    const ren = S.renown || 0;
+    const renMult = 1 + Math.log10(1 + ren/200) * 0.25;
+
+    const raw = (baseRate + incomeRate + sizeRate + landRate)
       * prosper
-      * streakMult,
-      0.01,
-      1.5
-    );
+      * streakMult
+      * renMult;
+
+    return clamp(raw, 0.02, 0.9);
   }
 
 
@@ -1472,8 +1839,6 @@
 
 
   // ---- Dopamine layers: Jackpots + Cash Out ----
-  const CASHOUT_EVERY_TAPS = 10;        // becomes available every N taps
-  const CASHOUT_WINDOW_MS = 6500;       // time to cash out once ready
   function cashoutMultiplier(){
     // Scales with prestige + progression systems
     return landMult() * decreeMult() * crownMult();
@@ -1496,8 +1861,6 @@
     S.cashoutBanked += Math.round(amount * 0.35 * streakBoost);
     S.cashoutBanked = clamp(S.cashoutBanked, 0, 9_999_999_999);
   }
-  function cashoutAvailable(){ return cashoutReady(); }
-
   function expireCashoutIfNeeded(){ /* handled by cooldown + streak timer */ }
 
 // ---- Cash Out Rework (streak-driven, timing & milestones) ----
@@ -1752,7 +2115,6 @@
 
     if(o.type==="gainLand")
       return `Gain ${o.target} land (${left} left)`;
-      return `Run ${o.target} caravan${o.target>1?"s":""} (${left} left)`;
 
     if(o.type==="offerFaith")
       return `Make ${o.target} temple offering${o.target>1?"s":""} (${left} left)`;
@@ -1923,7 +2285,6 @@
     if(source === "streak") base = 0.18;
     else if(source === "cashout") base = 0.15;
     else if(source === "battle") base = 0.16;
-    else if(source === "caravan") base = 0.16;
     else base = 0.10;
 
     if(Math.random() > base) return;
@@ -1942,7 +2303,7 @@
 
 // ---- Loot Chests (2-second dopamine overlay) ----
   function chestRarityFrom(source){
-    // source: "skirmish" | "caravan" | "feast"
+    // source: "skirmish" | "feast" | other
     // For skirmishes, we bias rarity by total battles won so early fights feel juicy:
     // e.g. after 5 wins, guaranteed Common; after 8+, Rare+; after 12+, Epic chance.
     if(source === "skirmish"){
@@ -1970,10 +2331,22 @@
       }
     }
 
-    // Feast / caravan still mostly RNG, but feasts skew better.
+    // Feast / other sources mostly RNG, but feasts skew better.
     const roll = Math.random();
-    const epicP = source==="feast" ? 0.14 : (source==="caravan" ? 0.08 : 0.05);
-    const rareP = source==="feast" ? 0.40 : (source==="caravan" ? 0.34 : 0.28);
+    let epicP = source==="feast" ? 0.14 : 0.05;
+    let rareP = source==="feast" ? 0.40 : 0.28;
+
+    // 🌟 Renown perk: famous rulers see better gifts.
+    const ren = S.renown || 0;
+    const renBonus = Math.min(0.08, Math.log10(1 + ren/400) * 0.05);
+    if(renBonus > 0){
+      epicP += renBonus * 0.4;
+      rareP += renBonus * 0.6;
+    }
+    // keep things sane
+    epicP = clamp(epicP, 0, 0.40);
+    rareP = clamp(rareP, 0, 0.80);
+
     if(roll < epicP) return "Epic";
     if(roll < epicP + rareP) return "Rare";
     return "Common";
@@ -2033,7 +2406,7 @@
   }
 
 
-  function showChest(source="caravan"){
+  function showChest(source="feast"){
     const rarity = chestRarityFrom(source);
     const loot = makeChestLoot(rarity);
 
@@ -2210,11 +2583,17 @@
   // Update the Milites header icon based on rank. For the first few
   // ranks we show the basic milites sprite; higher ranks can later use
   // different art or hide the icon entirely.
+  let _militesIconRankIdx = null;
+
   function updateMilitesIcon(){
     const icon = $("#militesIcon");
     if(!icon) return;
     const info = titleInfo();
     const idx = info.idx || 0;
+
+    // Avoid rebinding the same sprite every render tick; only update when rank changes.
+    if(_militesIconRankIdx === idx) return;
+    _militesIconRankIdx = idx;
 
     // First four ranks (Elder → Council Elder) use the base sprite.
     if(idx <= 3){
@@ -2238,6 +2617,28 @@
     $("#landHud").textContent = fmt(S.land || 0);
 
     $("#incomeRate").textContent = incomePerSec().toFixed(1);
+
+    // Renown soft-tech: passive decree unlocks from fame (no choices, pure dopamine)
+    (function applyRenownPerks(){
+      const ren = S.renown || 0;
+      const prevLevel = S.renownPerkLevel || 0;
+      let level = 0;
+      if(ren >= 1500) level = 1;
+      if(ren >= 6000) level = 2;
+      if(ren >= 20000) level = 3;
+
+      if(level > prevLevel){
+        // Base decrees granted by reputation alone; never reduce manual ones.
+        const baseFromRenown = level; // 1,2,3
+        if((S.decrees||0) < baseFromRenown){
+          const gained = baseFromRenown - (S.decrees||0);
+          S.decrees = baseFromRenown;
+          logLine(`Your fame grants you ${gained} royal decree${gained>1?"s":""}.`, "good");
+          toast("Renown unlocks new decrees");
+        }
+        S.renownPerkLevel = level;
+      }
+    })();
 
     // Population display (village capacity)
     const cap = populationCap();
@@ -2400,7 +2801,27 @@
     const ren = Math.max(1, Math.round(gain/14) + Math.round(jackpotGain/70));
     S.renown += ren;
     S.lifetimeRenown += ren;
-    S.power += 1 + (crit ? 1 : 0);    const rect = e.currentTarget.getBoundingClientRect();
+    S.power += 1 + (crit ? 1 : 0);
+
+    // Streak taps occasionally attract a new settler directly (population dopamine).
+    if(hasVillageCapacity()){
+      const s = Math.max(1, S.streak || 1);
+      if(s > 1 && s % 5 === 0){
+        const beforePop = S.population || 0;
+        S.population = Math.min(populationCap(), beforePop + 1);
+        if(S.population > beforePop){
+          logLine("A villager is impressed by your prosperity and settles in your village.", "good");
+          const settlerRect = e.currentTarget.getBoundingClientRect();
+          sparkAt(
+            settlerRect.left + settlerRect.width * 0.28,
+            settlerRect.top  + settlerRect.height * 0.25,
+            0.45
+          );
+        }
+      }
+    }
+
+    const rect = e.currentTarget.getBoundingClientRect();
     const goldness = crit ? 0.95 : 0.25;
     sparkAt(rect.left + rect.width*0.78, rect.top + rect.height*0.42, goldness);
 
@@ -2452,47 +2873,49 @@ render();
     render();
   });
   $("#btnRecruit").addEventListener("click", (e)=>{
-    const c = recruitCost();
-    if(S.gold < c){ toast("Not enough denarii"); return; }
+  const c = recruitCost();
+  if(S.gold < c){
+    toast("Not enough denarii");
+    return;
+  }
 
-    // You can only recruit if you have an unassigned settler to train.
-    // (Population is filled slowly up to the cap by "settlers".)
-    const pop = (S.population||0);
-    const warriors = (S.warriors||0);
-    const civilians = Math.max(0, pop - warriors);
+  // You can only recruit if you have an unassigned settler to train.
+  // (Population is filled slowly up to the cap by "settlers".)
+  const pop = S.population || 0;
+  const warriors = S.warriors || 0;
+  const civilians = Math.max(0, pop - warriors);
 
-    if(civilians < 1){
-      toast("No free settlers — wait for population to grow");
-      return;
-    }
-    if(!hasVillageCapacity()){
-      toast("Need more housing (farms/villas) to grow population");
-      return;
-    }
+  if(civilians < 1){
+    toast("No free settlers — build housing and wait for more to arrive");
+    return;
+  }
 
-    S.gold -= c;
+  // Pay the cost and convert 1 civilian into a milites.
+  S.gold -= c;
+  S.warriors = warriors + 1;
+  S.populationUsed = S.warriors; // keep pop-used in sync with milites
 
-    // Convert 1 civilian into a milites (total population stays the same)
-    S.warriors += 1;
-    S.populationUsed = S.warriors; // keep pop-used in sync with milites
+  recalcLegionStrength();
 
-    recalcLegionStrength();
+  // Recruiting gives power and renown (feels like progress)
+  S.power += 2;
+  S.renown += 18;
+  bumpObjective("recruit", 1);
 
-    // Recruiting gives power and renown (feels like progress)
-    S.power += 2;
-    S.renown += 18;
-    bumpObjective("recruit", 1);
+  // Nice but safe coin spark (no undefined payout!)
+  const rect = e.currentTarget.getBoundingClientRect();
+  const goldness = clamp(0.35 + (S.warriors || 0) * 0.015, 0.35, 0.9);
+  sparkAt(
+    rect.left + rect.width * 0.80,
+    rect.top  + rect.height * 0.45,
+    goldness
+  );
 
-    const rect = e.currentTarget.getBoundingClientRect();
-    // Bigger cashouts look richer (log scaling, no runaway)
-    const ref = Math.max(1, (S.biggestCashout||0));
-    const goldness = clamp(Math.log10(1+payout) / Math.log10(1+ref), 0.30, 1.0);
-    sparkAt(rect.left + rect.width*0.80, rect.top + rect.height*0.45, goldness);
+  toast("Recruited");
+  logLine(`A milites joins your banner. (Milites: ${fmt(S.warriors)})`, "good");
 
-    toast("Recruited");
-    logLine(`A milites joins your banner. (Milites: ${fmt(S.warriors)})`, "good");
-    render();
-  });
+  render();
+});
   
     
 // --- Battle Report overlay (after every battle) ---
@@ -2642,12 +3065,6 @@ function showBattleSimulation(rep, tier){
   pushLine();
 }
 
-function closeBattleSimulation(){
-  const overlay = document.getElementById("battleSimOverlay");
-  if(!overlay) return;
-  overlay.classList.remove("visible");
-  setTimeout(()=>{ overlay.style.display = "none"; }, 220);
-}
 
 // --- Battle execution (rank-based) ---
 function doBattle(slot){
@@ -2937,14 +3354,10 @@ $("#btnExport").addEventListener("click", async ()=>{
     if(typeof S.population !== "number") S.population = Math.max(0, S.populationUsed||0, S.warriors||0);
     if(typeof S.settlerProg !== "number") S.settlerProg = 0;
 
-    // "Doing well" = better income + bigger settlement attracts more people
-    const prosper = (Date.now() < (S.prosperUntil||0)) ? 1.35 : 1.0;
-    const baseRate = 0.03;
-    const incomeRate = clamp(incomePerSec()/250, 0, 0.14);
-    const sizeRate = (S.villaCount||0)*0.004 + (S.farmCount||0)*0.001 + (S.hutCount||0)*0.002;
-    const landRate = (S.land||0)*0.0008;
+    // "Doing well" = better income + bigger settlement attracts more people.
+    // Use the same helper the HUD uses so numbers stay in sync.
+    const settleRatePerSec = migrationPerSec();
 
-    const settleRatePerSec = clamp((baseRate + incomeRate + sizeRate + landRate) * prosper, 0.01, 0.35);
 
     if((S.population||0) < cap){
       S.settlerProg += settleRatePerSec * dt;
@@ -2983,6 +3396,7 @@ $("#btnExport").addEventListener("click", async ()=>{
   $("#log").innerHTML = "";
   logLine("A small village. A few denarii. A long road to the crown.", "warn");
   render();
+  maybeShowIntro();
 })();
 </script>
 
