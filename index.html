@@ -306,8 +306,7 @@ body::after{
       transform: translate(-50%,-50%);
       animation: fly 650ms ease-out forwards;
       filter: drop-shadow(0 10px 18px rgba(0,0,0,.35));
-      /* raise z-index so sparks appear above the intro overlay */
-      z-index: 2500;
+      z-index: 1300;
       background-image: url("Sprites/Denarii Icon.png");
       background-size: contain;
       background-repeat: no-repeat;
@@ -522,12 +521,9 @@ body::after{
       position:absolute;
       left:50%;
       transform:translateX(-50%);
-      /* lower the button so it sits neatly on the plank */
-      bottom:0.8%;
-      /* widen the button to better match the plank width */
-      width:75%;
-      /* increase height to allow the button art to fill the area */
-      height:12%;
+      bottom:14.2%;
+      width:72%;
+      height:8.8%;
       background-image:url("Sprites/Tutorial Menu Sprites/Enter The Village Icon.png");
       background-size:contain;
       background-repeat:no-repeat;
@@ -1268,39 +1264,30 @@ body::after{
       startBtn._wired = true;
       startBtn.addEventListener("click", ()=>{
         if(!S.playerName || !S.playerName.trim()) return;
-        // disable the start button to avoid repeated clicks
+        // disable start button to prevent double clicks
         startBtn.disabled = true;
-        // compute explosion origin at the center of the button
+        // explosion origin at button centre
         const rect = startBtn.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
-        // spawn a large burst of coins over ~2 seconds
-        const burstCount = 60;
-        for(let i = 0; i < burstCount; i++){
+        // spawn coin explosions for ~2 seconds
+        const bursts = 50;
+        for(let i=0; i<bursts; i++){
           setTimeout(()=>{
-            // each sparkAt call creates several coins; randomise offsets for a wider spread
             sparkAt(
-              centerX + rnd(-120, 120),
-              centerY + rnd(-80, 60),
+              centerX + rnd(-150, 150),
+              centerY + rnd(-90, 90),
               1
             );
-          }, i * 30);
+          }, i * 40);
         }
-        // after the explosion finishes, fade out the intro overlay
-        if(overlay){
-          setTimeout(()=>{
-            overlay.classList.add('closing');
-            setTimeout(()=>{
-              overlay.setAttribute('hidden','hidden');
-              overlay.classList.remove('closing');
-            }, 260);
-          }, 2000);
-        }
-        // update the player's name and save
-        updatePlayerNameHud();
-        if(typeof scheduleSave === 'function') scheduleSave();
-        // show the welcome toast after the fade
-        setTimeout(()=> toast(`Welcome, ${S.playerName}`), 2000);
+        // hide overlay and proceed after explosions
+        setTimeout(()=>{
+          overlay.setAttribute('hidden','hidden');
+          updatePlayerNameHud();
+          if(typeof scheduleSave === 'function') scheduleSave();
+          toast(`Welcome, ${S.playerName}`);
+        }, 2000);
       });
     }
   }
