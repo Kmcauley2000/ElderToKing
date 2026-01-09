@@ -288,16 +288,17 @@ body::after{
 
     .toast{
       position: fixed;
-      left:50%; transform: translateX(-50%);
+      left:50%;
+      transform: translateX(-50%);
       bottom: calc(84px + env(safe-area-inset-bottom));
-      background: rgba(16,26,20,.96);
-      border: 1px solid rgba(244,208,111,.35);
+      background: linear-gradient(180deg, var(--card-bg), var(--card-bg-soft));
+      border: 1px solid rgba(158,104,54,.55);
       border-radius: 999px;
-      padding: 10px 14px;
+      padding: 10px 16px;
       font-family: var(--mono);
       font-size: 0.78rem;
-      color: var(--text);
-      box-shadow: var(--shadow);
+      color: var(--card-text);
+      box-shadow: 0 12px 30px rgba(0,0,0,.45);
       z-index: 1200;
       display:none;
       max-width: calc(100vw - 24px);
@@ -305,7 +306,8 @@ body::after{
       overflow:hidden;
       text-overflow: ellipsis;
     }
-    .toast.show{display:block;animation: pop .18s ease-out;}
+
+.toast.show{display:block;animation: pop .18s ease-out;}
     @keyframes pop{from{transform:translateX(-50%) scale(.98);opacity:.25;}to{transform:translateX(-50%) scale(1);opacity:1;}}
 
     /* tiny dopamine confetti */
