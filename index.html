@@ -476,12 +476,14 @@ body::after{
   color:var(--muted);
 }
 .simBar{
-  margin:4px 0;
-  padding:0;
-  border:none;
-  background:none;
-  display:flex;
-  justify-content:center;
+  margin:0;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid rgba(158,104,54,.55);
+  background:linear-gradient(180deg,#fbf5ea,#f3e4cf);
+  font-family:var(--mono);
+  font-size:.80rem;
+  white-space:pre;
 }
 .battleBarSprite{
   display:block;
@@ -492,7 +494,7 @@ body::after{
 }
 .battleBar{
   position:relative;
-  display:inline-block;
+  display:block;
 }
 
 .battleBarCount{
@@ -3410,14 +3412,6 @@ function generateBattleLines(rep, tier){
 }
 
 function showBattleSimulation(rep, tier){
-  const makeAsciiBar = (current, max, width = 12) => {
-    if (max <= 0) return "░".repeat(width);
-    const ratio  = max > 0 ? current / max : 0;
-    const filled = clamp(Math.round(ratio * width), 0, width);
-    const empty  = width - filled;
-    return "█".repeat(filled) + "░".repeat(empty);
-  };
-
   const overlay      = document.getElementById("battleSimOverlay");
   const title        = document.getElementById("battleSimTitle");
   const enemyNameEl  = document.getElementById("battleSimEnemyName");
@@ -3446,7 +3440,7 @@ function showBattleSimulation(rep, tier){
   enemyNameEl.textContent = `${fmt(rep.enemies)} enemies`;
   oddsEl.textContent = `${Math.round((rep.winP || 0) * 100)}%`;
 
-  // --- Troop counts ---
+  // --- Troop counts (identical logic to old version) ---
   const yourStart   = Math.max(0, rep.beforeWarriors || 0);
   const yourEnd     = Math.max(0, rep.afterWarriors  || 0);
   const enemyStart  = Math.max(0, rep.enemies        || 0);
@@ -3469,7 +3463,7 @@ function showBattleSimulation(rep, tier){
   enemyEnd = Math.max(0, Math.min(enemyStart, enemyEnd));
   const totalEnemyLoss = Math.max(0, enemyStart - enemyEnd);
 
-  // --- Flavour lines ---
+  // --- Flavour lines (unchanged from old version) ---
   const f = battleFlavorByTier(tier);
   const place = f.place[rnd(0, f.place.length - 1)];
   const foe   = f.foe[rnd(0, f.foe.length - 1)];
@@ -3509,22 +3503,22 @@ function showBattleSimulation(rep, tier){
     enemySteps.push(es);
   }
 
-
+  // --- NEW: map counts → sprite index 0..10 and filenames ---
   const barIndexFromCounts = (current, max)=>{
     if(max <= 0) return 0;
     const ratio = current / max;
-    const idx = Math.round(ratio * 10);
+    const idx = Math.round(ratio * 10); // 0..10 steps (same resolution as old bar width 10)
     return clamp(idx, 0, 10);
   };
 
   const barSpritePath = (side, idx)=>{
     const base = "Sprites/player and enemy bars/";
     if(side === "player"){
-      if(idx <= 0) return base + "Player bar depleted.png";
+      if(idx <= 0)  return base + "Player bar depleted.png";
       if(idx >= 10) return base + "Player bar full.png";
       return base + `Player bar ${idx} out 10.png`;
     }else{
-      if(idx <= 0) return base + "enemy bar depleted.png";
+      if(idx <= 0)  return base + "enemy bar depleted.png";
       if(idx >= 10) return base + "enemy bar full.png";
       return base + `enemy bar ${idx} out 10.png`;
     }
@@ -3544,9 +3538,11 @@ function showBattleSimulation(rep, tier){
     if(enemyBarCount) enemyBarCount.textContent = `${fmt(eNow)} / ${fmt(enemyStart)}`;
     if(yourBarCount)  yourBarCount.textContent  = `${fmt(yNow)} / ${fmt(yourStart)}`;
 
-    // Keep simStats for descriptors only (no raw counts)
-    enemyStatsEl.textContent = enemyStatsEl.textContent || "Enemy host";
-    yourStatsEl.textContent  = yourStatsEl.textContent  || "Legion";
+    // Keep simStats very close to old behaviour
+    const yLossSoFar = Math.max(0, yourStart  - yNow);
+    const eLossSoFar = Math.max(0, enemyStart - eNow);
+    enemyStatsEl.textContent = `Foes ${fmt(enemyStart)} → ${fmt(eNow)} (−${fmt(eLossSoFar)})`;
+    yourStatsEl.textContent  = `Milites ${fmt(yourStart)} → ${fmt(yNow)} (−${fmt(yLossSoFar)})`;
   };
 
   // Initial visual state
@@ -3577,7 +3573,8 @@ function showBattleSimulation(rep, tier){
     eventsEl.appendChild(div);
   };
 
-  timer = setInterval(pushLine, 1200);
+  // Match the old pacing (650ms between lines)
+  timer = setInterval(pushLine, 650);
   pushLine();
 
   const finish = ()=>{
@@ -3586,14 +3583,18 @@ function showBattleSimulation(rep, tier){
     setTimeout(()=>{ overlay.style.display = "none"; }, 220);
   };
 
+  // OLD BEHAVIOUR: Skip = fast-forward text + bars, *then* let user hit Continue
   btnSkip.onclick = ()=>{
-    finish();
-    showBattleReport(rep);
-    if(rep && rep.isIntro){
-      toast("Even a narrow victory proves you can hold the line.");
-      logLine("First defence: you held the village when it truly mattered.", "good");
-      if(typeof scheduleSave === "function") scheduleSave();
+    if(timer){ clearInterval(timer); timer = null; }
+    while(lineIndex < lines.length){
+      stepIndex = Math.min(stepIndex + 1, steps);
+      applyStep(stepIndex);
+      const div = document.createElement("div");
+      div.className = "simEventLine";
+      div.textContent = lines[lineIndex++];
+      eventsEl.appendChild(div);
     }
+    btnContinue.style.display = "inline-flex";
   };
 
   btnContinue.onclick = ()=>{
@@ -3606,6 +3607,7 @@ function showBattleSimulation(rep, tier){
     }
   };
 }
+
 
 // --- Intro cinematic battle (first defence) ---
 function startIntroBattle(){
