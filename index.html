@@ -438,12 +438,73 @@ body::after{
   opacity:1;
 }
 .simLine{
-  margin:0 0 10px;
-  font-family:var(--sans);
-  font-size:.86rem;
-  line-height:1.35;
+  margin:0 0 6px;
+  font-family:var(--mono);
+  font-size:.80rem;
+  line-height:1.30;
+  white-space:pre;
 }
 
+
+.simMetaRow{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:10px;
+  margin-bottom:10px;
+  font-family:var(--mono);
+  font-size:.78rem;
+  color:var(--muted);
+}
+.simMetaLabel{
+  opacity:.85;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  font-size:.72rem;
+}
+.simMetaText{
+  font-size:.9rem;
+  color:var(--text);
+}
+.simBlock{
+  margin-bottom:10px;
+}
+.simLabel{
+  font-family:var(--mono);
+  font-size:.78rem;
+  margin-bottom:4px;
+  color:var(--muted);
+}
+.simBar{
+  margin:4px 0;
+  padding:0;
+  border-radius:0;
+  border:none;
+  background:none;
+}
+.battleBarSprite{
+  display:block;
+  width:100%;
+  max-width:480px;
+  height:auto;
+}
+.simStats{
+  margin-top:4px;
+  font-family:var(--mono);
+  font-size:.74rem;
+  color:var(--muted);
+}
+.simEvents{
+  margin-top:6px;
+  padding-top:6px;
+  border-top:1px dashed rgba(158,104,54,.55);
+  font-family:var(--sans);
+  font-size:.82rem;
+}
+.simEventLine{
+  margin:0 0 4px;
+  line-height:1.35;
+}
     /* Intro overlay */
     .introOverlay{
       position:fixed;
@@ -1209,6 +1270,7 @@ header{
 
     // identity
     playerName: "",
+    introBattleDone: 0,
   });
 
   function normalizeState(state){
@@ -1512,6 +1574,10 @@ header{
         updatePlayerNameHud();
         if(typeof scheduleSave === "function") scheduleSave();
         toast(`Welcome, ${S.playerName}`);
+        // Trigger intro battle once, right after the player enters the village
+        if(!S.introBattleDone && typeof startIntroBattle === "function"){
+          setTimeout(()=> startIntroBattle(), 650);
+        }
       });
     }
   }
@@ -3220,102 +3286,363 @@ function battleFlavorByTier(tier){
 
 function generateBattleLines(rep, tier){
   const f = battleFlavorByTier(tier);
-  const place = f.place[rnd(0, f.place.length-1)];
-  const foe = f.foe[rnd(0, f.foe.length-1)];
+  const place = f.place[rnd(0, f.place.length - 1)];
+  const foe = f.foe[rnd(0, f.foe.length - 1)];
 
-  const odds = rep.winP;
+  // Safety clamps
+  const youMax = Math.max(1, rep.beforeWarriors || 0);
+  const youFinal = Math.max(0, rep.afterWarriors || 0);
+  const enemyMax = Math.max(1, rep.enemies || 0);
+
+  // Enemy final strength is implied (you don't track enemy casualties),
+  // so fake a plausible end-state depending on win/lose.
+  const enemyFinal = rep.win
+    ? 0
+    : Math.round(enemyMax * (0.55 + Math.random() * 0.15)); // they take hits but hold
+
+  const rounds = 3; // number of "beats" shown
+
+  function bar(current, max, width = 10){
+    if(max <= 0) return "▉".repeat(width);
+    const ratio = current / max;
+    const filled = clamp(Math.round(ratio * width), 0, width);
+    const empty = width - filled;
+    return "█".repeat(filled) + "▉".repeat(empty);
+  }
+
+  const odds = rep.winP || 0;
   const close = odds > 0.40 && odds < 0.70;
   const desperate = odds <= 0.40;
 
   const lines = [];
-  lines.push(`The battle commences at the ${place}.`);
-  lines.push(`Scouts report ${fmt(rep.enemies)} ${foe} ahead.`);
-  if(desperate) lines.push("The omens are poor — your line looks thin.");
-  else if(close) lines.push("Both sides brace; no one expects an easy win.");
-  else lines.push("Confidence spreads through your ranks.");
 
-  // mid-fight variations
+  // Short opener
+  lines.push(`At the ${place}, your line meets ${fmt(rep.enemies)} ${foe}.`);
+  if(desperate) lines.push("The omens are poor — your ranks feel thin.");
+  else if(close) lines.push("Both hosts dress their ranks; no-one expects an easy win.");
+  else lines.push("Your milites move with quiet confidence.");
+  lines.push(""); // spacer
+
+  let youPrev = youMax;
+  let enemyPrev = enemyMax;
+  let casualtiesSoFar = 0;
+
+  for(let r = 1; r <= rounds; r++){
+    const t = r / rounds;
+
+    // Linear approach to the final values
+    const enemyNow = Math.max(0, Math.round(enemyMax - (enemyMax - enemyFinal) * t));
+    const youNow = Math.max(0, Math.round(youMax - (youMax - youFinal) * t));
+
+    const dmgToEnemy = Math.max(0, enemyPrev - enemyNow);
+    const dmgToYou = Math.max(0, youPrev - youNow);
+    casualtiesSoFar = youMax - youNow;
+
+    // ENEMY BLOCK
+    lines.push("[ ENEMY HOST ]");
+    lines.push(`${bar(enemyNow, enemyMax)} (${fmt(enemyNow)} / ${fmt(enemyMax)})`);
+
+    if(dmgToEnemy > 0){
+      const heavyHit = dmgToEnemy / enemyMax >= 0.20;
+      if(heavyHit && rep.win){
+        lines.push(`🔥 CRIT! +${fmt(dmgToEnemy)} as the enemy line buckles.`);
+      }else{
+        lines.push(`⚔ Clash! — you deal ${fmt(dmgToEnemy)} dmg.`);
+      }
+    }else{
+      lines.push("⚔ Clash! — your first blows test their shieldwall.");
+    }
+
+    if(dmgToYou > 0){
+      const heavyLoss = dmgToYou / youMax >= 0.12;
+      if(heavyLoss){
+        lines.push(`💥 Counter-charge — you lose ${fmt(dmgToYou)} milites.`);
+      }else{
+        lines.push(`🛡 Shieldwall — enemy steel slips through, ${fmt(dmgToYou)} fall.`);
+      }
+    }else{
+      lines.push("🛡 Shieldwall — your ranks hold with no losses.");
+    }
+
+    lines.push(""); // spacer between sides
+
+    // YOUR ARMY BLOCK
+    lines.push("[ YOUR ARMY ]");
+    lines.push(`${bar(youNow, youMax)} (${fmt(youNow)} / ${fmt(youMax)})`);
+    lines.push(`- - - casualties: ${fmt(casualtiesSoFar)}`);
+    lines.push(""); // extra spacer
+
+    youPrev = youNow;
+    enemyPrev = enemyNow;
+  }
+
+  // Closing note
   if(rep.win){
-    lines.push(chance(0.5) ? "Your milites gather momentum and press the centre." : "Your right flank surges forward behind raised shields.");
-    lines.push(chance(0.5) ? "A gap opens — you drive a wedge through the enemy line." : "Your fighters circle wide, threatening the rear.");
-    if(rep.losses===0) lines.push("The foe breaks early. Few of yours fall.");
-    else if(rep.losses <= Math.max(1, Math.floor(rep.beforeWarriors*0.08))) lines.push("The enemy routs. You count the fallen and hold the field.");
-    else lines.push("Victory — but the ground is littered with your dead.");
-    lines.push("You raise standards and gather spoils.");
+    if(rep.losses === 0){
+      lines.push("The enemy hosts break early — your banners do not dip once.");
+    }else if(rep.losses <= Math.max(1, Math.floor(youMax * 0.08))){
+      lines.push("The enemy scatters; the field is yours for a modest cost in blood.");
+    }else{
+      lines.push("The foe flees, but the field is heavy with your fallen.");
+    }
   }else{
-    lines.push(chance(0.5) ? "The enemy holds firm and pushes you back step by step." : "A sudden counter-charge buckles your centre.");
-    lines.push(chance(0.5) ? "Your flank is turned. You fight to avoid being surrounded." : "Dust and shouting swallow commands; cohesion breaks.");
-    lines.push("You order a retreat before the slaughter becomes total.");
-    lines.push("The survivors regroup, grim and silent.");
+    lines.push("Your line buckles, then breaks — survivors fall back towards the village.");
   }
 
   return lines;
 }
 
 function showBattleSimulation(rep, tier){
-  const overlay = document.getElementById("battleSimOverlay");
-  const log = document.getElementById("battleSimLog");
-  const title = document.getElementById("battleSimTitle");
-  const enemiesEl = document.getElementById("battleSimEnemies");
-  const oddsEl = document.getElementById("battleSimOdds");
-  const btnSkip = document.getElementById("battleSimSkip");
-  const btnContinue = document.getElementById("battleSimContinue");
+  const makeAsciiBar = (current, max, width = 12) => {
+    if (max <= 0) return "░".repeat(width);
+    const ratio  = max > 0 ? current / max : 0;
+    const filled = clamp(Math.round(ratio * width), 0, width);
+    const empty  = width - filled;
+    return "█".repeat(filled) + "░".repeat(empty);
+  };
 
-  if(!overlay || !log || !title || !enemiesEl || !oddsEl || !btnSkip || !btnContinue){
-    // If sim UI missing for some reason, just show report
+  const overlay      = document.getElementById("battleSimOverlay");
+  const title        = document.getElementById("battleSimTitle");
+  const enemyNameEl  = document.getElementById("battleSimEnemyName");
+  const oddsEl       = document.getElementById("battleSimOdds");
+  const enemyBarImg  = document.getElementById("battleSimEnemyBarImg");
+  const yourBarImg   = document.getElementById("battleSimYourBarImg");
+  const enemyStatsEl = document.getElementById("battleSimEnemyStats");
+  const yourStatsEl  = document.getElementById("battleSimYourStats");
+  const eventsEl     = document.getElementById("battleSimEvents");
+  const btnSkip      = document.getElementById("battleSimSkip");
+  const btnContinue  = document.getElementById("battleSimContinue");
+
+  if(
+    !overlay || !title || !enemyNameEl || !oddsEl ||
+    !enemyBarImg || !yourBarImg || !enemyStatsEl || !yourStatsEl ||
+    !eventsEl || !btnSkip || !btnContinue
+  ){
+    // Fallback: just show the report
     showBattleReport(rep);
     return;
   }
 
   title.textContent = rep.label;
-  enemiesEl.textContent = fmt(rep.enemies);
-  oddsEl.textContent = `${Math.round(rep.winP*100)}%`;
+  enemyNameEl.textContent = `${fmt(rep.enemies)} enemies`;
+  oddsEl.textContent = `${Math.round((rep.winP || 0) * 100)}%`;
 
-  log.innerHTML = "";
+  // --- Troop counts ---
+  const yourStart   = Math.max(0, rep.beforeWarriors || 0);
+  const yourEnd     = Math.max(0, rep.afterWarriors  || 0);
+  const enemyStart  = Math.max(0, rep.enemies        || 0);
+  const totalYourLoss  = Math.max(0, yourStart  - yourEnd);
+  let enemyEnd;
+
+  if(enemyStart <= 0){
+    enemyEnd = 0;
+  }else if(rep.win){
+    const edge = rep.winP || 0.5;
+    let killFrac = 0.4 + (edge - 0.5) * 0.7; // better odds = more killed
+    killFrac = clamp(killFrac, 0.3, 0.9);
+    enemyEnd = Math.round(enemyStart * (1 - killFrac));
+  }else{
+    const edge = rep.winP || 0.5;
+    let killFrac = 0.15 + (0.5 - edge) * 0.4; // bad odds = you kill less
+    killFrac = clamp(killFrac, 0.05, 0.5);
+    enemyEnd = Math.round(enemyStart * (1 - killFrac));
+  }
+  enemyEnd = Math.max(0, Math.min(enemyStart, enemyEnd));
+  const totalEnemyLoss = Math.max(0, enemyStart - enemyEnd);
+
+  // --- Flavour lines ---
+  const f = battleFlavorByTier(tier);
+  const place = f.place[rnd(0, f.place.length - 1)];
+  const foe   = f.foe[rnd(0, f.foe.length - 1)];
+  const odds  = rep.winP || 0;
+  const close = odds > 0.40 && odds < 0.70;
+  const desperate = odds <= 0.40;
+
+  const lines = [];
+  lines.push(`⚔ Clash! — your line meets ${fmt(rep.enemies)} ${foe} at the ${place}.`);
+
+  if(rep.win){
+    if(desperate)      lines.push("🩸 Knife-edge — your centre bends but does not break.");
+    else if(close)     lines.push("➡ Push — you grind them back, shield by shield.");
+    else               lines.push("🔥 Overmatch — your milites roll their line up quickly.");
+  }else{
+    if(desperate)      lines.push("💥 Overrun — their weight crashes through your front.");
+    else if(close)     lines.push("⚖ Stalemate tilts — one mistake becomes a rout.");
+    else               lines.push("📉 Outmatched — your line slowly gives ground.");
+  }
+
+  lines.push(`💀 Losses — you lose ${fmt(rep.losses)} milites.`);
+  if(totalEnemyLoss > 0){
+    const enemyLossPct  = Math.round(100 * (totalEnemyLoss / Math.max(1, enemyStart)));
+    if(rep.win) lines.push(`🏳 Rout — enemy loses roughly ${enemyLossPct}% of their number.`);
+    else        lines.push("🩹 You bloody them, but they hold the field.");
+  }
+
+  const steps = lines.length; // one step per line
+  const yourSteps  = [];
+  const enemySteps = [];
+
+  for(let i = 0; i <= steps; i++){
+    const t = steps > 0 ? (i / steps) : 1;
+    const ys = Math.round(yourStart  - totalYourLoss  * t);
+    const es = Math.round(enemyStart - totalEnemyLoss * t);
+    yourSteps.push(ys);
+    enemySteps.push(es);
+  }
+
+
+  const barIndexFromCounts = (current, max)=>{
+    if(max <= 0) return 0;
+    const ratio = current / max;
+    const idx = Math.round(ratio * 10);
+    return clamp(idx, 0, 10);
+  };
+
+  const barSpritePath = (side, idx)=>{
+    const base = "Sprites/player and enemy bars/";
+    if(side === "player"){
+      if(idx <= 0) return base + "Player bar depleted.png";
+      if(idx >= 10) return base + "Player bar full.png";
+      return base + `Player bar ${idx} out 10.png`;
+    }else{
+      if(idx <= 0) return base + "enemy bar depleted.png";
+      if(idx >= 10) return base + "enemy bar full.png";
+      return base + `enemy bar ${idx} out 10.png`;
+    }
+  };
+
+  const applyStep = (stepIndex)=>{
+    const i = clamp(stepIndex, 0, steps);
+    const yNow = yourSteps[i];
+    const eNow = enemySteps[i];
+
+    const yourIdx  = barIndexFromCounts(yNow, yourStart);
+    const enemyIdx = barIndexFromCounts(eNow, enemyStart);
+
+    if(yourBarImg)  yourBarImg.src  = barSpritePath("player", yourIdx);
+    if(enemyBarImg) enemyBarImg.src = barSpritePath("enemy", enemyIdx);
+
+    enemyStatsEl.textContent = `${fmt(eNow)} / ${fmt(enemyStart)} enemies`;
+    yourStatsEl.textContent  = `${fmt(yNow)} / ${fmt(yourStart)} milites`;
+  };
+
+  // Initial visual state
+  eventsEl.innerHTML = "";
   btnContinue.style.display = "none";
+  applyStep(0);
 
   overlay.style.display = "flex";
   overlay.classList.add("visible");
 
-  const lines = generateBattleLines(rep, tier);
-
-  let i = 0;
-  let timer = 0;
+  let lineIndex = 0;
+  let stepIndex = 0;
+  let timer = null;
 
   const pushLine = ()=>{
-    if(i >= lines.length){
-      clearInterval(timer);
+    if(lineIndex >= lines.length){
+      if(timer){ clearInterval(timer); timer = null; }
       btnContinue.style.display = "inline-flex";
       return;
     }
-    const p = document.createElement("p");
-    p.className = "simLine";
-    p.textContent = lines[i++];
-    log.appendChild(p);
-    log.scrollTop = log.scrollHeight;
+
+    stepIndex = Math.min(stepIndex + 1, steps);
+    applyStep(stepIndex);
+
+    const div = document.createElement("div");
+    div.className = "simEventLine";
+    div.textContent = lines[lineIndex++];
+    eventsEl.appendChild(div);
   };
+
+  timer = setInterval(pushLine, 1200);
+  pushLine();
 
   const finish = ()=>{
     overlay.classList.remove("visible");
-    clearInterval(timer);
+    if(timer){ clearInterval(timer); timer = null; }
     setTimeout(()=>{ overlay.style.display = "none"; }, 220);
   };
 
   btnSkip.onclick = ()=>{
-    // instantly finish
-    while(i < lines.length) pushLine();
+    finish();
+    showBattleReport(rep);
+    if(rep && rep.isIntro){
+      toast("Even a narrow victory proves you can hold the line.");
+      logLine("First defence: you held the village when it truly mattered.", "good");
+      if(typeof scheduleSave === "function") scheduleSave();
+    }
   };
 
   btnContinue.onclick = ()=>{
     finish();
     showBattleReport(rep);
+    if(rep && rep.isIntro){
+      toast("Even a narrow victory proves you can hold the line.");
+      logLine("First defence: you held the village when it truly mattered.", "good");
+      if(typeof scheduleSave === "function") scheduleSave();
+    }
   };
-
-  timer = setInterval(pushLine, 650);
-  // kick off quickly
-  pushLine();
 }
 
+// --- Intro cinematic battle (first defence) ---
+function startIntroBattle(){
+  if(S.introBattleDone) return;
+  S.introBattleDone = 1;
+
+  // Ensure a small starting force so the battle feels real
+  let warriors = S.warriors || 0;
+  let population = S.population || 0;
+  if(warriors < 12){
+    const add = 12 - warriors;
+    warriors += add;
+    population += add;
+  }
+  S.warriors = warriors;
+  S.population = population;
+  S.populationUsed = S.warriors;
+  recalcLegionStrength();
+
+  const beforeWarriors = S.warriors || 0;
+  const enemies = beforeWarriors + rnd(4, 10);
+
+  // Heavy but survivable losses to sell the "narrow win"
+  const losses = Math.max(1, Math.round(beforeWarriors * 0.35));
+  S.warriors = Math.max(0, beforeWarriors - losses);
+  S.population = Math.max(0, S.population - losses);
+  S.populationUsed = S.warriors;
+
+  // Modest early reward so the opener feels impactful
+  const denGain = 16;
+  const landGain = 1;
+  const renGain = 4;
+
+  S.gold += denGain;
+  S.lifetimeGold += denGain;
+  S.land = (S.land || 0) + landGain;
+  S.renown = (S.renown || 0) + renGain;
+  S.lifetimeRenown = (S.lifetimeRenown || 0) + renGain;
+
+  const rep = {
+    label: "First Defence of the Village",
+    enemies,
+    winP: 0.56,
+    win: true,
+    beforeWarriors,
+    afterWarriors: S.warriors || 0,
+    losses,
+    denDelta: denGain,
+    landDelta: landGain,
+    note: "You hold the field when it should have broken.",
+    isIntro: true
+  };
+
+  logLine(`First defence of the village: +${fmt(denGain)} denarii, +${fmt(landGain)} land, +${fmt(renGain)} renown.`, "good");
+  toast("The village stands. Barely.");
+  showBattleSimulation(rep, 1);
+  render();
+  if(typeof scheduleSave === "function") scheduleSave();
+}
+window.startIntroBattle = startIntroBattle;
 
 // --- Battle execution (rank-based) ---
 function doBattle(slot){
@@ -3590,12 +3917,36 @@ $("#btnExport").addEventListener("click", async ()=>{
   });
 
   $("#btnReset").addEventListener("click", ()=>{
-    if(!confirm("Erase save on this device?")) return;
-    localStorage.removeItem(STORAGE_KEY);
+    // Flavour confirm for New Game
+    const msg = "Abandon your realm and begin anew?\nYour lands, wealth, and renown will be lost.";
+    if(!confirm(msg)) return;
+
+    // Wipe local save (best-effort)
+    try{
+      localStorage.removeItem(STORAGE_KEY);
+    }catch(e){}
+
+    // Fresh state: back to the very beginning
     S = defaultState();
-    $("#log").innerHTML = "";
-    toast("Reset");
-    setView("village");
+
+    // Make absolutely sure intro is considered not done
+    S.playerName = "";
+    S.introBattleDone = 0;
+
+    // Clear recent events log
+    const logEl = $("#log");
+    if(logEl) logEl.innerHTML = "";
+
+    // Re-render base UI
+    render();
+
+    // Show the intro name screen again
+    if(typeof maybeShowIntro === "function"){
+      maybeShowIntro();
+    }
+
+    // Nice little flavour toast
+    toast("A new story begins.");
   });
 
   // Tabs click
@@ -3738,16 +4089,43 @@ $("#btnExport").addEventListener("click", async ()=>{
         </div>
       </div>
       <div class="cardBody" style="padding:14px;">
-        <div style="font-family:var(--mono);color:var(--muted);font-size:.78rem;margin-bottom:10px;">
-          Enemies: <b id="battleSimEnemies">0</b> • Estimated odds: <b id="battleSimOdds">0%</b>
+
+        <div class="simMetaRow">
+          <div class="simMetaLeft">
+            <div class="simMetaLabel">ENEMY FORCE</div>
+            <div class="simMetaText" id="battleSimEnemyName">0 enemies</div>
+          </div>
+          <div class="simMetaRight">
+            <div class="simMetaLabel">EST. ODDS</div>
+            <div class="simMetaText"><span id="battleSimOdds">0%</span></div>
+          </div>
         </div>
-        <div id="battleSimLog" class="log" style="max-height:34vh;"></div>
-        <button id="battleSimContinue" class="tab active" style="margin-top:10px;width:100%;justify-content:center;display:none;">
+
+        <div class="simBlock">
+          <div class="simLabel">Enemy</div>
+          <div class="simBar">
+            <img id="battleSimEnemyBarImg" class="battleBarSprite" src="Sprites/player and enemy bars/enemy bar full.png" alt="Enemy bar">
+          </div>
+          <div class="simStats" id="battleSimEnemyStats"></div>
+        </div>
+
+        <div class="simBlock">
+          <div class="simLabel">Your force</div>
+          <div class="simBar">
+            <img id="battleSimYourBarImg" class="battleBarSprite" src="Sprites/player and enemy bars/Player bar full.png" alt="Your bar">
+          </div>
+          <div class="simStats" id="battleSimYourStats"></div>
+        </div>
+
+        <div class="simEvents" id="battleSimEvents"></div>
+
+        <button id="battleSimContinue" class="tab active" style="margin-top:10px;width:100%;justify-content:center;">
           <span class="dot"></span>View Report
         </button>
       </div>
     </div>
   </div>
+
 
 </body>
 </html>
