@@ -142,8 +142,10 @@ body::after{
     @media (max-width: 520px){ .row3{grid-template-columns:1fr;} }
 
     .smallBtn{
-      border:1px solid rgba(31,58,42,.95);
-      background: linear-gradient(180deg, rgba(13,21,17,.95), rgba(10,16,13,.95));
+      border:1px solid rgba(244,170,92,.9);
+      background: linear-gradient(180deg,
+                   rgba(255,255,255,0.32),
+                   rgba(244,170,92,0.28));
       color:var(--text);
       border-radius: 18px;
       padding:14px 14px;
@@ -154,8 +156,7 @@ body::after{
       transition: transform .08s ease, border-color .2s ease, opacity .2s ease, filter .2s ease;
       touch-action: manipulation;
       user-select:none;
-    }
-    .smallBtn:active{transform: translateY(1px) scale(.99);}
+    }    .smallBtn:active{transform: translateY(1px) scale(.99);}
     .smallBtn[disabled]{opacity:.55;cursor:not-allowed;transform:none;filter:saturate(.75);}
     .smallBtn:hover{border-color: rgba(244,208,111,.38);}
     .smallBtn .t{font-weight:900;color:var(--accent);font-size:.92rem;}
@@ -169,8 +170,9 @@ body::after{
     .miniLog{
   margin-top:10px;
   border-radius:16px;
-  border:1px solid rgba(31,58,42,.85);
-  background: linear-gradient(180deg, rgba(10,16,13,.82), rgba(7,10,8,.92));
+  border:1px solid rgba(244,170,92,.8);
+  background: rgba(0,0,0,0.62);
+  backdrop-filter: blur(8px);
   overflow:hidden;
 }
 .miniLogHeader{
@@ -188,8 +190,9 @@ body::after{
   max-height: 28vh;
   overflow:auto;
   border-radius:18px;
-  border:1px solid rgba(31,58,42,.85);
-  background: linear-gradient(180deg, rgba(10,16,13,.78), rgba(7,10,8,.78));
+  border:1px solid rgba(244,170,92,.9);
+  background: rgba(0,0,0,0.78);
+  backdrop-filter: blur(8px);
   padding:12px;
   font-family:var(--mono);
   font-size:.76rem;
