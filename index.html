@@ -580,6 +580,205 @@ body::after{
   backdrop-filter: blur(4px);
 }
 
+
+/* === Creamy parchment + high-contrast black text theme overrides === */
+
+:root{
+  --panel:#f7f0e2;
+  --panel2:#f1e2c7;
+  --text:#111111;
+  --muted:#333333;
+  --accent:#f4b04a;
+  --ok:#f4b04a;
+}
+
+/* Main cards */
+.card{
+  background: linear-gradient(180deg, var(--panel), var(--panel2));
+  border: 1px solid rgba(244,170,92,.9);
+  border-radius: var(--radius);
+  box-shadow: 0 18px 42px rgba(0,0,0,.55);
+  backdrop-filter: none;
+  color: var(--text);
+}
+
+/* Section headers ("Village", "Legion", etc.) */
+.sectionTitle{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  font-family:var(--mono);
+  color:var(--muted);
+  font-size:.78rem;
+  padding:12px 14px;
+  border-bottom:1px solid rgba(158,104,54,.45);
+  background: linear-gradient(
+    180deg,
+    rgba(255,248,234,.98),
+    rgba(244,216,176,.96)
+  );
+}
+.sectionTitle span:first-child{
+  color:var(--accent);
+}
+.sectionTitle b{
+  color:var(--text);
+}
+
+/* Big primary button (Collect Tribute) */
+.bigBtn{
+  width:100%;
+  border:1px solid rgba(158,104,54,.9);
+  background: linear-gradient(180deg,#fdf6eb,#f2e0c5);
+  color:var(--text);
+  border-radius:22px;
+  padding:18px 16px;
+  font-family:var(--mono);
+  box-shadow:0 16px 40px rgba(0,0,0,.45);
+}
+.bigBtn:hover{
+  border-color:rgba(244,208,111,.8);
+}
+
+/* Big name / title inside primary button */
+.bigName{
+  color:var(--accent);
+}
+
+/* Secondary small buttons ("Build Huts", nav tabs etc.) */
+.smallBtn{
+  border:1px solid rgba(158,104,54,.9);
+  background: linear-gradient(180deg,#fdf6eb,#f2e0c5);
+  color:var(--text);
+  border-radius:18px;
+  padding:14px 14px;
+}
+.smallBtn .t{
+  font-weight:900;
+  color:var(--accent);
+  font-size:.92rem;
+}
+.smallBtn .d{
+  font-family:var(--sans);
+  color:var(--muted);
+  font-size:.74rem;
+  line-height:1.25;
+}
+
+/* Generic pill (top resources) */
+.pill{
+  border:1px solid rgba(244,170,92,.7);
+  background: rgba(255,255,255,0.5);
+  border-radius:999px;
+  padding:6px 10px;
+  font-family:var(--mono);
+  font-size:.78rem;
+  white-space:nowrap;
+  color:var(--text);
+}
+
+/* Objective / nav tabs */
+.tab{
+  border:1px solid rgba(244,170,92,.9);
+  background: rgba(255,255,255,0.4);
+  color:var(--text);
+  border-radius:999px;
+  padding:10px 12px;
+  font-family:var(--mono);
+  font-size:.78rem;
+}
+.tab.active{
+  color:var(--text);
+  border-color:rgba(244,170,92,1);
+}
+.tab[disabled]{
+  opacity:.6;
+  cursor:not-allowed;
+  filter:none;
+}
+
+/* Logs */
+.miniLog{
+  margin-top:10px;
+  border-radius:16px;
+  border:1px solid rgba(158,104,54,.55);
+  background: linear-gradient(180deg,#fbf4e7,#f4e3cf);
+  backdrop-filter:none;
+  overflow:hidden;
+}
+.miniLogHeader{
+  padding:6px 10px;
+  font-family:var(--mono);
+  font-size:.76rem;
+  letter-spacing:.02em;
+  text-transform:uppercase;
+  color:var(--muted);
+  border-bottom:1px solid rgba(158,104,54,.4);
+  background: linear-gradient(180deg,#f3e1c7,#ebd2b3);
+}
+.log{
+  margin-top:10px;
+  max-height:28vh;
+  overflow:auto;
+  border-radius:18px;
+  border:1px solid rgba(158,104,54,.55);
+  background:#fdf8ee;
+  backdrop-filter:none;
+  padding:12px;
+  font-family:var(--mono);
+  font-size:.76rem;
+  line-height:1.45;
+  color:var(--text);
+}
+.log-time{
+  opacity:.75;
+  font-size:.72rem;
+  min-width:44px;
+  text-align:right;
+  user-select:none;
+  color:var(--muted);
+}
+
+/* Good/warn/bad accents still use semantic colours */
+.good{color:var(--ok);font-weight:900;}
+.bad{color:var(--danger);font-weight:900;}
+.warn{color:var(--warn);font-weight:900;}
+
+/* Stats table */
+.table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0 8px;
+  font-family:var(--mono);
+  font-size:.78rem;
+  color:var(--text);
+}
+.table td{
+  padding:10px 12px;
+  border:1px solid rgba(158,104,54,.45);
+  background: linear-gradient(180deg,#fbf5ea,#f3e4cf);
+}
+.table td:first-child{
+  border-radius:14px 0 0 14px;
+  color:var(--muted);
+  width:46%;
+}
+.table td:last-child{
+  border-radius:0 14px 14px 0;
+  text-align:right;
+}
+
+/* Danger rows in stats */
+.danger{
+  border-color:rgba(255,107,107,.55) !important;
+}
+
+/* Ensure generic text colour on cards/logs/stats is black */
+.card, .log, .miniLog, .table, .table td, .smallBtn, .bigBtn{
+  color:var(--text);
+}
+
 </style>
 </head>
 <body>
