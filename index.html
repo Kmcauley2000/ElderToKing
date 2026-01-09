@@ -478,15 +478,32 @@ body::after{
 .simBar{
   margin:4px 0;
   padding:0;
-  border-radius:0;
   border:none;
   background:none;
+  display:flex;
+  justify-content:center;
 }
 .battleBarSprite{
   display:block;
   width:100%;
-  max-width:480px;
+  max-width:300px;
   height:auto;
+  image-rendering:pixelated;
+}
+.battleBar{
+  position:relative;
+  display:inline-block;
+}
+
+.battleBarCount{
+  position:absolute;
+  right:12px;
+  top:50%;
+  transform:translateY(-50%);
+  font-family:var(--mono);
+  font-size:.9rem;
+  color:#f9e6a4;
+  text-shadow:0 0 4px rgba(0,0,0,0.9);
 }
 .simStats{
   margin-top:4px;
@@ -3407,6 +3424,8 @@ function showBattleSimulation(rep, tier){
   const oddsEl       = document.getElementById("battleSimOdds");
   const enemyBarImg  = document.getElementById("battleSimEnemyBarImg");
   const yourBarImg   = document.getElementById("battleSimYourBarImg");
+  const enemyBarCount = document.getElementById("enemyBarCount");
+  const yourBarCount  = document.getElementById("yourBarCount");
   const enemyStatsEl = document.getElementById("battleSimEnemyStats");
   const yourStatsEl  = document.getElementById("battleSimYourStats");
   const eventsEl     = document.getElementById("battleSimEvents");
@@ -3522,8 +3541,12 @@ function showBattleSimulation(rep, tier){
     if(yourBarImg)  yourBarImg.src  = barSpritePath("player", yourIdx);
     if(enemyBarImg) enemyBarImg.src = barSpritePath("enemy", enemyIdx);
 
-    enemyStatsEl.textContent = `${fmt(eNow)} / ${fmt(enemyStart)} enemies`;
-    yourStatsEl.textContent  = `${fmt(yNow)} / ${fmt(yourStart)} milites`;
+    if(enemyBarCount) enemyBarCount.textContent = `${fmt(eNow)} / ${fmt(enemyStart)}`;
+    if(yourBarCount)  yourBarCount.textContent  = `${fmt(yNow)} / ${fmt(yourStart)}`;
+
+    // Keep simStats for descriptors only (no raw counts)
+    enemyStatsEl.textContent = enemyStatsEl.textContent || "Enemy host";
+    yourStatsEl.textContent  = yourStatsEl.textContent  || "Legion";
   };
 
   // Initial visual state
@@ -4104,7 +4127,10 @@ $("#btnExport").addEventListener("click", async ()=>{
         <div class="simBlock">
           <div class="simLabel">Enemy</div>
           <div class="simBar">
-            <img id="battleSimEnemyBarImg" class="battleBarSprite" src="Sprites/player and enemy bars/enemy bar full.png" alt="Enemy bar">
+            <div class="battleBar">
+              <img id="battleSimEnemyBarImg" class="battleBarSprite" src="Sprites/player and enemy bars/enemy bar full.png" alt="Enemy bar">
+              <div class="battleBarCount battleBarCount--enemy" id="enemyBarCount"></div>
+            </div>
           </div>
           <div class="simStats" id="battleSimEnemyStats"></div>
         </div>
@@ -4112,7 +4138,10 @@ $("#btnExport").addEventListener("click", async ()=>{
         <div class="simBlock">
           <div class="simLabel">Your force</div>
           <div class="simBar">
-            <img id="battleSimYourBarImg" class="battleBarSprite" src="Sprites/player and enemy bars/Player bar full.png" alt="Your bar">
+            <div class="battleBar">
+              <img id="battleSimYourBarImg" class="battleBarSprite" src="Sprites/player and enemy bars/Player bar full.png" alt="Your bar">
+              <div class="battleBarCount battleBarCount--ally" id="yourBarCount"></div>
+            </div>
           </div>
           <div class="simStats" id="battleSimYourStats"></div>
         </div>
