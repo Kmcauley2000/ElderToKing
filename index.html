@@ -306,6 +306,7 @@ body::after{
       transform: translate(-50%,-50%);
       animation: fly 650ms ease-out forwards;
       filter: drop-shadow(0 10px 18px rgba(0,0,0,.35));
+      /* raise z-index so sparks appear above the intro overlay */
       z-index: 2500;
       background-image: url("Sprites/Denarii Icon.png");
       background-size: contain;
@@ -433,7 +434,6 @@ body::after{
 
     
     /* Intro overlay using pixel-art tutorial screen */
-    
     .introOverlay{
       position:fixed;
       inset:0;
@@ -442,10 +442,7 @@ body::after{
       align-items:center;
       justify-content:center;
       pointer-events:auto;
-      opacity:1;
-      transition:opacity .22s ease-out;
     }
-    
     .introBackdrop{
       position:absolute;
       inset:0;
@@ -499,8 +496,6 @@ body::after{
       display:flex;
       align-items:center;
       justify-content:center;
-    
-      z-index:2;
     }
     .introNameHitbox input{
       width:100%;
@@ -523,18 +518,20 @@ body::after{
       background-color:rgba(255,255,255,.12);
     }
 
-    
-    
-    
-    
-    
     .introEnterBtn{
       position:absolute;
       left:50%;
       transform:translateX(-50%);
-      bottom:1.2%;
+      /* lower the button so it sits neatly on the plank */
+      bottom:0.8%;
+      /* widen the button to better match the plank width */
       width:75%;
-      background:none;
+      /* increase height to allow the button art to fill the area */
+      height:12%;
+      background-image:url("Sprites/Tutorial Menu Sprites/Enter The Village Icon.png");
+      background-size:contain;
+      background-repeat:no-repeat;
+      background-position:center;
       border:none;
       padding:0;
       margin:0;
@@ -542,28 +539,11 @@ body::after{
       background-color:transparent;
       outline:none;
       touch-action:manipulation;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      z-index:1;
-      transition:transform .08s ease, filter .08s ease, opacity .15s ease;
+      transition:
+        transform .08s ease,
+        filter .08s ease,
+        opacity .15s ease;
     }
-    
-
-    
-    
-
-    
-    
-    .introEnterImg{
-      width:100%;
-      height:auto;
-      image-rendering:pixelated;
-      display:block;
-    }
-    
-    
-
 
     .introEnterBtn:disabled{
       opacity:.45;
@@ -578,11 +558,6 @@ body::after{
     }
     .introEnterBtn:not(:disabled):hover{
       filter:brightness(1.05);
-    }
-
-    .introOverlay.closing{
-      opacity:0;
-      pointer-events:none;
     }
 
     .introOverlay[hidden]{
@@ -610,17 +585,11 @@ body::after{
             placeholder="Type your name…"
           />
         </div>
-        
         <button
           class="introEnterBtn introStartBtn"
           id="introStartBtn"
           type="button"
         >
-          <img
-            class="introEnterImg"
-            src="Sprites/Tutorial Menu Sprites/Enter The Village Icon.png"
-            alt="Enter the village"
-          />
           <span class="visuallyHidden">Enter the village</span>
         </button>
       </div>
@@ -1295,49 +1264,44 @@ body::after{
       });
     }
 
-    if(
-
-
-startBtn && !startBtn._wired){
+    if(startBtn && !startBtn._wired){
       startBtn._wired = true;
       startBtn.addEventListener("click", ()=>{
         if(!S.playerName || !S.playerName.trim()) return;
-
-        // Massive denarii explosion for ~2 seconds, then fade out the intro
-        if(startBtn) startBtn.disabled = true;
-
-        // Use the button position as the origin for the explosion
+        // disable the start button to avoid repeated clicks
+        startBtn.disabled = true;
+        // compute explosion origin at the center of the button
         const rect = startBtn.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
-
-        for(let i=0;i<48;i++){
+        // spawn a large burst of coins over ~2 seconds
+        const burstCount = 60;
+        for(let i = 0; i < burstCount; i++){
           setTimeout(()=>{
+            // each sparkAt call creates several coins; randomise offsets for a wider spread
             sparkAt(
-              centerX + rnd(-90,90),
-              centerY + rnd(-60,40),
+              centerX + rnd(-120, 120),
+              centerY + rnd(-80, 60),
               1
             );
-          }, i * 35);
+          }, i * 30);
         }
-
+        // after the explosion finishes, fade out the intro overlay
         if(overlay){
           setTimeout(()=>{
-            overlay.classList.add("closing");
+            overlay.classList.add('closing');
             setTimeout(()=>{
-              overlay.setAttribute("hidden","hidden");
-              overlay.classList.remove("closing");
+              overlay.setAttribute('hidden','hidden');
+              overlay.classList.remove('closing');
             }, 260);
-          }, 1900);
+          }, 2000);
         }
-
+        // update the player's name and save
         updatePlayerNameHud();
-        if(typeof scheduleSave === "function") scheduleSave();
+        if(typeof scheduleSave === 'function') scheduleSave();
+        // show the welcome toast after the fade
         setTimeout(()=> toast(`Welcome, ${S.playerName}`), 2000);
       });
-
-
-
     }
   }
 
