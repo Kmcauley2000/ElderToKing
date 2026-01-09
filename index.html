@@ -67,9 +67,12 @@ body::after{
       top:0;
       z-index:20;
       padding-bottom:10px;
-      background: linear-gradient(180deg, rgba(11,15,12,.98), rgba(11,15,12,.80));
-      backdrop-filter: blur(10px);
-      border-bottom:1px solid rgba(31,58,42,.75);
+      background:
+        linear-gradient(180deg,
+          rgba(247,240,226,.98),
+          rgba(242,224,196,.96)
+        );
+      border-bottom:1px solid rgba(158,104,54,.55);
     }
     .top{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;padding:10px 2px 10px;}
     .top > div:first-child{display:none;}
@@ -779,6 +782,18 @@ body::after{
   color:var(--text);
 }
 
+
+/* === Remove top header strip, keep floating counters === */
+header{
+  background: transparent !important;
+  border: none !important;
+  padding-bottom: 0 !important;
+  backdrop-filter: none !important;
+}
+/* Add breathing room between counters and first card */
+.card:first-of-type{
+  margin-top: 18px;
+}
 </style>
 </head>
 <body>
@@ -1062,8 +1077,8 @@ body::after{
 
   const unlock = {
     legion: 0,
-    temple: 5200,
-    court: 8200,
+    temple: 0,
+    court: 0,
     stats: 0
   };
 
@@ -2114,16 +2129,20 @@ function decreeMult(){
     const within = streakTimeLeftMs() / STREAK_WINDOW_MS; // 0..1
     const timing = 0.70 + 0.30 * within; // more if you're actively tapping
 
-    // This grows fast enough to feel exciting, but not runaway:
-    // - streak curve (power-ish)
-    // - extra kicker at milestones
-    // - a little rush synergy
-    const curve = Math.pow(s, 1.22);
-    const kicker = 1 + milestones * 0.18;
-    const rush = 1 + (rushBonus() * 0.06);
+    // Softer streak curve so players can't hoard absurd jackpots from endless tapping.
+    const curve = Math.pow(s, 1.05); // was 1.22
+    const kicker = 1 + milestones * 0.12;
+    const rush = 1 + (rushBonus() * 0.05);
 
-    const raw = (6 + curve) * kicker * timing * rush;
-    return Math.round(raw * cashoutMultiplier());
+    const raw = (4 + curve) * kicker * timing * rush;
+    let payout = Math.round(raw * cashoutMultiplier());
+
+    // Hard cap: tie cashout to current empire power instead of infinite streaks.
+    const baseIncome = Math.max(10, (S.tribute || 1) * landMult());
+    const cap = Math.round(baseIncome * 80); // roughly 80 taps worth at current strength
+    if(payout > cap) payout = cap;
+
+    return payout;
   }
 
   function cashoutReady(){
@@ -2404,10 +2423,6 @@ function decreeMult(){
     S.lifetimeGold += rewardDen;
     S.power += rewardPower;
 
-    const ren = Math.max(1, Math.round(rewardDen/110));
-    S.renown += ren;
-    S.lifetimeRenown += ren;
-
     const doubledText = objMult > 1 ? " (doubled)" : "";
     logLine(`Objective complete! (+${fmt(rewardDen)} denarii${doubledText})`, "good");
     toast("Objective claimed");
@@ -2607,14 +2622,13 @@ function decreeMult(){
       () => ({ kind:"den",  text:`+${fmt(Math.round((base*10) * rarityMult * mult))} denarii`, apply:()=>{
         const amt = Math.round((base*10) * rarityMult * mult);
         S.gold += amt; S.lifetimeGold += amt; bumpEarnedDenarii(amt);
-        const r = Math.max(1, Math.round(amt/130)); S.renown += r; S.lifetimeRenown += r;
       }}),
       () => ({ kind:"pow",  text:`+${fmt(Math.round((2 + base*0.03) * rarityMult))} power`, apply:()=>{
         S.power += Math.round((2 + base*0.03) * rarityMult);
       }}),
-      () => ({ kind:"ren",  text:`+${fmt(Math.round((6 + base*0.06) * rarityMult))} renown`, apply:()=>{
+      () => ({ kind:"ren",  text:`+${fmt(Math.round((6 + base*0.06) * rarityMult))} power`, apply:()=>{
         const amt = Math.round((6 + base*0.06) * rarityMult);
-        S.renown += amt; S.lifetimeRenown += amt;
+        S.power += amt;
       }}),
       () => ({ kind:"buf",  text:`Prosperity (20s)`, apply:()=>{
         // income multiplier via prosperUntil (stacks by extending)
@@ -3036,9 +3050,7 @@ function decreeMult(){
 
     bumpObjective("tap", 1);
     bumpEarnedDenarii(gain + jackpotGain);
-    const ren = Math.max(1, Math.round(gain/14) + Math.round(jackpotGain/70));
-    S.renown += ren;
-    S.lifetimeRenown += ren;
+    // Renown is now battle-only; no passive renown from tapping.
     S.power += 1 + (crit ? 1 : 0);
 
     // Streak taps occasionally attract a new settler directly (population dopamine).
@@ -3093,7 +3105,7 @@ render();
     S.gold -= c;
     S.farmCount += 1;
     bumpObjective("buildFarm", 1);
-    S.renown += 6;
+    // Renown removed here; battles now grant renown.
     logLine("A farm feeds your people. (+income)", "good");
     toast("Village capacity grows");
     render();
@@ -3105,7 +3117,7 @@ render();
     S.gold -= c;
     S.villaCount += 1;
     bumpObjective("buildVilla", 1);
-    S.renown += 10;
+    // Renown removed here; battles now grant renown.
     logLine("A villa rises. The taxes flow.", "good");
     toast("Village capacity grows");
     render();
@@ -3135,9 +3147,8 @@ render();
 
   recalcLegionStrength();
 
-  // Recruiting gives power and renown (feels like progress)
+  // Recruiting gives power; renown now comes from actual battles.
   S.power += 2;
-  S.renown += 18;
   bumpObjective("recruit", 1);
 
   // Nice but safe coin spark (no undefined payout!)
@@ -3377,14 +3388,20 @@ if(sim.win){
   // Power scales a bit more with tier to reflect renown of victory
   S.power += 4 + Math.floor(tier * 1.1);
 
+  // Renown is now earned primarily from victories.
+  const renGain = Math.max(1, Math.round(loot/130) + Math.round(landGain*2) + tier*3);
+  S.renown += renGain;
+  S.lifetimeRenown += renGain;
+
   bumpObjective("winBattle", 1);
   bumpObjective("gainLand", landGain);
 
   maybeBurst("battle");
 
   toast("Victory!");
-  logLine(`Victory: ${b.label}. (+${fmt(loot)} denarii, +${fmt(landGain)} land, -${fmt(losses)} milites)`, "good");
+  logLine(`Victory: ${b.label}. (+${fmt(loot)} denarii, +${fmt(landGain)} land, +${fmt(renGain)} renown, -${fmt(losses)} milites)`, "good");
 }else{
+
   const tier = sim.tier;
 
   // Losses still sting, but not catastrophically
@@ -3436,7 +3453,7 @@ $("#btnBattleSiege").addEventListener("click", ()=> doBattle(3));
     S.gold -= c;
     const f = offerFaithGain();
     S.faith += f;
-    S.renown += 12;
+    // Renown is now battle-only; offerings no longer grant renown.
 
     // Temple objective
     bumpObjective("offerFaith", 1);
@@ -3482,8 +3499,7 @@ $("#btnBattleSiege").addEventListener("click", ()=> doBattle(3));
     if(S.influence < c){ toast("Need more influence"); return; }
     S.influence -= c;
     const g = courtRenownGain();
-    S.renown += g;
-    S.lifetimeRenown += g;
+    // Renown is now battle-only; court applause no longer grants renown.
 
     // Court objective
     bumpObjective("holdCourt", 1);
@@ -3502,7 +3518,7 @@ $("#btnBattleSiege").addEventListener("click", ()=> doBattle(3));
     if(S.influence < i){ toast("Need more influence"); return; }
     S.gold -= g; S.influence -= i;
     S.decrees += 1;
-    S.renown += 60;
+    // Renown is now battle-only; decrees no longer grant renown directly.
     toast("Decreed");
     render();
   });
@@ -3516,8 +3532,7 @@ $("#btnBattleSiege").addEventListener("click", ()=> doBattle(3));
     S.feastReadyAt = now + feastCooldownMs();
 
     const r = feastRenown();
-    S.renown += r;
-    S.lifetimeRenown += r;
+    // Renown is now battle-only; feasts no longer grant renown directly.
 
     // Feast objective
     bumpObjective("feast", 1);
@@ -3537,11 +3552,6 @@ $("#btnBattleSiege").addEventListener("click", ()=> doBattle(3));
     S.gold += payout;
     S.lifetimeGold += payout;
     bumpEarnedDenarii(payout);
-
-    // Small renown kicker (keeps it meaningful)
-    const r = Math.max(1, Math.round(payout/160));
-    S.renown += r;
-    S.lifetimeRenown += r;
 
     // Track biggest single cashout across all runs
     if(!S.biggestCashout || payout > S.biggestCashout){
