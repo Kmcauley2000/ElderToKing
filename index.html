@@ -306,7 +306,7 @@ body::after{
       transform: translate(-50%,-50%);
       animation: fly 650ms ease-out forwards;
       filter: drop-shadow(0 10px 18px rgba(0,0,0,.35));
-      z-index: 1300;
+      z-index: 2500;
       background-image: url("Sprites/Denarii Icon.png");
       background-size: contain;
       background-repeat: no-repeat;
@@ -1297,6 +1297,7 @@ body::after{
 
     if(
 
+
 startBtn && !startBtn._wired){
       startBtn._wired = true;
       startBtn.addEventListener("click", ()=>{
@@ -1305,10 +1306,11 @@ startBtn && !startBtn._wired){
         // Massive denarii explosion for ~2 seconds, then fade out the intro
         if(startBtn) startBtn.disabled = true;
 
-        const centerX = window.innerWidth / 2;
-        const centerY = window.innerHeight / 2;
+        // Use the button position as the origin for the explosion
+        const rect = startBtn.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
 
-        // Burst of coins over ~2 seconds
         for(let i=0;i<48;i++){
           setTimeout(()=>{
             sparkAt(
@@ -1326,13 +1328,14 @@ startBtn && !startBtn._wired){
               overlay.setAttribute("hidden","hidden");
               overlay.classList.remove("closing");
             }, 260);
-          }, 1900); // let the coin explosion finish first
+          }, 1900);
         }
 
         updatePlayerNameHud();
         if(typeof scheduleSave === "function") scheduleSave();
         setTimeout(()=> toast(`Welcome, ${S.playerName}`), 2000);
       });
+
 
 
     }
