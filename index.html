@@ -446,9 +446,9 @@ body::after{
       inset:0;
       background:
         url("Sprites/Game Intro Background.png") center/cover no-repeat,
-        radial-gradient(1000px 780px at 15% 0%, rgba(244,208,111,.22), transparent 60%),
-        radial-gradient(900px 720px at 85% 20%, rgba(192,108,59,.20), transparent 60%),
-        linear-gradient(180deg, rgba(52,34,20,.96), rgba(25,16,10,.98));
+        radial-gradient(900px 700px at 10% 0%, rgba(244,208,111,.22), transparent 55%),
+        radial-gradient(900px 650px at 90% 25%, rgba(192,108,59,.22), transparent 55%),
+        linear-gradient(180deg, rgba(7,10,8,.96), rgba(7,10,8,.98));
       opacity:1;
     }
     .introCenter{
@@ -574,51 +574,37 @@ body::after{
   <div id="introOverlay" class="introOverlay">
     <div class="introBackdrop"></div>
     <div class="introCenter">
+      
       <section class="card introCard" id="introCard">
-        <div class="sectionTitle">
-          <span><b>Welcome, would-be ruler</b></span>
-          <span style="font-size:.76rem;color:var(--muted);">1 / 1 • Basics</span>
-        </div>
-        <div class="cardBody">
-          <p style="margin-top:0;margin-bottom:8px;font-size:.9rem;line-height:1.4;color:var(--text);">
-            In <b>ElderToKing</b> you start as a village elder and climb your way to kingship.
-            There is <b>one main button</b> on each tab. Everything else is support.
-          </p>
-          <ul style="margin:0 0 10px 18px;padding:0;font-size:.8rem;color:var(--muted);line-height:1.4;">
-            <li><b>Village</b>: tap Tribute for denarii and streaks.</li>
-            <li><b>Legion</b>: enlist milites and win land.</li>
-            <li><b>Temple</b>: faith, crits and prestige.</li>
-            <li><b>Court</b>: spend influence for big renown bursts.</li>
-          </ul>
-
+        <div class="cardBody" style="padding:18px 16px 18px;">
           <div class="introNameBlock">
-            <label for="introNameInput" class="introLabel">What do they call you?</label>
-            <input id="introNameInput" maxlength="18" autocomplete="off" placeholder="Type your name…" />
+            <label for="introNameInput" class="introLabel">Type your name</label>
+            <input
+              id="introNameInput"
+              maxlength="18"
+              autocomplete="off"
+              placeholder="Your name…"
+            />
           </div>
 
-          <div class="introDemo">
-            <div class="introDemoText">
-              <div class="introDemoTitle">Practice Tribute</div>
-              <div class="introDemoDesc">This demo button is just to feel the taps. It doesn&apos;t affect your real save.</div>
-            </div>
-            <button class="introDemoBtn" id="introTapBtn" type="button">
-              <span class="introDemoMain">Tap for +1 demo coin</span>
-              <span class="introDemoMeta">Demo coins: <b id="introDemoGold">0</b></span>
-            </button>
-          </div>
-
-          <button class="bigBtn introStartBtn" id="introStartBtn" type="button" disabled style="margin-top:12px;">
+          <button
+            class="bigBtn introStartBtn"
+            id="introStartBtn"
+            type="button"
+            disabled
+            style="margin-top:8px;"
+          >
             <div class="bigLeft">
-              <div class="bigName">Begin your story</div>
-              <div class="bigDesc">Save your name and enter the village.</div>
+              <div class="bigName">Start</div>
             </div>
             <div class="bigRight">
-              <div class="gain">Continue</div>
+              <div class="gain">Enter the village</div>
               <div class="hint" id="introHint">Pick a name to continue</div>
             </div>
           </button>
         </div>
       </section>
+
     </div>
   </div>
 
