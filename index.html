@@ -78,8 +78,8 @@ body::after{
     .hud{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-start;overflow:visible;scrollbar-width:none;}
     .hud::-webkit-scrollbar{display:none;}
     .pill{
-      border:1px solid rgba(31,58,42,.9);
-      background: linear-gradient(180deg, rgba(16,26,20,.92), rgba(13,21,17,.92));
+      border:1px solid rgba(244,170,92,.7);
+      background: rgba(255,255,255,0.05);
       border-radius:999px;
       padding:10px 12px;
       box-shadow: var(--shadow);
@@ -90,10 +90,11 @@ body::after{
     }
     .pill b{color:var(--accent);font-weight:900;font-size:.9rem;letter-spacing:.03em;}
     .card{
-      background: linear-gradient(180deg, rgba(16,26,20,.92), rgba(13,21,17,.92));
-      border:1px solid rgba(31,58,42,.9);
+      background: rgba(255,255,255,0.06);
+      border:1px solid rgba(244, 170, 92, 0.55);
       border-radius: var(--radius);
-      box-shadow: var(--shadow);
+      box-shadow: 0 16px 40px rgba(0,0,0,.45);
+      backdrop-filter: blur(10px);
       overflow:hidden;
     }
     .cardBody{padding:14px;}
@@ -103,20 +104,24 @@ body::after{
       color:var(--muted);
       font-size:.78rem;
       padding: 12px 14px;
-      border-bottom:1px solid rgba(31,58,42,.55);
-      background: linear-gradient(180deg, rgba(10,16,13,.45), rgba(10,16,13,.10));
+      border-bottom:1px solid rgba(244,170,92,.5);
+      background: linear-gradient(180deg,
+                   rgba(255,255,255,0.12),
+                   rgba(244,170,92,0.10));
     }
     .sectionTitle b{color:var(--text);}
     .bigBtn{
       width:100%;
-      border:1px solid rgba(244,208,111,.30);
-      background: linear-gradient(180deg, rgba(244,208,111,.18), rgba(244,208,111,.06));
+      border:1px solid rgba(244,170,92,.85);
+      background: linear-gradient(180deg,
+                    rgba(255,255,255,0.22),
+                    rgba(244,170,92,0.20));
       color:var(--text);
       border-radius: 22px;
       padding:18px 16px;
       font-family:var(--mono);
       cursor:pointer;
-      box-shadow: 0 14px 30px rgba(0,0,0,.22);
+      box-shadow: 0 16px 40px rgba(0,0,0,.45);
       display:flex; align-items:center; justify-content:space-between; gap:10px;
       min-height:86px;
       transition: transform .08s ease, border-color .2s ease, filter .2s ease;
@@ -466,6 +471,9 @@ body::after{
       transform: translateY(12px) scale(.97);
       opacity:0;
       animation: introPop .28s ease-out forwards;
+      background: rgba(255,255,255,0.10);
+      border:1px solid rgba(244,170,92,0.80);
+      backdrop-filter: blur(12px);
     }
     @keyframes introPop{
       from{ transform: translateY(22px) scale(.96); opacity:0; }
@@ -480,25 +488,26 @@ body::after{
     .introLabel{
       font-family:var(--mono);
       font-size:.8rem;
-      color:var(--muted);
+      /* warm parchment text colour */
+      color:rgb(246, 224, 178);
     }
     .introNameBlock input{
       border-radius:18px;
-      border:1px solid rgba(31,58,42,.9);
-      background: linear-gradient(180deg, rgba(10,16,13,.95), rgba(7,10,8,.95));
+      border:1px solid rgba(158, 104, 54, 0.95);
+      background: linear-gradient(180deg, rgba(24, 14, 8, 0.96), rgba(18, 10, 6, 0.97));
       padding:10px 12px;
       font-family:var(--mono);
       font-size:.86rem;
-      color:var(--text);
+      color:rgb(249, 233, 196);
       outline:none;
       width:100%;
     }
     .introNameBlock input::placeholder{
-      color:rgba(166,212,172,.65);
+      color:rgba(249, 233, 196, .55);
     }
     .introNameBlock input:focus{
-      border-color: rgba(244,208,111,.6);
-      box-shadow: 0 0 0 1px rgba(244,208,111,.25);
+      border-color: rgba(244,208,111,.9);
+      box-shadow: 0 0 0 1px rgba(244,208,111,.35);
     }
     .introDemo{
       margin-top:4px;
