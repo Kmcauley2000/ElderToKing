@@ -1296,24 +1296,44 @@ body::after{
     }
 
     if(
+
 startBtn && !startBtn._wired){
       startBtn._wired = true;
       startBtn.addEventListener("click", ()=>{
         if(!S.playerName || !S.playerName.trim()) return;
 
-        // Smooth fade-out of intro overlay so the button click feels less abrupt
-        if(overlay){
-          overlay.classList.add("closing");
+        // Massive denarii explosion for ~2 seconds, then fade out the intro
+        if(startBtn) startBtn.disabled = true;
+
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+
+        // Burst of coins over ~2 seconds
+        for(let i=0;i<48;i++){
           setTimeout(()=>{
-            overlay.setAttribute("hidden","hidden");
-            overlay.classList.remove("closing");
-          }, 220);
+            sparkAt(
+              centerX + rnd(-90,90),
+              centerY + rnd(-60,40),
+              1
+            );
+          }, i * 35);
+        }
+
+        if(overlay){
+          setTimeout(()=>{
+            overlay.classList.add("closing");
+            setTimeout(()=>{
+              overlay.setAttribute("hidden","hidden");
+              overlay.classList.remove("closing");
+            }, 260);
+          }, 1900); // let the coin explosion finish first
         }
 
         updatePlayerNameHud();
         if(typeof scheduleSave === "function") scheduleSave();
-        toast(`Welcome, ${S.playerName}`);
+        setTimeout(()=> toast(`Welcome, ${S.playerName}`), 2000);
       });
+
 
     }
   }
