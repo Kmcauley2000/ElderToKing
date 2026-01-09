@@ -431,29 +431,25 @@ body::after{
   line-height:1.35;
 }
 
-    
-    /* Intro overlay using pixel-art tutorial screen */
-    
+    /* Intro overlay */
     .introOverlay{
       position:fixed;
       inset:0;
       z-index:2000;
       display:flex;
-      align-items:center;
+      align-items:stretch;
       justify-content:center;
       pointer-events:auto;
-      opacity:1;
-      transition:opacity .22s ease-out;
     }
-    
     .introBackdrop{
       position:absolute;
       inset:0;
       background:
-        radial-gradient(900px 700px at 10% 0%, rgba(244,208,111,.12), transparent 55%),
-        radial-gradient(900px 650px at 90% 25%, rgba(192,108,59,.12), transparent 55%),
-        linear-gradient(180deg, rgba(7,10,8,.96), rgba(7,10,8,.98));
-      opacity:0.98;
+        url("Sprites/Game Intro Background.png") center/cover no-repeat,
+        radial-gradient(1000px 780px at 15% 0%, rgba(244,208,111,.22), transparent 60%),
+        radial-gradient(900px 720px at 85% 20%, rgba(192,108,59,.20), transparent 60%),
+        linear-gradient(180deg, rgba(52,34,20,.96), rgba(25,16,10,.98));
+      opacity:1;
     }
     .introCenter{
       position:relative;
@@ -464,127 +460,106 @@ body::after{
       justify-content:center;
       padding:18px 14px 82px;
     }
-
-    /* The full tutorial screen sprite */
-    .introArt{
-      position:relative;
-      width:min(520px, 100% - 32px);
-      aspect-ratio: 1365 / 2048;
-      background-image:url("Sprites/Tutorial Menu Sprites/Tutorial Menu Screen.png");
-      background-size:contain;
-      background-repeat:no-repeat;
-      background-position:center;
-      image-rendering:pixelated;
-    }
-
-    .visuallyHidden{
-      position:absolute;
-      width:1px;
-      height:1px;
-      padding:0;
-      margin:-1px;
-      overflow:hidden;
-      clip:rect(0,0,0,0);
-      border:0;
-      white-space:nowrap;
-    }
-
-    .introNameHitbox{
-      position:absolute;
-      left:50%;
-      transform:translateX(-50%);
-      top:70.8%;
-      width:60%;
-      height:5.9%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-    
-      z-index:2;
-    }
-    .introNameHitbox input{
+    .introCard{
+      max-width:720px;
       width:100%;
-      height:100%;
-      background:transparent;
-      border:none;
-      padding:0 10px;
-      font-family:var(--mono);
-      font-size:.9rem;
-      text-align:center;
-      color:#3b2614;
-      outline:none;
-    }
-    .introNameHitbox input::placeholder{
-      color:rgba(59,38,20,.55);
-    }
-    .introNameHitbox input:focus{
-      border-radius:999px;
-      box-shadow:0 0 0 2px rgba(255,255,255,.22);
-      background-color:rgba(255,255,255,.12);
-    }
-
-    
-    
-    
-    
-    
-    .introEnterBtn{
-      position:absolute;
-      left:50%;
-      transform:translateX(-50%);
-      bottom:1.2%;
-      width:75%;
-      background:none;
-      border:none;
-      padding:0;
-      margin:0;
-      cursor:pointer;
-      background-color:transparent;
-      outline:none;
-      touch-action:manipulation;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      z-index:1;
-      transition:transform .08s ease, filter .08s ease, opacity .15s ease;
-    }
-    
-
-    
-    
-
-    
-    
-    .introEnterImg{
-      width:100%;
-      height:auto;
-      image-rendering:pixelated;
-      display:block;
-    }
-    
-    
-
-
-    .introEnterBtn:disabled{
-      opacity:.45;
-      cursor:default;
-      filter:grayscale(.1) brightness(.95);
-      transform:translateX(-50%);
-    }
-
-    .introEnterBtn:not(:disabled):active{
-      transform:translateX(-50%) translateY(2px) scale(.98);
-      filter:brightness(.9);
-    }
-    .introEnterBtn:not(:disabled):hover{
-      filter:brightness(1.05);
-    }
-
-    .introOverlay.closing{
+      transform: translateY(12px) scale(.97);
       opacity:0;
-      pointer-events:none;
+      animation: introPop .28s ease-out forwards;
     }
-
+    @keyframes introPop{
+      from{ transform: translateY(22px) scale(.96); opacity:0; }
+      to{ transform: translateY(0) scale(1); opacity:1; }
+    }
+    .introNameBlock{
+      margin:10px 0 12px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .introLabel{
+      font-family:var(--mono);
+      font-size:.8rem;
+      color:var(--muted);
+    }
+    .introNameBlock input{
+      border-radius:18px;
+      border:1px solid rgba(31,58,42,.9);
+      background: linear-gradient(180deg, rgba(10,16,13,.95), rgba(7,10,8,.95));
+      padding:10px 12px;
+      font-family:var(--mono);
+      font-size:.86rem;
+      color:var(--text);
+      outline:none;
+      width:100%;
+    }
+    .introNameBlock input::placeholder{
+      color:rgba(166,212,172,.65);
+    }
+    .introNameBlock input:focus{
+      border-color: rgba(244,208,111,.6);
+      box-shadow: 0 0 0 1px rgba(244,208,111,.25);
+    }
+    .introDemo{
+      margin-top:4px;
+      border-radius:18px;
+      border:1px solid rgba(31,58,42,.85);
+      padding:10px 10px;
+      display:flex;
+      gap:10px;
+      align-items:stretch;
+      background: linear-gradient(180deg, rgba(10,16,13,.9), rgba(7,10,8,.9));
+    }
+    .introDemoText{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      min-width:0;
+      padding-right:4px;
+    }
+    .introDemoTitle{
+      font-family:var(--mono);
+      font-size:.84rem;
+      color:var(--accent);
+      font-weight:900;
+    }
+    .introDemoDesc{
+      font-family:var(--sans);
+      font-size:.8rem;
+      color:var(--muted);
+      line-height:1.35;
+    }
+    .introDemoBtn{
+      border-radius:18px;
+      border:1px solid rgba(244,208,111,.45);
+      background: linear-gradient(180deg, rgba(244,208,111,.18), rgba(244,208,111,.08));
+      padding:10px 10px;
+      font-family:var(--mono);
+      font-size:.76rem;
+      color:var(--text);
+      cursor:pointer;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      gap:4px;
+      min-width:0;
+      box-shadow: 0 10px 26px rgba(0,0,0,.42);
+      touch-action:manipulation;
+    }
+    .introDemoBtn:active{
+      transform: translateY(1px) scale(.985);
+    }
+    .introDemoMain{
+      font-size:.86rem;
+    }
+    .introDemoMeta{
+      font-size:.78rem;
+      color:var(--muted);
+    }
+    .introStartBtn{
+      margin-top:12px;
+    }
     .introOverlay[hidden]{
       display:none;
     }
@@ -596,38 +571,58 @@ body::after{
 </style>
 </head>
 <body>
-  
   <div id="introOverlay" class="introOverlay">
     <div class="introBackdrop"></div>
     <div class="introCenter">
-      <div class="introArt">
-        <label class="visuallyHidden" for="introNameInput">What do they call you?</label>
-        <div class="introNameHitbox">
-          <input
-            id="introNameInput"
-            maxlength="18"
-            autocomplete="off"
-            placeholder="Type your name…"
-          />
+      <section class="card introCard" id="introCard">
+        <div class="sectionTitle">
+          <span><b>Welcome, would-be ruler</b></span>
+          <span style="font-size:.76rem;color:var(--muted);">1 / 1 • Basics</span>
         </div>
-        
-        <button
-          class="introEnterBtn introStartBtn"
-          id="introStartBtn"
-          type="button"
-        >
-          <img
-            class="introEnterImg"
-            src="Sprites/Tutorial Menu Sprites/Enter The Village Icon.png"
-            alt="Enter the village"
-          />
-          <span class="visuallyHidden">Enter the village</span>
-        </button>
-      </div>
+        <div class="cardBody">
+          <p style="margin-top:0;margin-bottom:8px;font-size:.9rem;line-height:1.4;color:var(--text);">
+            In <b>ElderToKing</b> you start as a village elder and climb your way to kingship.
+            There is <b>one main button</b> on each tab. Everything else is support.
+          </p>
+          <ul style="margin:0 0 10px 18px;padding:0;font-size:.8rem;color:var(--muted);line-height:1.4;">
+            <li><b>Village</b>: tap Tribute for denarii and streaks.</li>
+            <li><b>Legion</b>: enlist milites and win land.</li>
+            <li><b>Temple</b>: faith, crits and prestige.</li>
+            <li><b>Court</b>: spend influence for big renown bursts.</li>
+          </ul>
+
+          <div class="introNameBlock">
+            <label for="introNameInput" class="introLabel">What do they call you?</label>
+            <input id="introNameInput" maxlength="18" autocomplete="off" placeholder="Type your name…" />
+          </div>
+
+          <div class="introDemo">
+            <div class="introDemoText">
+              <div class="introDemoTitle">Practice Tribute</div>
+              <div class="introDemoDesc">This demo button is just to feel the taps. It doesn&apos;t affect your real save.</div>
+            </div>
+            <button class="introDemoBtn" id="introTapBtn" type="button">
+              <span class="introDemoMain">Tap for +1 demo coin</span>
+              <span class="introDemoMeta">Demo coins: <b id="introDemoGold">0</b></span>
+            </button>
+          </div>
+
+          <button class="bigBtn introStartBtn" id="introStartBtn" type="button" disabled style="margin-top:12px;">
+            <div class="bigLeft">
+              <div class="bigName">Begin your story</div>
+              <div class="bigDesc">Save your name and enter the village.</div>
+            </div>
+            <div class="bigRight">
+              <div class="gain">Continue</div>
+              <div class="hint" id="introHint">Pick a name to continue</div>
+            </div>
+          </button>
+        </div>
+      </section>
     </div>
   </div>
 
-<header>
+  <header>
     <div class="wrap">
       <div class="top">
         <div>
@@ -1287,7 +1282,7 @@ body::after{
         S.playerName = trimmed;
         const ok = trimmed.length >= 1;
         if(startBtn){
-          // visual state handled via CSS; click handler checks name
+          startBtn.disabled = !ok;
         }
         if(introHint){
           introHint.textContent = ok ? "Tap to enter the village" : "Pick a name to continue";
@@ -1295,26 +1290,15 @@ body::after{
       });
     }
 
-    if(
-startBtn && !startBtn._wired){
+    if(startBtn && !startBtn._wired){
       startBtn._wired = true;
       startBtn.addEventListener("click", ()=>{
         if(!S.playerName || !S.playerName.trim()) return;
-
-        // Smooth fade-out of intro overlay so the button click feels less abrupt
-        if(overlay){
-          overlay.classList.add("closing");
-          setTimeout(()=>{
-            overlay.setAttribute("hidden","hidden");
-            overlay.classList.remove("closing");
-          }, 220);
-        }
-
+        overlay.setAttribute("hidden","hidden");
         updatePlayerNameHud();
         if(typeof scheduleSave === "function") scheduleSave();
         toast(`Welcome, ${S.playerName}`);
       });
-
     }
   }
 
