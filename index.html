@@ -496,10 +496,6 @@ body::after{
   display:inline-block;
 }
 
-#battleSimEnemyBarImg{
-  outline: 6px solid red !important;
-}
-
 
 .battleBarCount{
   position:absolute;
@@ -4130,28 +4126,34 @@ $("#btnExport").addEventListener("click", async ()=>{
             <div class="simMetaText"><span id="battleSimOdds">0%</span></div>
           </div>
         </div>
+<div class="simBlock" style="margin-top:-12px;">
+  <div class="simLabel">Enemy</div>
+  <div class="simBar">
+    <div class="battleBar">
+      <img id="battleSimEnemyBarImg"
+           class="battleBarSprite"
+           src="Sprites/player and enemy bars/enemy bar full.png"
+           alt="Enemy bar">
+      <div class="battleBarCount battleBarCount--enemy" id="enemyBarCount"></div>
+    </div>
+  </div>
+  <div class="simStats" id="battleSimEnemyStats"></div>
+</div>
 
-        <div class="simBlock">
-          <div class="simLabel">Enemy</div>
-          <div class="simBar">
-            <div class="battleBar">
-              <img id="battleSimEnemyBarImg" class="battleBarSprite" src="Sprites/player and enemy bars/enemy bar full.png" alt="Enemy bar">
-              <div class="battleBarCount battleBarCount--enemy" id="enemyBarCount"></div>
-            </div>
-          </div>
-          <div class="simStats" id="battleSimEnemyStats"></div>
-        </div>
+<div class="simBlock" style="margin-top:-12px;">
+  <div class="simLabel">Your force</div>
+  <div class="simBar">
+    <div class="battleBar">
+      <img id="battleSimYourBarImg"
+           class="battleBarSprite"
+           src="Sprites/player and enemy bars/Player bar full.png"
+           alt="Your bar">
+      <div class="battleBarCount battleBarCount--ally" id="yourBarCount"></div>
+    </div>
+  </div>
+  <div class="simStats" id="battleSimYourStats"></div>
+</div>
 
-        <div class="simBlock">
-          <div class="simLabel">Your force</div>
-          <div class="simBar">
-            <div class="battleBar">
-              <img id="battleSimYourBarImg" class="battleBarSprite" src="Sprites/player and enemy bars/Player bar full.png" alt="Your bar">
-              <div class="battleBarCount battleBarCount--ally" id="yourBarCount"></div>
-            </div>
-          </div>
-          <div class="simStats" id="battleSimYourStats"></div>
-        </div>
 
         <div class="simEvents" id="battleSimEvents"></div>
 
