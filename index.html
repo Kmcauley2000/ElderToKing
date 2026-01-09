@@ -433,6 +433,7 @@ body::after{
 
     
     /* Intro overlay using pixel-art tutorial screen */
+    
     .introOverlay{
       position:fixed;
       inset:0;
@@ -441,7 +442,10 @@ body::after{
       align-items:center;
       justify-content:center;
       pointer-events:auto;
+      opacity:1;
+      transition:opacity .22s ease-out;
     }
+    
     .introBackdrop{
       position:absolute;
       inset:0;
@@ -574,6 +578,11 @@ body::after{
     }
     .introEnterBtn:not(:disabled):hover{
       filter:brightness(1.05);
+    }
+
+    .introOverlay.closing{
+      opacity:0;
+      pointer-events:none;
     }
 
     .introOverlay[hidden]{
@@ -1286,15 +1295,26 @@ body::after{
       });
     }
 
-    if(startBtn && !startBtn._wired){
+    if(
+startBtn && !startBtn._wired){
       startBtn._wired = true;
       startBtn.addEventListener("click", ()=>{
         if(!S.playerName || !S.playerName.trim()) return;
-        overlay.setAttribute("hidden","hidden");
+
+        // Smooth fade-out of intro overlay so the button click feels less abrupt
+        if(overlay){
+          overlay.classList.add("closing");
+          setTimeout(()=>{
+            overlay.setAttribute("hidden","hidden");
+            overlay.classList.remove("closing");
+          }, 220);
+        }
+
         updatePlayerNameHud();
         if(typeof scheduleSave === "function") scheduleSave();
         toast(`Welcome, ${S.playerName}`);
       });
+
     }
   }
 
