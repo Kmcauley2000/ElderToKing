@@ -467,20 +467,22 @@ body::after{
   color:var(--text);
 }
 .simBlock{
-  margin-bottom:10px;
+  margin:0;
+  padding:0;
 }
 .simLabel{
   font-family:var(--mono);
   font-size:.78rem;
-  margin-bottom:4px;
+  margin-bottom:2px;
   color:var(--muted);
+  line-height:1.0;
 }
 .simBar{
-  margin:4px 0 6px;
+  margin:0;
   padding:0;
   border:none;
   background:none;
-  display:block;      /* no flex centering; bar sits under label, left-aligned */
+  display:block;
 }
 .battleBarSprite{
   display:block;
@@ -509,6 +511,7 @@ body::after{
   font-family:var(--mono);
   font-size:.74rem;
   color:var(--muted);
+  line-height:1.0;
 }
 .simEvents{
   margin-top:6px;
