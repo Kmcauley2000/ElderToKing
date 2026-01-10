@@ -962,7 +962,6 @@ header{
               <span>Renown <b id="renown">0</b></span>
             </span>
           </div>
-          <div class="pill">Power <b id="power">0</b></div>
           <div class="pill">Land <b id="landHud">0</b></div>
           <div class="pill" id="playerPill" style="display:none;">
             <span>Ruler <b id="playerNameHud"></b></span>
@@ -1005,7 +1004,7 @@ header{
 
 
         <div class="row3">
-          <button class="smallBtn" id="btnHut">
+          <button class="smallBtn" id="btnHut" style="display:none;">
             <div class="t">Build Huts</div>
             <div class="d" id="hutDesc">Cheap shelter. Attracts settlers.</div>
           </button>
@@ -1026,6 +1025,9 @@ header{
         </div>
 
         <div class="bar"><div id="progressFill"></div></div>
+        <p id="incomeBreakdown" style="margin:6px 0 0;font-size:.72rem;color:var(--muted);">
+          Income: 0.00/s (net)
+        </p>
         <div class="meta">
           <div>Title: <b id="title">Elder</b></div>
           <div>Next: <b id="nextTitle">Elder</b></div>
@@ -1040,7 +1042,7 @@ header{
 
     <!-- LEGION -->
     <section class="card view" data-view="legion" hidden>
-      <div class="sectionTitle"><span>Legion</span><span class="milites-label"><img id="militesIcon" class="milites-icon" alt=""><span>Milites <b id="warriors">0</b></span></span></div>
+      <div class="sectionTitle"><span>⚔️</span><span class="milites-label"><img id="militesIcon" class="milites-icon" alt=""><span>Milites <b id="warriors">0</b></span></span></div>
       <div class="cardBody">
         <button class="bigBtn" id="btnRecruit">
           <div class="bigLeft">
@@ -1189,7 +1191,7 @@ header{
 
   <nav class="tabbar" aria-label="Sections">
     <button class="tab active" data-go="village"><span class="dot"></span>Village</button>
-    <button class="tab" data-go="legion"><span class="dot"></span>Legion</button>
+    <button class="tab" data-go="legion"><span class="dot"></span>⚔️</button>
 <button class="tab" data-go="temple"><span class="dot"></span>Temple</button>
     <button class="tab" data-go="land"><span class="dot"></span>Land</button>
     <button class="tab" data-go="stats"><span class="dot"></span>Stats</button>
@@ -1345,6 +1347,10 @@ header{
     bestStreak: 0,
     biggestCashout: 0,
     lastSettlerToastAt: 0,
+
+    // legion hidden state
+    legionMorale: 1,
+    legionXp: 0,
 
     // identity
     playerName: "",
@@ -1730,25 +1736,45 @@ function decreeMult(){
     const w = S.warriors || 0;
     if(w <= 0) return 0;
 
-    // Base upkeep per warrior per second (~1.2 denarii per minute before modifiers)
-    let per = 0.02;
+    // Base upkeep per warrior per second.
+    // Slightly higher, so mid‑sized armies noticeably bite into income,
+    // but still something you can sustain with a healthy village.
+    let per = 0.028;
 
     // Agriculture + villas + land (Agriculture) soften upkeep.
     const foodRelief =
       1 - Math.min(
-        0.40,
-        (S.farmCount * 0.002) +
-        (S.villaCount * 0.003) +
-        ((S.landAgriculture || 0) * 0.01)
+        0.45,
+        (S.farmCount * 0.0025) +
+        (S.villaCount * 0.0035) +
+        ((S.landAgriculture || 0) * 0.011)
       );
 
     // Military plots also make milites cheaper to maintain.
     const milRelief =
-      1 - Math.min(0.25, (S.landMilitary || 0) * 0.006);
+      1 - Math.min(0.30, (S.landMilitary || 0) * 0.0065);
 
-    const mult = Math.max(0.4, foodRelief * milRelief);
+    let mult = foodRelief * milRelief;
 
-    return w * per * mult;
+    // Very large armies are disproportionately expensive to keep in the field.
+    if(w > 60){
+      mult *= 1 + Math.log10(w - 50) * 0.35;
+    }
+
+    // Never let upkeep vanish completely.
+    mult = Math.max(0.45, mult);
+
+    let upkeep = w * per * mult;
+
+    // If your economy is tiny but you somehow have a big army,
+    // scale upkeep down a bit so it doesn't instantly implode new runs.
+    const inc = incomePerSec();
+    if(inc > 0){
+      const maxShare = 0.85; // upkeep can eat at most 85% of steady income
+      upkeep = Math.min(upkeep, inc * maxShare);
+    }
+
+    return upkeep;
   }
 
   function landAllocRenownMult(){
@@ -1780,20 +1806,19 @@ function decreeMult(){
   // Includes infinite scaling from tap streak (logarithmic, no hard cap)
   function migrationPerSec(){
     // How fast new settlers join per second.
-    // Slightly more generous than before so population feels less "stuck",
-    // especially when you are actively playing well.
+    // Tweaked so that new people visibly arrive as you build up,
+    // especially once you have a few farms/villas online.
     const prosper = (Date.now() < (S.prosperUntil||0)) ? 1.5 : 1.0;
 
-    const baseRate = 0.05; // baseline trickle
-    const incomeRate = clamp(incomePerSec()/180, 0, 0.25);
+    const baseRate = 0.08; // baseline trickle
+    const incomeRate = clamp(incomePerSec()/140, 0, 0.35);
     const sizeRate =
-      (S.villaCount||0)*0.006 +
-      (S.farmCount||0)*0.0025 +
-      (S.hutCount||0)*0.0035;
-    const landRate = (S.land||0)*0.0012;
+      (S.villaCount||0)*0.010 +
+      (S.farmCount||0)*0.0045 +
+      (S.hutCount||0)*0.0045;
+    const landRate = (S.land||0)*0.0018;
 
     // 🔥 Streak-based attraction (infinite, diminishing returns)
-    // Long streaks and good play make people want to move in.
     const streak = Math.max(1, S.streak||1);
     const streakMult = 1 + Math.log10(streak) * 0.30;
 
@@ -1806,7 +1831,8 @@ function decreeMult(){
       * streakMult
       * renMult;
 
-    return clamp(raw, 0.02, 0.9);
+    // Upper cap slightly higher so mid‑game villages actually fill.
+    return clamp(raw, 0.03, 1.4);
   }
 
 
@@ -1814,11 +1840,12 @@ function decreeMult(){
   function populationCap(){
     // Farms provide housing; villas attract families; land improves efficiency.
     // Simple + readable:
-    // - Each farm supports 4 warriors
-    // - Each villa supports 10 more warriors (bigger settlements)
-    // - Land boosts overall capacity a bit
-    const base = (S.hutCount * 2) + (S.farmCount * 4) + (S.villaCount * 10);
-    return Math.floor(base * (1 + S.land * 0.08) * landAllocPopMult());
+    // - Each hut supports 3 people
+    // - Each farm supports 5 people
+    // - Each villa supports 14 people (bigger households)
+    // - Land boosts overall capacity a bit more
+    const base = (S.hutCount * 3) + (S.farmCount * 5) + (S.villaCount * 14);
+    return Math.floor(base * (1 + S.land * 0.10) * landAllocPopMult());
   }
   function hasVillageCapacity(){
     return (S.population || 0) < populationCap();
@@ -2137,7 +2164,7 @@ function decreeMult(){
   const wins = (S.battlesWon || 0);
   const tier = battleTierFromTitleIdx(titleInfo().idx);
 
-  // --- YOUR POWER ---
+  // --- YOUR TROOPS ---
   const yourTroops = Math.max(0, S.warriors || 0);
   const baseWarriorStrength = 6;
   let yourPower = yourTroops * baseWarriorStrength;
@@ -2161,6 +2188,16 @@ function decreeMult(){
 
   yourPower *= crownMult * decreeMult * landMult * faithMult;
 
+  // Hidden veterancy + morale
+  const legionXp = S.legionXp || 0;
+  const expLevel = 1 + Math.min(legionXp / 6000, 0.30); // up to +30%
+
+  let legionMorale = typeof S.legionMorale === "number" ? S.legionMorale : 1;
+  legionMorale = clamp(legionMorale, 0.4, 2.0);
+  const moraleMult = 0.85 + legionMorale * 0.30; // ~0.97–1.45
+
+  yourPower *= expLevel * moraleMult;
+
   // --- ENEMY POWER ---
   const baseEnemyStrength = 6;
   let enemyPower = enemyCount * baseEnemyStrength;
@@ -2172,70 +2209,126 @@ function decreeMult(){
 
   enemyPower *= tierMult * slotMult;
 
+  // Enemies "learn" you as you win more.
   const learnDivBase = [1000, 260, 190, 140];
   const learnDiv = learnDivBase[Math.min(slot, learnDivBase.length - 1)] || 250;
   const learn = 1 + Math.min(wins / learnDiv, 0.18);
   enemyPower *= learn;
 
-  // If you somehow have no troops, it's an automatic loss.
-  if (yourTroops <= 0){
-    return {
-      enemies: enemyCount,
-      winP: 0,
-      win: false,
-      losses: 0,
-      tier
-    };
+  // --- CONVERT POWER → HIDDEN STATS (HP / ATK / DEF / Armor) ---
+  const hpPerPower   = 14;
+  const atkPerPower  = 0.14;
+  const defPerPower  = 0.10;
+  const armPerPower  = 0.04;
+
+  let yourHPmax  = Math.max(20, yourPower * hpPerPower);
+  let enemyHPmax = Math.max(20, enemyPower * hpPerPower);
+
+  let yourHP  = yourHPmax;
+  let enemyHP = enemyHPmax;
+
+  let yourATK = yourPower * atkPerPower;
+  let enemyATK = enemyPower * atkPerPower;
+
+  let yourDEF = yourPower * defPerPower;
+  let enemyDEF = enemyPower * defPerPower;
+
+  const yourArmor  = 1 + yourPower  * armPerPower * 0.10;
+  const enemyArmor = 1 + enemyPower * armPerPower * (0.08 + tier * 0.04);
+
+  // --- BATTLE LOOP: FAST TICK DAMAGE + SIMPLE ROUTING ---
+  const TICK_SEC = 0.35;
+  const MAX_TIME = 18; // seconds
+  const maxTicks = Math.floor(MAX_TIME / TICK_SEC);
+
+  let routed = null; // 'you' | 'enemy' | null
+
+  function moraleBreakChance(myFrac, theirFrac, morale){
+    const gap = clamp(theirFrac - myFrac, -0.9, 0.9);
+    if(gap <= 0) return 0;
+    const base = 0.06 + gap * 0.50;
+    const moraleMod = 1 / clamp(morale, 0.4, 2.0);
+    return clamp(base * moraleMod, 0, 0.65);
   }
 
-  // --- DETERMINISTIC ODDS BASED ON POWER RATIO ---
+  for(let i=0;i<maxTicks;i++){
+    if(yourHP <= 0 || enemyHP <= 0) break;
 
-  const ratio = yourPower / Math.max(enemyPower, 1); // >1 means stronger
-  let winP = ratio / (1 + ratio); // 0..1 curve: 1 -> 0.5, 2 -> 0.67, etc.
-  winP = clamp(winP, 0.02, 0.98);
+    // Damage with a bit of noise
+    const atkRollYou = 0.85 + Math.random() * 0.4;
+    const atkRollEn  = 0.85 + Math.random() * 0.4;
 
-  const win = winP >= 0.5; // no coin flip: stronger side wins
+    const rawToEnemy = Math.max(0, yourATK * atkRollYou - enemyDEF * 0.22);
+    const rawToYou   = Math.max(0, enemyATK * atkRollEn  - yourDEF * 0.22);
 
-  // --- CASUALTIES ---
+    const armorMitEnemy = enemyArmor / (enemyArmor + 420);
+    const armorMitYou   = yourArmor  / (yourArmor  + 420);
 
-  let pressure = enemyPower / Math.max(yourPower + enemyPower, 1);
-  pressure = clamp(pressure, 0.05, 0.95);
+    const dmgToEnemy = rawToEnemy * (1 - armorMitEnemy) * TICK_SEC;
+    const dmgToYou   = rawToYou   * (1 - armorMitYou)   * TICK_SEC;
 
-  let baseLossFrac;
-  if (win){
-    // Victorious but losses depend on how hard the fight was.
-    if (ratio >= 2.0) baseLossFrac = 0.01 + pressure * 0.10;      // overwhelming win
-    else if (ratio >= 1.5) baseLossFrac = 0.03 + pressure * 0.18;  // strong edge
-    else if (ratio >= 1.2) baseLossFrac = 0.06 + pressure * 0.22;  // modest edge
-    else baseLossFrac = 0.10 + pressure * 0.30;                    // knife-edge win
-  }else{
-    // Defeats always hurt more.
-    if (ratio >= 0.8) baseLossFrac = 0.16 + pressure * 0.35;
-    else if (ratio >= 0.6) baseLossFrac = 0.22 + pressure * 0.45;
-    else baseLossFrac = 0.32 + pressure * 0.55;
-  }
+    enemyHP -= dmgToEnemy;
+    yourHP  -= dmgToYou;
 
-  baseLossFrac *= (0.9 + Math.random() * 0.2); // 10% variation
-  let losses = Math.round(yourTroops * baseLossFrac);
+    const yourFrac  = clamp(yourHP  / yourHPmax, 0, 1);
+    const enemyFrac = clamp(enemyHP / enemyHPmax, 0, 1);
 
-  if (yourTroops > 0){
-    if (win){
-      const underdog = ratio < 1.1;
-      const closeFight = ratio < 1.35;
-      const minLossFrac = underdog ? 0.10 : (closeFight ? 0.05 : 0.02);
-      const minLoss = Math.round(yourTroops * minLossFrac);
-      if (losses < minLoss) losses = minLoss;
-    }else{
-      const minLoss = Math.round(yourTroops * 0.15);
-      if (losses < minLoss) losses = minLoss;
+    // Morale checks after initial clash
+    if(i > 4){
+      const enemyMorale = 1.0; // generic
+      const enemyBreak = moraleBreakChance(enemyFrac, yourFrac, enemyMorale);
+      if(!routed && Math.random() < enemyBreak){
+        routed = "enemy";
+        break;
+      }
+
+      // Your side uses hidden legionMorale
+      const yourMoraleVal = legionMorale;
+      const yourBreak = moraleBreakChance(yourFrac, enemyFrac, yourMoraleVal);
+      if(!routed && Math.random() < yourBreak){
+        routed = "you";
+        break;
+      }
     }
   }
 
-  const maxLossFrac = win ? 0.35 : 0.70;
-  const maxLosses = Math.floor(yourTroops * maxLossFrac);
-  losses = clamp(losses, 0, maxLosses);
+  const yourFracFinal  = clamp(yourHP  / yourHPmax, 0, 1);
+  const enemyFracFinal = clamp(enemyHP / enemyHPmax, 0, 1);
 
-  return { enemies: enemyCount, winP, win, losses, tier };
+  // Decide winner
+  let win;
+  if(routed === "enemy" || enemyHP <= 0){
+    win = true;
+  }else if(routed === "you" || yourHP <= 0){
+    win = false;
+  }else{
+    const scoreYou = yourFracFinal  * yourPower;
+    const scoreEn  = enemyFracFinal * enemyPower;
+    win = scoreYou >= scoreEn || Math.random() < scoreYou / Math.max(scoreYou + scoreEn, 1);
+  }
+
+  // Convert HP loss → troop casualties
+  let lossFrac = (yourHPmax - Math.max(0, yourHP)) / yourHPmax;
+  lossFrac = clamp(lossFrac, 0, win ? 0.65 : 0.90);
+
+  let losses = Math.round(yourTroops * lossFrac);
+  if(yourTroops > 0 && losses <= 0) losses = 1;
+  losses = Math.min(yourTroops, Math.max(0, losses));
+
+  // Approximate win chance for UI based on starting power + morale
+  const powerRatio = yourPower / Math.max(enemyPower, 1);
+  let winP = powerRatio / (1 + powerRatio);
+  const moraleBias = (legionMorale - 1) * 0.18;
+  winP = clamp(winP + moraleBias, 0.04, 0.96);
+
+  return {
+    label: b.label,
+    enemies: enemyCount,
+    winP,
+    win,
+    losses,
+    tier
+  };
 }
 
   function offerCost(){
@@ -2273,6 +2366,7 @@ function favorCostInf(){ return Math.round(18 + S.decrees*4 + Math.floor(S.renow
     return Math.round(260 + S.decrees*120);
   }
   function feastCostGold(){ return Math.round(900 + S.decrees*250); }
+
 
   // ---- Titles + unlocks ----
   function titleInfo(){
@@ -2533,9 +2627,8 @@ function favorCostInf(){ return Math.round(18 + S.decrees*4 + Math.floor(S.renow
                      1e12;
     rewardDen = Math.min(rewardDen, softCap);
 
-    // Power reward: small but scales with target + tier
-    let rewardPower = Math.max(1, Math.round(1 + target*0.05 + progTier*0.4));
-    rewardPower = clamp(rewardPower, 1, 45);
+    // Power rewards removed; objectives now grant denarii only.
+    const rewardPower = 0;
 
     return {
       id,
@@ -2632,12 +2725,10 @@ function favorCostInf(){ return Math.round(18 + S.decrees*4 + Math.floor(S.renow
     const now = Date.now();
     const objMult = now < (S.objDoubleUntil || 0) ? 2 : 1;
     const rewardDen = o.rewardDen * objMult;
-    const rewardPower = o.rewardPower * objMult;
 
     // payout
     S.gold += rewardDen;
     S.lifetimeGold += rewardDen;
-    S.power += rewardPower;
 
     const doubledText = objMult > 1 ? " (doubled)" : "";
     logLine(`Objective complete! (+${fmt(rewardDen)} denarii${doubledText})`, "good");
@@ -2677,7 +2768,7 @@ function favorCostInf(){ return Math.round(18 + S.decrees*4 + Math.floor(S.renow
       small.style.fontFamily = "var(--sans)";
       small.style.fontSize = ".74rem";
       small.style.color = "var(--muted)";
-      small.textContent = `Reward: +${fmt(o.rewardDen)} denarii • +${fmt(o.rewardPower)} power`;
+      small.textContent = `Reward: +${fmt(o.rewardDen)} denarii`;
 
       left.appendChild(title);
       left.appendChild(small);
@@ -3018,24 +3109,22 @@ function favorCostInf(){ return Math.round(18 + S.decrees*4 + Math.floor(S.renow
     const rows = [
       ["Gold", S.gold],
       ["Renown", S.renown],
-      ["Power", S.power],
       ["Income / sec", incomePerSec().toFixed(1)],
       ["Tap base (tribute)", S.tribute],
       ["Rank tap bonus", rankTributeBonus(titleInfo().idx)],
       ["Streak", "x"+S.streak],
       ["Crit chance", Math.round(critChance()*100)+"%"],
-      ["Huts", S.hutCount||0],
       ["Farms", S.farmCount],
       ["Villas", S.villaCount],
       ["Milites", S.warriors],
-            ["Legion strength", S.legion],
+      ["Legion strength", S.legion],
       ["Raids won", S.battlesWon],
       ["Land", S.land],
       ["Influence", S.influence],
       ["Population", S.population],
       ["Milites (pop used)", S.populationUsed],
       ["Population Cap", populationCap()],
-            ["Faith", S.faith],
+      ["Faith", S.faith],
       ["Crowns (prestige)", S.crowns],
       ["Ascensions", S.ascends || 0],
       ["Best streak (all time)", S.bestStreak || 0],
@@ -3081,10 +3170,23 @@ function favorCostInf(){ return Math.round(18 + S.decrees*4 + Math.floor(S.renow
 
     $("#gold").textContent = fmt(S.gold);
     $("#renown").textContent = fmt(S.renown);
-    $("#power").textContent = fmt(S.power);
     $("#landHud").textContent = fmt(S.land || 0);
 
-    $("#incomeRate").textContent = incomePerSec().toFixed(1);
+    const grossInc = incomePerSec();
+    const upkeepNow = warriorUpkeepPerSec();
+    const netInc = Math.max(0, grossInc - upkeepNow);
+    $("#incomeRate").textContent = netInc.toFixed(1);
+    $("#incomeRate").title = `Gross: ${grossInc.toFixed(2)}/s, Upkeep: -${upkeepNow.toFixed(2)}/s`;
+
+    // Compact income breakdown text under the village panel
+    const farmBase = (S.farmCount || 0) * 0.75;
+    const villaBase = (S.villaCount || 0) * 3.0;
+    const bd = $("#incomeBreakdown");
+    if(bd){
+      bd.textContent =
+        `Farms ${farmBase.toFixed(2)}/s • Villas ${villaBase.toFixed(2)}/s ` +
+        `• Upkeep -${upkeepNow.toFixed(2)}/s • Net ${netInc.toFixed(2)}/s`;
+    }
 
     // Renown soft-tech: passive decree unlocks from fame (no choices, pure dopamine)
     (function applyRenownPerks(){
@@ -3142,9 +3244,9 @@ function favorCostInf(){ return Math.round(18 + S.decrees*4 + Math.floor(S.renow
     }
 
 
-    $("#hutDesc").textContent   = `${fmt(S.hutCount||0)} huts • Cost ${fmt(costHut())} • +2 cap each`;
-    $("#farmDesc").textContent  = `${fmt(S.farmCount)} farms • Cost ${fmt(costFarm())} • +0.75/s each`;
-    $("#villaDesc").textContent = `${fmt(S.villaCount)} villas • Cost ${fmt(costVilla())} • +3.0/s each • +10 cap`;
+    $("#hutDesc").textContent   = `${fmt(S.hutCount||0)} huts • Cost ${fmt(costHut())} • +2 pop cap each`;
+    $("#farmDesc").textContent  = `${fmt(S.farmCount)} farms • Cost ${fmt(costFarm())} • +0.75 denarii/s each`;
+    $("#villaDesc").textContent = `${fmt(S.villaCount)} villas • Cost ${fmt(costVilla())} • +3.0 denarii/s each • +10 pop cap`;
 
     updateTitleProgress();
 
@@ -3374,8 +3476,7 @@ render();
 
   recalcLegionStrength();
 
-  // Recruiting gives power; renown now comes from actual battles.
-  S.power += 2;
+  // Recruiting progresses recruit-related objectives.
   bumpObjective("recruit", 1);
 
   // Nice but safe coin spark (no undefined payout!)
@@ -3886,7 +3987,7 @@ function showBattleSimulation(rep, tier){
   const prevWarriors = S.warriors || 0;
   const prevPopulation = S.population || 0;
 
-  // Ensure a small starting force so the battle feels real
+  // Ensure a small visiting warband so the battle feels real
   let warriors = S.warriors || 0;
   let population = S.population || 0;
   if(warriors < 12){
@@ -3897,16 +3998,25 @@ function showBattleSimulation(rep, tier){
   S.warriors = warriors;
   S.population = population;
   S.populationUsed = S.warriors;
-  recalcLegionStrength();
 
+  // Use the new battleSim to decide how bloody the intro feels,
+  // but always treat it as a hard-won victory in the story.
   const beforeWarriors = S.warriors || 0;
-  const enemies = beforeWarriors + rnd(4, 10);
+  const introSlot = 0; // first battle tier (usually bandits)
+  const sim = battleSim(introSlot);
 
-  // Heavy but survivable losses to sell the "narrow win"
-  const losses = Math.max(1, Math.round(beforeWarriors * 0.35));
-  S.warriors = Math.max(0, beforeWarriors - losses);
-  S.population = Math.max(0, S.population - losses);
-  S.populationUsed = S.warriors;
+  // Derive casualties from the sim, but clamp to a "narrow win" band.
+  let simLosses = sim && typeof sim.losses === "number" ? sim.losses : Math.round(beforeWarriors * 0.35);
+  const minLoss = Math.max(1, Math.round(beforeWarriors * 0.22));
+  const maxLoss = Math.max(minLoss, Math.round(beforeWarriors * 0.55));
+  const losses = clamp(simLosses, minLoss, maxLoss);
+
+  const afterWarriorsIntro = Math.max(0, beforeWarriors - losses);
+
+  // Enemy numbers from the sim, or a fallback
+  const enemies = sim && typeof sim.enemies === "number"
+    ? sim.enemies
+    : beforeWarriors + rnd(4, 10);
 
   // Modest early reward so the opener feels impactful
   const denGain = 16;
@@ -3919,12 +4029,11 @@ function showBattleSimulation(rep, tier){
   S.renown = (S.renown || 0) + renGain;
   S.lifetimeRenown = (S.lifetimeRenown || 0) + renGain;
 
-  const afterWarriorsIntro = S.warriors || 0;
-
   const rep = {
     label: "First Defence of the Village",
     enemies,
-    winP: 0.56,
+    // Show whatever odds the sim estimated, but the story always counts this as a win.
+    winP: sim && typeof sim.winP === "number" ? sim.winP : 0.56,
     win: true,
     beforeWarriors,
     afterWarriors: afterWarriorsIntro,
@@ -3935,11 +4044,11 @@ function showBattleSimulation(rep, tier){
     isIntro: true
   };
 
-  // The warband that rushed to your aid moves on; you're left to raise your own milites.
+  // The visiting warband that saved you marches on; you're left as you were before,
+  // with only the scars and spoils to show for it.
   S.warriors = prevWarriors;
   S.population = prevPopulation;
   S.populationUsed = S.warriors;
-  recalcLegionStrength();
 
   logLine(`First defence of the village: +${fmt(denGain)} denarii, +${fmt(landGain)} land, +${fmt(renGain)} renown.`, "good");
   logLine("The warband that saved your village marches on, leaving you to build your own legion.", "warn");
@@ -3948,6 +4057,7 @@ function showBattleSimulation(rep, tier){
   render();
   if(typeof scheduleSave === "function") scheduleSave();
 }
+
 window.startIntroBattle = startIntroBattle;
 
 // --- Battle execution (rank-based) ---
@@ -4042,9 +4152,6 @@ if(sim.win){
 
   S.land = (S.land||0) + landGain;
 
-  // Power scales a bit more with tier to reflect renown of victory
-  S.power += 4 + Math.floor(tier * 1.1);
-
   // Renown is now earned primarily from victories.
   let renGain = Math.max(1, Math.round(loot/130) + Math.round(landGain*2) + tier*3);
   renGain = Math.round(renGain * landAllocRenownMult());
@@ -4098,6 +4205,44 @@ if(sim.win){
     "bad"
   );
 }
+
+
+  // --- Legion morale & veterancy (hidden) ---
+  const baseBefore = beforeWarriors || 0;
+  const lossFracForMorale = baseBefore > 0 ? losses / baseBefore : 0;
+  const fightSize = sim.enemies || 0;
+
+  // Veterancy: bigger / harder fights teach more, even on losses
+  let xpGain = 0;
+  if(fightSize > 0){
+    xpGain = Math.round(fightSize * (sim.win ? 0.7 : 0.45) * (1 + (sim.tier||1) * 0.22));
+    if(lossFracForMorale > 0.6) xpGain = Math.round(xpGain * 1.15);
+    if(xpGain < 1) xpGain = 1;
+  }
+  if(xpGain > 0){
+    S.legionXp = (S.legionXp || 0) + xpGain;
+  }
+
+  let moraleVal = typeof S.legionMorale === "number" ? S.legionMorale : 1;
+  if(sim.win){
+    const gain = 0.10 + (1 - lossFracForMorale) * 0.25;
+    moraleVal += gain;
+  }else{
+    const drop = 0.18 + lossFracForMorale * 0.5;
+    moraleVal -= drop;
+  }
+  // Gentle pull back toward neutral over time
+  moraleVal += (1 - moraleVal) * 0.08;
+  S.legionMorale = clamp(moraleVal, 0.4, 2.2);
+
+  // Soft flavour log so battles feel like they change the warband
+  if(fightSize > 0 && xpGain > 0){
+    if(sim.win){
+      logLine("Your milites return more seasoned from the fighting.", "good");
+    }else{
+      logLine("Survivors carry hard lessons back to the village.", "warn");
+    }
+  }
 
 // Cooldown
 S.battleReadyAt = Date.now() + battleCooldownMs();
@@ -4366,9 +4511,6 @@ $("#btnExport").addEventListener("click", async ()=>{
     if((S.population||0) < (S.warriors||0)) S.warriors = S.population;
     S.populationUsed = S.warriors;
 
-
-    // Power slowly decays a tiny bit if huge (keeps choices meaningful)
-    if(S.power > 500) S.power -= (S.power-500) * 0.0006 * dt;
 
     render();
   }, 650);
