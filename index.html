@@ -496,11 +496,22 @@ body::after{
   position:relative;
   display:inline-block;
 }
+.battleBar.barShake{
+  animation: barShake 0.18s ease-out;
+}
+@keyframes barShake{
+  0%{ transform:translateX(0); }
+  25%{ transform:translateX(-1px); }
+  50%{ transform:translateX(1px); }
+  75%{ transform:translateX(-1px); }
+  100%{ transform:translateX(0); }
+}
+
 
 
 .battleBarCount{
   position:absolute;
-  right:12px;
+  right:24px;
   top:50%;
   transform:translateY(-50%);
   font-family:var(--mono);
@@ -3482,24 +3493,56 @@ function showBattleSimulation(rep, tier){
   const close = odds > 0.40 && odds < 0.70;
   const desperate = odds <= 0.40;
 
+  const enemyLossPct = Math.round(100 * (totalEnemyLoss / Math.max(1, enemyStart)));
+  const yourLossPct  = Math.round(100 * (totalYourLoss / Math.max(1, yourStart || 1)));
+
   const lines = [];
+
+  // Opening clash
   lines.push(`⚔ Clash! — your line meets ${fmt(rep.enemies)} ${foe} at the ${place}.`);
 
+  // Mid-fight feel
   if(rep.win){
-    if(desperate)      lines.push("🩸 Knife-edge — your centre bends but does not break.");
-    else if(close)     lines.push("➡ Push — you grind them back, shield by shield.");
-    else               lines.push("🔥 Overmatch — your milites roll their line up quickly.");
+    if(desperate){
+      lines.push("🩸 Knife-edge — your centre bows, cohorts yelling to hold just a little longer.");
+    }else if(close){
+      lines.push("➡ Push — you grind them back, shield by shield, until their line begins to fray.");
+    }else{
+      lines.push("🔥 Overmatch — your milites hit like a hammer, cracking their formation early.");
+    }
   }else{
-    if(desperate)      lines.push("💥 Overrun — their weight crashes through your front.");
-    else if(close)     lines.push("⚖ Stalemate tilts — one mistake becomes a rout.");
-    else               lines.push("📉 Outmatched — your line slowly gives ground.");
+    if(desperate){
+      lines.push("💥 Overrun — weight and numbers crash through your front; gaps appear everywhere at once.");
+    }else if(close){
+      lines.push("⚖ Edge lost — a stumble on the line turns into a rolling rout.");
+    }else{
+      lines.push("📉 Outmatched — step by step your cohorts are walked back and pinned.");
+    }
   }
 
-  lines.push(`💀 Losses — you lose ${fmt(rep.losses)} milites.`);
+  // A vivid moment
+  if(totalEnemyLoss > 0 && rep.win){
+    if(enemyLossPct >= 70){
+      lines.push("🏃‍♂ Rout — the enemy breaks; the field is littered with dropped shields and spears.");
+    }else if(enemyLossPct >= 40){
+      lines.push("🌀 Collapse — their centre buckles and the wings peel away from the fight.");
+    }else{
+      lines.push("👣 Withdrawal — their front sags, then they begin to fall back in clumps.");
+    }
+  }else if(totalEnemyLoss > 0){
+    lines.push("🩹 Even as they advance, enemy bodies mark every yard they’ve taken.");
+  }else{
+    lines.push("👀 The enemy barely bleed; this was all pressure, no purchase.");
+  }
+
+  // Closing losses line
+  lines.push(`💀 Losses — you lose ${fmt(rep.losses)} milites (${yourLossPct}% of your force).`);
   if(totalEnemyLoss > 0){
-    const enemyLossPct  = Math.round(100 * (totalEnemyLoss / Math.max(1, enemyStart)));
-    if(rep.win) lines.push(`🏳 Rout — enemy loses roughly ${enemyLossPct}% of their number.`);
-    else        lines.push("🩹 You bloody them, but they hold the field.");
+    if(rep.win){
+      lines.push(`🏳 They yield the ground — roughly ${enemyLossPct}% of the enemy are left ruined or running.`);
+    }else{
+      lines.push(`🪦 Bloodied but unbroken — the enemy holds the field with about ${enemyLossPct}% of their number lost.`);
+    }
   }
 
   const steps = lines.length; // one step per line
@@ -3517,8 +3560,10 @@ function showBattleSimulation(rep, tier){
 
   const barIndexFromCounts = (current, max)=>{
     if(max <= 0) return 0;
-    const ratio = current / max;
-    const idx = Math.round(ratio * 10);
+    const ratio = clamp(current / max, 0, 1);
+    // Health curve so bars look a bit more "bloodied" than the raw numbers
+    const curved = Math.pow(ratio, 1.25);
+    const idx = Math.round(curved * 10);
     return clamp(idx, 0, 10);
   };
 
@@ -3535,10 +3580,30 @@ function showBattleSimulation(rep, tier){
     }
   };
 
+  let lastYourCount  = yourStart;
+  let lastEnemyCount = enemyStart;
+
+  const triggerBarShake = (imgEl)=>{
+    if(!imgEl) return;
+    const wrapper = imgEl.closest(".battleBar");
+    if(!wrapper) return;
+    wrapper.classList.remove("barShake");
+    // Force reflow so the animation can restart
+    void wrapper.offsetWidth;
+    wrapper.classList.add("barShake");
+  };
+
   const applyStep = (stepIndex)=>{
     const i = clamp(stepIndex, 0, steps);
     const yNow = yourSteps[i];
     const eNow = enemySteps[i];
+
+    const tookY = yNow < lastYourCount;
+    const tookE = eNow < lastEnemyCount;
+    if(tookY) triggerBarShake(yourBarImg);
+    if(tookE) triggerBarShake(enemyBarImg);
+    lastYourCount  = yNow;
+    lastEnemyCount = eNow;
 
     const yourIdx  = barIndexFromCounts(yNow, yourStart);
     const enemyIdx = barIndexFromCounts(eNow, enemyStart);
