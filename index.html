@@ -3504,21 +3504,14 @@ function showBattleSimulation(rep, tier){
   const foe   = f.foe[rnd(0, f.foe.length - 1)];
   const odds  = rep.winP || 0;
 
-  const enemyLossPct = Math.round(100 * (totalEnemyLoss / Math.max(1, enemyStart || 1)));
   const yourLossPct  = Math.round(100 * (rep.losses       / Math.max(1, yourStart   || 1)));
-
-  const youMax   = Math.max(1, yourStart || 0);
-  const enemyMax = Math.max(1, enemyStart || 0);
+  const youMax       = Math.max(1, yourStart || 0);
+  const enemyMax     = Math.max(1, enemyStart || 0);
   const strengthRatio = youMax / enemyMax;
 
   const close     = odds > 0.40 && odds < 0.70;
   const desperate = odds <= 0.40;
 
-  /**
-   * Log entries are objects: { text, tone }
-   * tone: "", "good", "bad", or "warn"
-   * Super minimal: 3 beats = clash, big swing, payoff.
-   */
   const lines = [];
   const pushEntry = (text, tone = "") => {
     lines.push({ text, tone });
@@ -3580,18 +3573,23 @@ function showBattleSimulation(rep, tier){
     pushEntry(`☠ Defeat — you fall back. ${summary}.`, "bad");
   }
 
-  // One bar-step per beat
-  const steps = lines.length;
+  // --- Health-bar-friendly step curve ---
+  const STEPS = 12; // bar story: clash -> swing -> collapse
   const yourSteps  = [];
   const enemySteps = [];
 
-  for(let i = 0; i <= steps; i++){
-    const t = steps > 0 ? (i / steps) : 1;
+  for(let i = 0; i <= STEPS; i++){
+    const t = STEPS > 0 ? (i / STEPS) : 1;
     const ys = Math.round(yourStart  - totalYourLoss  * t);
     const es = Math.round(enemyStart - totalEnemyLoss * t);
     yourSteps.push(ys);
     enemySteps.push(es);
   }
+
+  // Indices where text lines should appear (synced to bar drama)
+  const clashStep = 1;
+  const breakStep = Math.round(STEPS * 0.5);
+  const endStep   = STEPS;
 
   const barIndexFromCounts = (current, max)=>{
     if(max <= 0) return 0;
@@ -3627,7 +3625,8 @@ function showBattleSimulation(rep, tier){
   };
 
   const applyStep = (stepIndex)=>{
-    const i = clamp(stepIndex, 0, steps);
+    // Clamp into range 0..STEPS
+    const i = clamp(stepIndex, 0, STEPS);
     const yNow = yourSteps[i];
     const eNow = enemySteps[i];
 
@@ -3648,30 +3647,11 @@ function showBattleSimulation(rep, tier){
     if(yourBarCount)  yourBarCount.textContent  = `${fmt(yNow)} / ${fmt(yourStart)}`;
   };
 
-  eventsEl.innerHTML = "";
-  btnContinue.style.display = "none";
-  applyStep(0);
-
-  overlay.style.display = "flex";
-  overlay.classList.add("visible");
-
-  let lineIndex = 0;
-  let stepIndex = 0;
-  let timer = null;
-
+  // Log rendering helper
   const MAX_VISIBLE_LINES = 4;
 
-  const pushLine = ()=>{
-    if(lineIndex >= lines.length){
-      if(timer){ clearInterval(timer); timer = null; }
-      btnContinue.style.display = "inline-flex";
-      return;
-    }
-
-    stepIndex = Math.min(stepIndex + 1, steps);
-    applyStep(stepIndex);
-
-    const entry = lines[lineIndex++];
+  const appendLine = (entry)=>{
+    if(!entry) return;
     const div = document.createElement("div");
     div.className = "simEventLine";
 
@@ -3691,8 +3671,47 @@ function showBattleSimulation(rep, tier){
     }
   };
 
-  timer = setInterval(pushLine, 1200);
-  pushLine();
+  // Initial visual state
+  eventsEl.innerHTML = "";
+  btnContinue.style.display = "none";
+  applyStep(0);
+
+  overlay.style.display = "flex";
+  overlay.classList.add("visible");
+
+  let stepIndex = 0;
+  let timer = null;
+  let nextLineIdx = 0;
+
+  const TICK_MS = 550; // overall battle length ~ 6–7s
+
+  const tick = ()=>{
+    if(stepIndex >= STEPS){
+      // ensure final frame
+      applyStep(STEPS);
+      if(timer){ clearInterval(timer); timer = null; }
+      btnContinue.style.display = "inline-flex";
+      return;
+    }
+
+    stepIndex = Math.min(stepIndex + 1, STEPS);
+    applyStep(stepIndex);
+
+    // Trigger log lines on key bar moments
+    if(stepIndex === clashStep && nextLineIdx < lines.length){
+      appendLine(lines[nextLineIdx++]);
+    }
+    if(stepIndex === breakStep && nextLineIdx < lines.length){
+      appendLine(lines[nextLineIdx++]);
+    }
+    if(stepIndex === endStep && nextLineIdx < lines.length){
+      appendLine(lines[nextLineIdx++]);
+    }
+  };
+
+  timer = setInterval(tick, TICK_MS);
+  // Prime first tick so there's no initial delay
+  tick();
 
   const finish = ()=>{
     overlay.classList.remove("visible");
