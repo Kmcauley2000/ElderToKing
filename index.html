@@ -167,6 +167,9 @@ body::after{
     .smallBtn .d{font-family:var(--sans);color:var(--muted);font-size:.74rem;line-height:1.25;opacity:.82;}
     .bar{margin-top:12px;border:1px solid rgba(31,58,42,.85);border-radius: 999px;overflow:hidden;background: rgba(0,0,0,.16);}
     .bar > div{height:12px;width:10%;background: linear-gradient(90deg, rgba(244,208,111,.92), rgba(107,230,117,.80));transition: width .22s ease;}
+    .villagePopBlock{margin-top:10px;font-family:var(--mono);font-size:.74rem;color:var(--muted);display:flex;flex-direction:column;gap:2px;}
+    .villagePopBlock b{color:var(--text);}
+    
     .meta{display:flex;justify-content:space-between;gap:10px;font-family:var(--mono);font-size:.74rem;color:var(--muted);margin-top:10px;}
     .meta b{color:var(--text);}
     details{margin-top:12px;border-top:1px solid rgba(31,58,42,.55);padding-top:10px;}
@@ -973,7 +976,7 @@ header{
 
     <!-- VILLAGE -->
     <section class="card view" data-view="village">
-      <div class="sectionTitle"><span>Village</span><span style="display:flex;gap:10px;align-items:center;"><span>Income <b id="incomeRate">0</b>/s</span><span class="pill" style="padding:8px 10px;">Pop <b id="popUsed">0</b>/<b id="popCap">0</b> • Mig <b id="migRate">0.00</b>/s <span style="opacity:.65">(streak)</span></span></span></div>
+      <div class="sectionTitle"><span>Village</span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:.74rem;"><span>Income <b id="incomeRate">0</b>/s</span></span></div>
       <div class="cardBody">
         <div class="card" style="box-shadow:0 10px 24px rgba(0,0,0,.36); border-radius:18px; overflow:hidden; margin-bottom:12px;">
           <div class="sectionTitle" style="border-bottom:1px solid rgba(31,58,42,.55);">
@@ -1014,6 +1017,12 @@ header{
             <div class="t">Build Villa</div>
             <div class="d" id="villaDesc">Bigger income. Costs more.</div>
           </button>
+        </div>
+
+        <div class="villagePopBlock">
+          <div>Population: <b id="popUsed">0</b></div>
+          <div>Population Capacity: <b id="popCap">0</b></div>
+          <div>Migration: <b id="migRate">0.00</b>/s</div>
         </div>
 
         <div class="bar"><div id="progressFill"></div></div>
@@ -1066,6 +1075,7 @@ header{
 
         <div class="meta">
           <div>Strength: <b id="legionStr">0</b></div>
+          <div>Upkeep: <b id="legionUpkeep">0</b>/s</div>
           <div>Land: <b id="landLegion">0</b></div>
         </div>
       </div>
@@ -1104,40 +1114,57 @@ header{
       </div>
     </section>
 
-    <!-- COURT -->
-    <section class="card view" data-view="court" hidden>
-      <div class="sectionTitle"><span>Court</span><span>Influence <b id="inf2">0</b></span></div>
+    <!-- LAND -->
+    <section class="card view" data-view="land" hidden>
+      <div class="sectionTitle"><span>Land</span><span>Plots <b id="landPlots">0</b></span></div>
       <div class="cardBody">
-        <button class="bigBtn" id="btnCourt">
-          <div class="bigLeft">
-            <div class="bigName">Hold Court</div>
-            <div class="bigDesc">Spend influence to gain renown fast.</div>
-          </div>
-          <div class="bigRight">
-            <div class="gain" id="courtCost">Cost 0</div>
-            <div class="hint" id="courtGain">+0 renown</div>
-          </div>
-        </button>
+        <p style="margin:0 0 10px;font-size:.78rem;color:var(--muted);">
+          Allocate plots to shape your realm. More land from battles unlocks more plots.
+        </p>
 
         <div class="row2">
-          <button class="smallBtn" id="btnDecree">
-            <div class="t">Issue Decree</div>
-            <div class="d" id="decreeDesc">Permanent boosts (expensive).</div>
+          <button class="smallBtn" id="landAgricultureBtn" type="button">
+            <div class="t">Agriculture</div>
+            <div class="d">
+              Plots: <b id="landAgricultureVal">0</b><br>
+              Boosts farm and villa income.
+            </div>
           </button>
-          <button class="smallBtn" id="btnFeast">
-            <div class="t">Host Feast</div>
-            <div class="d" id="feastDesc">Cooldown renown burst.</div>
+          <button class="smallBtn" id="landMilitaryBtn" type="button">
+            <div class="t">Military</div>
+            <div class="d">
+              Plots: <b id="landMilitaryVal">0</b><br>
+              Increases legion strength.
+            </div>
           </button>
         </div>
 
-        <div class="meta">
-          <div>Decrees: <b id="decrees">0</b></div>
-          <div>Feast CD: <b id="feastCd">0s</b></div>
+        <div class="row2" style="margin-top:10px;">
+          <button class="smallBtn" id="landHousingBtn" type="button">
+            <div class="t">Housing</div>
+            <div class="d">
+              Plots: <b id="landHousingVal">0</b><br>
+              Raises village population capacity.
+            </div>
+          </button>
+          <button class="smallBtn" id="landGovernanceBtn" type="button">
+            <div class="t">Governance</div>
+            <div class="d">
+              Plots: <b id="landGovernanceVal">0</b><br>
+              Boosts renown gain.
+            </div>
+          </button>
         </div>
+
+        <p style="margin:10px 0 0;font-size:.72rem;color:var(--muted);">
+          Available plots: <b id="landPlotsFree">0</b>
+          (plots are based on total land; tap a card to assign a plot if any are free).
+        </p>
       </div>
     </section>
 
-    <!-- STATS -->
+
+<!-- STATS -->
     <section class="card view" data-view="stats" hidden>
       <div class="sectionTitle"><span>Stats</span><span><b>Geek mode</b></span></div>
       <div class="cardBody">
@@ -1164,7 +1191,7 @@ header{
     <button class="tab active" data-go="village"><span class="dot"></span>Village</button>
     <button class="tab" data-go="legion"><span class="dot"></span>Legion</button>
 <button class="tab" data-go="temple"><span class="dot"></span>Temple</button>
-    <button class="tab" data-go="court"><span class="dot"></span>Court</button>
+    <button class="tab" data-go="land"><span class="dot"></span>Land</button>
     <button class="tab" data-go="stats"><span class="dot"></span>Stats</button>
   </nav>
 
@@ -1259,9 +1286,18 @@ header{
     battlesWon: 0,
     battleReadyAt: 0,
 
+    // upkeep tracking
+    unpaidUpkeepSeconds: 0,
+    lastUpkeepWarnAt: 0,
+
     // land & politics
     land: 0,
     influence: 0,
+    landAgriculture: 0,
+    landMilitary: 0,
+    landHousing: 0,
+    landGovernance: 0,
+
 
     // village capacity
     population: 0,          // total settlers (includes milites)
@@ -1615,7 +1651,8 @@ header{
         overlay.setAttribute("hidden","hidden");
         updatePlayerNameHud();
         if(typeof scheduleSave === "function") scheduleSave();
-        toast(`Welcome, ${S.playerName}`);
+        // Intro flavour: invasion hook instead of generic welcome
+        toast("Your village is being invaded!");
         // Trigger intro battle once, right after the player enters the village
         if(!S.introBattleDone && typeof startIntroBattle === "function"){
           setTimeout(()=> startIntroBattle(), 650);
@@ -1661,6 +1698,67 @@ header{
 function decreeMult(){
     return 1 + (S.decrees * 0.07);
   }
+
+  // --- Land allocation (plots) hybrid system ---
+  function totalLandPlots(){
+    const land = S.land || 0;
+    if(land <= 0) return 0;
+    // Hybrid: soft diminishing (sqrt) scaled, on top of tier-based land rewards.
+    return Math.floor(Math.sqrt(land) * 4);
+  }
+  function usedLandPlots(){
+    return (S.landAgriculture||0) + (S.landMilitary||0) + (S.landHousing||0) + (S.landGovernance||0);
+  }
+  function freeLandPlots(){
+    return Math.max(0, totalLandPlots() - usedLandPlots());
+  }
+
+  function landAllocIncomeMult(){
+    return 1 + (S.landAgriculture||0) * 0.04;
+  }
+  function landAllocPopMult(){
+    return 1 + (S.landHousing||0) * 0.04;
+  }
+  function landAllocLegionMult(){
+    const m = S.landMilitary||0;
+    if(m <= 0) return 1;
+    // Diminishing returns + cap: strong early, but not runaway.
+    const bonus = 0.025 * Math.sqrt(m); // e.g. m=16 → +10%, m=64 → +20%
+    return 1 + Math.min(bonus, 0.75);   // cap at +75% strength
+  }
+  function warriorUpkeepPerSec(){
+    const w = S.warriors || 0;
+    if(w <= 0) return 0;
+
+    // Base upkeep per warrior per second (~1.2 denarii per minute before modifiers)
+    let per = 0.02;
+
+    // Agriculture + villas + land (Agriculture) soften upkeep.
+    const foodRelief =
+      1 - Math.min(
+        0.40,
+        (S.farmCount * 0.002) +
+        (S.villaCount * 0.003) +
+        ((S.landAgriculture || 0) * 0.01)
+      );
+
+    // Military plots also make milites cheaper to maintain.
+    const milRelief =
+      1 - Math.min(0.25, (S.landMilitary || 0) * 0.006);
+
+    const mult = Math.max(0.4, foodRelief * milRelief);
+
+    return w * per * mult;
+  }
+
+  function landAllocRenownMult(){
+    const g = S.landGovernance||0;
+    if(g <= 0) return 1;
+    // Diminishing returns + cap so renown can't spiral.
+    const bonus = 0.02 * Math.sqrt(g);  // e.g. g=25 → +10%, g=100 → +20%
+    return 1 + Math.min(bonus, 0.6);    // cap at +60% renown
+  }
+
   function incomePerSec(){
     let farm = S.farmCount * 0.75;
     // Soft cap: without land, extra farms become less effective (nudges you into the land loop)
@@ -1671,7 +1769,8 @@ function decreeMult(){
     const villa = S.villaCount * 3.0;
     const base = farm + villa;
     const prosper = (Date.now() < (S.prosperUntil||0)) ? 1.5 : 1.0;
-    return base * landMult() * decreeMult() * crownMult() * prosper;
+    // Land allocation (Agriculture) further boosts income.
+    return base * landMult() * landAllocIncomeMult() * decreeMult() * crownMult() * prosper;
   }
 
   // --- Migration rate (settlers per second) ---
@@ -1719,7 +1818,7 @@ function decreeMult(){
     // - Each villa supports 10 more warriors (bigger settlements)
     // - Land boosts overall capacity a bit
     const base = (S.hutCount * 2) + (S.farmCount * 4) + (S.villaCount * 10);
-    return Math.floor(base * (1 + S.land * 0.08));
+    return Math.floor(base * (1 + S.land * 0.08) * landAllocPopMult());
   }
   function hasVillageCapacity(){
     return (S.population || 0) < populationCap();
@@ -1818,7 +1917,8 @@ function decreeMult(){
     function recalcLegionStrength(){
     // Strength derived from warriors only (simple + readable)
     const per = 6;
-    S.legion = Math.round(S.warriors * per);
+    // Land allocation (Military) further boosts legion strength.
+    S.legion = Math.round(S.warriors * per * landAllocLegionMult());
   }
 
 
@@ -2158,6 +2258,12 @@ function decreeMult(){
 
   function courtCost(){ return Math.round(12 + S.decrees*3 + Math.floor(S.renown/900)); }
   function courtRenownGain(){ return Math.round(28 + (S.decrees*6) + (S.land*4)); }
+function favorCostInf(){ return Math.round(18 + S.decrees*4 + Math.floor(S.renown/1400)); }
+  function favorGoldGain(){
+    const base = 400 + S.land*80 + S.decrees*120;
+    return Math.round(base);
+  }
+
 
   function decreeCostGold(){ return Math.round(2200 * Math.pow(1.52, S.decrees)); }
   function decreeCostInf(){ return Math.round(30 * Math.pow(1.22, S.decrees)); }
@@ -3049,6 +3155,12 @@ function decreeMult(){
     $("#landLegion").textContent = fmt(S.land);
     $("#landHud").textContent = fmt(S.land);
 
+    const up = warriorUpkeepPerSec();
+    const upEl = $("#legionUpkeep");
+    if(upEl){
+      upEl.textContent = up.toFixed(2);
+    }
+
     $("#recruitCost").textContent = `Cost ${fmt(recruitCost())}`;
     $("#recruitGain").textContent = `+${fmt(recruitStrengthGain())} strength`;
 
@@ -3103,18 +3215,23 @@ function decreeMult(){
     const crownsGain = ascendCrownGain();
     $("#ascendDesc").textContent = crownsGain>0 ? `Reset for +${crownsGain} crowns` : `Need 25,000 renown`;
 
-    // Court
-    $("#inf2").textContent = fmt(S.influence);
-    $("#decrees").textContent = fmt(S.decrees);
-    $("#courtCost").textContent = `Cost ${fmt(courtCost())} influence`;
-    $("#courtGain").textContent = `+${fmt(courtRenownGain())} renown`;
-    $("#decreeDesc").textContent = `Cost ${fmt(decreeCostGold())}d +${fmt(decreeCostInf())} inf • perm boosts`;
-    const feastCd = Math.max(0, Math.ceil((S.feastReadyAt - Date.now())/1000));
-    $("#feastCd").textContent = feastCd + "s";
-    $("#feastDesc").textContent = feastCd>0 ? `CD ${feastCd}s` : `Cost ${fmt(feastCostGold())} denarii • +${fmt(feastRenown())} renown`;
-    $("#btnFeast").disabled = feastCd>0;
+    // Land
+    const plotsTotal = totalLandPlots();
+    const plotsFree = freeLandPlots();
+    const la = S.landAgriculture||0;
+    const lm = S.landMilitary||0;
+    const lh = S.landHousing||0;
+    const lg = S.landGovernance||0;
 
-    // Stats
+    if($("#landPlots")) $("#landPlots").textContent = fmt(plotsTotal);
+    if($("#landPlotsFree")) $("#landPlotsFree").textContent = fmt(plotsFree);
+    if($("#landAgricultureVal")) $("#landAgricultureVal").textContent = fmt(la);
+    if($("#landMilitaryVal")) $("#landMilitaryVal").textContent = fmt(lm);
+    if($("#landHousingVal")) $("#landHousingVal").textContent = fmt(lh);
+    if($("#landGovernanceVal")) $("#landGovernanceVal").textContent = fmt(lg);
+
+
+// Stats
     const body = $("#statsTable");
     if(body){
       body.innerHTML = "";
@@ -3275,6 +3392,29 @@ render();
 
   render();
 });
+  // Land allocation buttons: tap to assign a plot if any are free.
+  function adjustLandAllocation(key){
+    const free = freeLandPlots();
+    if(free <= 0){
+      toast("No free plots — win more land in battle.");
+      return;
+    }
+    switch(key){
+      case "agriculture": S.landAgriculture = (S.landAgriculture||0) + 1; break;
+      case "military":    S.landMilitary    = (S.landMilitary||0) + 1; break;
+      case "housing":     S.landHousing     = (S.landHousing||0) + 1; break;
+      case "governance":  S.landGovernance  = (S.landGovernance||0) + 1; break;
+    }
+    toast("Plot allocated");
+    render();
+    if(typeof scheduleSave === "function") scheduleSave();
+  }
+
+  $("#landAgricultureBtn") && $("#landAgricultureBtn").addEventListener("click", ()=>adjustLandAllocation("agriculture"));
+  $("#landMilitaryBtn") && $("#landMilitaryBtn").addEventListener("click", ()=>adjustLandAllocation("military"));
+  $("#landHousingBtn") && $("#landHousingBtn").addEventListener("click", ()=>adjustLandAllocation("housing"));
+  $("#landGovernanceBtn") && $("#landGovernanceBtn").addEventListener("click", ()=>adjustLandAllocation("governance"));
+
   
     
 // --- Battle Report overlay (after every battle) ---
@@ -3723,8 +3863,8 @@ function showBattleSimulation(rep, tier){
     finish();
     showBattleReport(rep);
     if(rep && rep.isIntro){
-      toast("Even a narrow victory proves you can hold the line.");
-      logLine("First defence: you held the village when it truly mattered.", "good");
+      toast("This is how legends are born.");
+      logLine("First defence of the village: this is where your legend begins.", "good");
       if(typeof scheduleSave === "function") scheduleSave();
     }
   };
@@ -3733,14 +3873,18 @@ function showBattleSimulation(rep, tier){
     finish();
     showBattleReport(rep);
     if(rep && rep.isIntro){
-      toast("Even a narrow victory proves you can hold the line.");
-      logLine("First defence: you held the village when it truly mattered.", "good");
+      toast("This is how legends are born.");
+      logLine("First defence of the village: this is where your legend begins.", "good");
       if(typeof scheduleSave === "function") scheduleSave();
     }
   };
 }function startIntroBattle(){
   if(S.introBattleDone) return;
   S.introBattleDone = 1;
+
+  // Remember pre-intro forces so the visiting warband can leave afterwards
+  const prevWarriors = S.warriors || 0;
+  const prevPopulation = S.population || 0;
 
   // Ensure a small starting force so the battle feels real
   let warriors = S.warriors || 0;
@@ -3775,13 +3919,15 @@ function showBattleSimulation(rep, tier){
   S.renown = (S.renown || 0) + renGain;
   S.lifetimeRenown = (S.lifetimeRenown || 0) + renGain;
 
+  const afterWarriorsIntro = S.warriors || 0;
+
   const rep = {
     label: "First Defence of the Village",
     enemies,
     winP: 0.56,
     win: true,
     beforeWarriors,
-    afterWarriors: S.warriors || 0,
+    afterWarriors: afterWarriorsIntro,
     losses,
     denDelta: denGain,
     landDelta: landGain,
@@ -3789,7 +3935,14 @@ function showBattleSimulation(rep, tier){
     isIntro: true
   };
 
+  // The warband that rushed to your aid moves on; you're left to raise your own milites.
+  S.warriors = prevWarriors;
+  S.population = prevPopulation;
+  S.populationUsed = S.warriors;
+  recalcLegionStrength();
+
   logLine(`First defence of the village: +${fmt(denGain)} denarii, +${fmt(landGain)} land, +${fmt(renGain)} renown.`, "good");
+  logLine("The warband that saved your village marches on, leaving you to build your own legion.", "warn");
   toast("The village stands. Barely.");
   showBattleSimulation(rep, 1);
   render();
@@ -3883,8 +4036,9 @@ if(sim.win){
   let baseLand = enemies / (42 - tier * 3); // generous at high tiers
   if(winP < 0.45) baseLand *= 1.35; // reward gutsy wins
 
-  landGain = Math.floor(Math.max(0, baseLand));
-  landGain = clamp(landGain, 0, 10 + tier * 2);
+  // Ensure every victory grants at least 1 land so battles always feel rewarding.
+  landGain = Math.max(1, Math.floor(Math.max(0, baseLand)));
+  landGain = clamp(landGain, 1, 10 + tier * 2);
 
   S.land = (S.land||0) + landGain;
 
@@ -3892,7 +4046,8 @@ if(sim.win){
   S.power += 4 + Math.floor(tier * 1.1);
 
   // Renown is now earned primarily from victories.
-  const renGain = Math.max(1, Math.round(loot/130) + Math.round(landGain*2) + tier*3);
+  let renGain = Math.max(1, Math.round(loot/130) + Math.round(landGain*2) + tier*3);
+  renGain = Math.round(renGain * landAllocRenownMult());
   S.renown += renGain;
   S.lifetimeRenown += renGain;
 
@@ -4021,62 +4176,7 @@ $("#btnBattleSiege").addEventListener("click", ()=> doBattle(3));
     setView("village");
   });
 
-  $("#btnCourt").addEventListener("click", (e)=>{
-    const c = courtCost();
-    if(S.influence < c){ toast("Need more influence"); return; }
-    S.influence -= c;
-    const g = courtRenownGain();
-
-    // Applause turns into soft renown again.
-    S.renown += g;
-    S.lifetimeRenown = (S.lifetimeRenown || 0) + g;
-
-    // Court objective
-    bumpObjective("holdCourt", 1);
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    sparkAt(rect.left + rect.width*0.70, rect.top + rect.height*0.52);
-
-    toast(`Applauded (+${fmt(g)} renown)`);
-    render();
-  });
-
-  $("#btnDecree").addEventListener("click", ()=>{
-    const g = decreeCostGold();
-    const i = decreeCostInf();
-    if(S.gold < g){ toast("Not enough denarii"); return; }
-    if(S.influence < i){ toast("Need more influence"); return; }
-    S.gold -= g; S.influence -= i;
-    S.decrees += 1;
-    // Renown is now battle-only; decrees no longer grant renown directly.
-    toast("Decreed");
-    render();
-  });
-
-  $("#btnFeast").addEventListener("click", ()=>{
-    const now = Date.now();
-    if(now < S.feastReadyAt){ toast("Cooling down"); return; }
-    const c = feastCostGold();
-    if(S.gold < c){ toast("Not enough denarii"); return; }
-    S.gold -= c;
-    S.feastReadyAt = now + feastCooldownMs();
-
-    const r = feastRenown();
-
-    // Feasts once again grant a burst of renown.
-    S.renown += r;
-    S.lifetimeRenown = (S.lifetimeRenown || 0) + r;
-
-    // Feast objective
-    bumpObjective("feast", 1);
-
-    toast(`Feast! (+${fmt(r)} renown)`);
-    showChest("feast");
-    render();
-  });
-
-  
-  $("#btnCashout").addEventListener("click", (e)=>{
+    $("#btnCashout").addEventListener("click", (e)=>{
     if(!cashoutReady()){ toast("Not ready"); return; }
 
     const payout = cashoutPotential();
@@ -4174,6 +4274,60 @@ $("#btnExport").addEventListener("click", async ()=>{
 
     // Objectives: passive income counts toward "Earn denarii"
     if(inc > 0) bumpEarnedDenarii(inc);
+
+
+    // --- Milites upkeep: ties legion to village economy ---
+    const upkeep = warriorUpkeepPerSec() * dt;
+    if(upkeep > 0){
+      const nowMs = Date.now();
+
+      if(S.gold >= upkeep){
+        // You can afford your forces: just pay.
+        S.gold -= upkeep;
+
+        // Gentle warning if upkeep is eating most of your income.
+        const incomeNow = incomePerSec();
+        if(
+          incomeNow > 0 &&
+          upkeep > incomeNow * 0.65 &&
+          nowMs - (S.lastUpkeepWarnAt || 0) > 10000
+        ){
+          toast("Your milites are expensive — build more farms and villas.");
+          S.lastUpkeepWarnAt = nowMs;
+        }
+      }else{
+        // Can't fully pay upkeep: you go broke and desertions start.
+        const paid = S.gold;
+        S.gold = 0;
+
+        S.unpaidUpkeepSeconds = (S.unpaidUpkeepSeconds || 0) + dt;
+
+        // Every few seconds of unpaid wages, some milites desert.
+        if(S.unpaidUpkeepSeconds >= 6 && (S.warriors || 0) > 0){
+          S.unpaidUpkeepSeconds -= 6;
+
+          const before = S.warriors || 0;
+          const lose = Math.max(1, Math.round(before * 0.06)); // ~6% desert
+          S.warriors = Math.max(0, before - lose);
+
+          // They leave the population as well (either gone or dead).
+          S.population = Math.max(0, (S.population || 0) - lose);
+          S.populationUsed = S.warriors;
+
+          recalcLegionStrength();
+
+          logLine(`${lose} milites deserted — you could not pay them.`, "bad");
+
+          if(nowMs - (S.lastUpkeepWarnAt || 0) > 6000){
+            toast("Unpaid milites deserted your banner.");
+            S.lastUpkeepWarnAt = nowMs;
+          }
+        }
+      }
+    }else{
+      // No army → no unpaid timer.
+      S.unpaidUpkeepSeconds = 0;
+    }
 
 
     // --- Settlers: population slowly fills up to your housing cap ---
