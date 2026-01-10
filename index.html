@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -483,7 +484,6 @@ body::after{
   border:none;
   background:none;
   display:block;
-  transform: translateY(-20px); /* MOVE BATTLE BARS UP */
 }
 .battleBarSprite{
   display:block;
@@ -509,6 +509,7 @@ body::after{
   text-shadow:0 0 4px rgba(0,0,0,0.9);
 }
 .simStats{
+  display:none;
   margin-top:4px;
   font-family:var(--mono);
   font-size:.74rem;
@@ -3547,10 +3548,6 @@ function showBattleSimulation(rep, tier){
 
     if(enemyBarCount) enemyBarCount.textContent = `${fmt(eNow)} / ${fmt(enemyStart)}`;
     if(yourBarCount)  yourBarCount.textContent  = `${fmt(yNow)} / ${fmt(yourStart)}`;
-
-    // Keep simStats for descriptors only (no raw counts)
-    enemyStatsEl.textContent = enemyStatsEl.textContent || "Enemy host";
-    yourStatsEl.textContent  = yourStatsEl.textContent  || "Legion";
   };
 
   // Initial visual state
