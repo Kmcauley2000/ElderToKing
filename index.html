@@ -546,7 +546,30 @@ body::after{
 /* Stronger contrast for battle sim log tones */
 .simEvents .good{color:#32c96b;font-weight:900;}
 .simEvents .bad{color:#ff4760;font-weight:900;}
-.simEvents .warn{color:#e3a713;font-weight:900;}
+.simEvents .warn{color:#6E7379;font-weight:900;}
+
+.battleFloat{
+  position:fixed;
+  z-index:9999;
+  pointer-events:none;
+  font-family:inherit;
+  font-size:0.7rem;
+  font-weight:800;
+  color:#f5f5f5;
+  text-shadow:0 1px 2px rgba(0,0,0,0.55);
+  animation:battleFloatUp 0.82s ease-out forwards;
+  white-space:nowrap;
+}
+.battleFloat.good{color:#32c96b;}
+.battleFloat.bad{color:#ff4760;}
+.battleFloat.warn{color:#6E7379;}
+
+@keyframes battleFloatUp{
+  0%{opacity:0;transform:translateY(4px) scale(0.9);}
+  15%{opacity:1;transform:translateY(0) scale(1);}
+  100%{opacity:0;transform:translateY(-16px) scale(1.02);}
+}
+
     /* Intro overlay */
     .introOverlay{
       position:fixed;
@@ -3585,6 +3608,76 @@ function showBattleSimulation(rep, tier){
     yourSteps.push(ys);
     enemySteps.push(es);
   }
+  // --- Arcade popup system: dynamic density (arcade style) ---
+  const popupPhrases = {
+    early: ["⚔ +1", "⚔ +2", "Slain!", "Chip!", "🛡 Block!", "🏹 Volley!"],
+    mid:   ["⚔ +2", "⚔ +3", "💥 Crit!", "Combo x2!", "Combo x3!", "Push!", "Crack!", "Stagger!"],
+    late:  ["Rout!", "Scatter!", "+3 Slain!", "Sweep!"]
+  };
+  const rarePhrases = {
+    mid:  ["Heroic!", "Smash!", "Rout Chain!"],
+    late: ["Treasure!", "Captured Chief!", "Valor Surge!"]
+  };
+
+  const randFrom = (arr)=> arr[rnd(0, arr.length - 1)];
+
+  const spawnBattlePopup = (text, tone = "good")=>{
+    if(!overlay) return;
+    const div = document.createElement("div");
+    div.className = "battleFloat";
+    if(tone) div.classList.add(tone);
+    div.textContent = text;
+
+    // anchor near enemy bar by default (or player if needed)
+    const anchor = enemyBarImg || yourBarImg || overlay;
+    const rect = anchor.getBoundingClientRect();
+    const ox = rect.left + rect.width * (anchor === enemyBarImg ? 0.7 : 0.3);
+    const oy = rect.top + rect.height * 0.2;
+    const jitterX = (Math.random() - 0.5) * 40;
+    const jitterY = (Math.random() - 0.5) * 12;
+
+    div.style.left = `${ox + jitterX}px`;
+    div.style.top  = `${oy + jitterY}px`;
+
+    overlay.appendChild(div);
+    setTimeout(()=>{
+      if(div.parentNode) div.parentNode.removeChild(div);
+    }, 820);
+  };
+
+  const emitPopupsForStep = (step)=>{
+    let phase;
+    if(step <= 3)      phase = "early";
+    else if(step <= 8) phase = "mid";
+    else               phase = "late";
+
+    let count = 0;
+    if(phase === "early"){
+      if(Math.random() < 0.7) count = 1;
+      if(Math.random() < 0.25) count++;
+    }else if(phase === "mid"){
+      count = 1;
+      if(Math.random() < 0.7) count++;
+      if(Math.random() < 0.4) count++;
+    }else{
+      if(Math.random() < 0.55) count = 1;
+      if(Math.random() < 0.25) count++;
+    }
+
+    const list = popupPhrases[phase];
+    for(let i = 0; i < count; i++){
+      spawnBattlePopup(randFrom(list), "good");
+    }
+
+    // Rare big dopamine spikes
+    if(phase === "mid" && Math.random() < 0.18){
+      spawnBattlePopup(randFrom(rarePhrases.mid), "good");
+    }
+    if(phase === "late" && Math.random() < 0.22){
+      spawnBattlePopup(randFrom(rarePhrases.late), "good");
+    }
+  };
+
 
   // Indices where text lines should appear (synced to bar drama)
   const clashStep = 1;
@@ -3696,6 +3789,9 @@ function showBattleSimulation(rep, tier){
 
     stepIndex = Math.min(stepIndex + 1, STEPS);
     applyStep(stepIndex);
+
+    // Dynamic arcade popups for this bar step
+    emitPopupsForStep(stepIndex);
 
     // Trigger log lines on key bar moments
     if(stepIndex === clashStep && nextLineIdx < lines.length){
