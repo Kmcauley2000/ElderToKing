@@ -3901,6 +3901,10 @@ if(sim.win){
 
   maybeBurst("battle");
 
+  // Political capital: victories generate influence for the Court.
+  const infGain = Math.max(1, Math.round(1 + sim.tier * 0.8 + landGain * 0.4));
+  S.influence += infGain;
+
   toast("Victory!");
 
   const yourLossPct = Math.round(100 * losses / Math.max(1, beforeWarriors || 1));
@@ -4022,7 +4026,10 @@ $("#btnBattleSiege").addEventListener("click", ()=> doBattle(3));
     if(S.influence < c){ toast("Need more influence"); return; }
     S.influence -= c;
     const g = courtRenownGain();
-    // Renown is now battle-only; court applause no longer grants renown.
+
+    // Applause turns into soft renown again.
+    S.renown += g;
+    S.lifetimeRenown = (S.lifetimeRenown || 0) + g;
 
     // Court objective
     bumpObjective("holdCourt", 1);
@@ -4030,7 +4037,7 @@ $("#btnBattleSiege").addEventListener("click", ()=> doBattle(3));
     const rect = e.currentTarget.getBoundingClientRect();
     sparkAt(rect.left + rect.width*0.70, rect.top + rect.height*0.52);
 
-    toast("Applauded");
+    toast(`Applauded (+${fmt(g)} renown)`);
     render();
   });
 
@@ -4055,12 +4062,15 @@ $("#btnBattleSiege").addEventListener("click", ()=> doBattle(3));
     S.feastReadyAt = now + feastCooldownMs();
 
     const r = feastRenown();
-    // Renown is now battle-only; feasts no longer grant renown directly.
+
+    // Feasts once again grant a burst of renown.
+    S.renown += r;
+    S.lifetimeRenown = (S.lifetimeRenown || 0) + r;
 
     // Feast objective
     bumpObjective("feast", 1);
 
-    toast("Feast!");
+    toast(`Feast! (+${fmt(r)} renown)`);
     showChest("feast");
     render();
   });
