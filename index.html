@@ -222,6 +222,9 @@ body::after{
   animation: logIn .18s ease-out forwards;
 }
 
+/* Allow multiline battle victory logs */
+.log-entry span:last-child{ white-space: pre-line; }
+
 @keyframes logIn{
   to{
     opacity:1;
@@ -339,7 +342,62 @@ body::after{
       font-size:.78rem;
       color:var(--text);
     }
-    .table td{
+    
+    /* Land / Territories visual tweaks */
+    .territorySummaryRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px 12px;
+      margin:6px 0 4px;
+      font-family:var(--mono);
+      font-size:.76rem;
+    }
+    .territorySummaryTag{
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid rgba(158,104,54,.6);
+      background:rgba(255,255,255,0.6);
+      white-space:nowrap;
+    }
+    .territorySummaryTag b{
+      padding-right:4px;
+    }
+    
+    
+    .territoryFlavor{
+      display:block;
+      margin-top:2px;
+      font-family:var(--sans);
+      font-size:.78rem;
+      color:var(--muted);
+    }
+.territoryCardHeader{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:8px;
+      margin-bottom:2px;
+    }
+
+    .territoryOwnedTag{
+      font-family:var(--mono);
+      font-size:.75rem;
+      padding:2px 8px;
+      border-radius:999px;
+      border:1px solid rgba(158,104,54,.7);
+      background:rgba(255,255,255,0.7);
+    }
+.territoryCard{
+      text-align:left;
+      align-items:flex-start;
+    }
+    .territoryCard .t{
+      font-size:.9rem;
+    }
+    .territoryCard .d{
+      font-size:.8rem;
+    }
+.table td{
       padding:10px 12px;
       border:1px solid rgba(31,58,42,.85);
       background: linear-gradient(180deg, rgba(10,16,13,.62), rgba(7,10,8,.62));
@@ -530,6 +588,37 @@ body::after{
   color:var(--muted);
   line-height:1.0;
 }
+.battleSummaryBlock{
+  border-radius:16px;
+  border:1px solid rgba(158,104,54,.7);
+  background:linear-gradient(180deg,#fbf4e7,#f4e3cf);
+  padding:10px 12px;
+  font-family:var(--mono);
+  font-size:.82rem;
+  line-height:1.45;
+}
+.battleSummaryTitle{
+  font-weight:900;
+  margin-bottom:4px;
+}
+.battleSummaryLine{
+  margin:0 0 2px;
+}
+.battleSummaryDivider{
+  margin:6px 0;
+  border-top:1px solid rgba(158,104,54,.45);
+}
+.battleSummaryMeta{
+  color:var(--muted);
+  font-size:.78rem;
+}
+.battleSummaryNote{
+  margin-top:8px;
+  font-family:var(--sans);
+  font-size:.82rem;
+  color:var(--muted);
+  line-height:1.3;
+}
 .simEvents{
   margin-top:8px;
   padding:10px 12px 8px;
@@ -700,7 +789,7 @@ body::after{
   --text:#111111;
   --muted:#333333;
   --accent:#f4b04a;
-  --ok:#f4b04a;
+  --ok:#14854c;
 }
 
 /* Main cards */
@@ -1116,52 +1205,32 @@ header{
       </div>
     </section>
 
-    <!-- LAND -->
+    <!-- TERRITORIES (replaces old Land allocation UI) -->
     <section class="card view" data-view="land" hidden>
-      <div class="sectionTitle"><span>Land</span><span>Plots <b id="landPlots">0</b></span></div>
+      <div class="sectionTitle">
+        <span>Territories</span>
+        <span>Total <b id="territoryCount">0</b></span>
+      </div>
       <div class="cardBody">
         <p style="margin:0 0 10px;font-size:.78rem;color:var(--muted);">
-          Allocate plots to shape your realm. More land from battles unlocks more plots.
+          Victories add new territories to your domain.
         </p>
 
-        <div class="row2">
-          <button class="smallBtn" id="landAgricultureBtn" type="button">
-            <div class="t">Agriculture</div>
-            <div class="d">
-              Plots: <b id="landAgricultureVal">0</b><br>
-              Boosts farm and villa income.
-            </div>
-          </button>
-          <button class="smallBtn" id="landMilitaryBtn" type="button">
-            <div class="t">Military</div>
-            <div class="d">
-              Plots: <b id="landMilitaryVal">0</b><br>
-              Increases legion strength.
-            </div>
-          </button>
+        <div style="margin:0 0 8px;font-size:.78rem;color:var(--muted);">
+          Output: <b id="landOutputDen">+0 Denarii / tick</b>, <b id="landOutputPop">+0 Cap</b>
         </div>
 
-        <div class="row2" style="margin-top:10px;">
-          <button class="smallBtn" id="landHousingBtn" type="button">
-            <div class="t">Housing</div>
-            <div class="d">
-              Plots: <b id="landHousingVal">0</b><br>
-              Raises village population capacity.
-            </div>
-          </button>
-          <button class="smallBtn" id="landGovernanceBtn" type="button">
-            <div class="t">Governance</div>
-            <div class="d">
-              Plots: <b id="landGovernanceVal">0</b><br>
-              Boosts renown gain.
-            </div>
-          </button>
+        <div id="landSummaryBlock" style="margin:8px 0 6px;font-size:.78rem;color:var(--muted);display:none;">
+          <!-- Filled with grouped land types, e.g. "3 Riverlands (Income), 2 Farmlands (Cap)" -->
         </div>
 
-        <p style="margin:10px 0 0;font-size:.72rem;color:var(--muted);">
-          Available plots: <b id="landPlotsFree">0</b>
-          (plots are based on total land; tap a card to assign a plot if any are free).
-        </p>
+        <div id="territoryEmpty" style="margin:4px 0 0;font-size:.78rem;color:var(--muted);">
+          You control no named territories yet. Win a battle to seize your first lands.
+        </div>
+
+        <div id="territoryList" style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
+          <!-- Filled by render() with cards for each territory -->
+        </div>
       </div>
     </section>
 
@@ -1300,8 +1369,9 @@ header{
     landHousing: 0,
     landGovernance: 0,
 
-
-    // village capacity
+    // NEW: named territories captured from battles
+    controlledRegions: [],
+// village capacity
     population: 0,          // total settlers (includes milites)
     populationUsed: 0,      // milites using population (kept for compatibility)
     settlerProg: 0,         // fractional settlers progress
@@ -1367,6 +1437,25 @@ header{
       if(typeof d[k] === "number"){
         state[k] = Number(state[k]);
         if(!Number.isFinite(state[k])) state[k] = d[k];
+      }
+    }
+
+    // --- Territory migration (old saves) ---
+    if(!Array.isArray(state.controlledRegions)){
+      state.controlledRegions = [];
+    }
+// If this is an old save with land > 0 but no territories yet,
+    // backfill with generic “Claimed Land” entries so counts stay in sync.
+    if(state.controlledRegions.length === 0){
+      const legacyLand = Number(state.land) || 0;
+      const cap = Math.min(legacyLand, 40); // don’t spam thousands of rows
+      for(let i=0;i<cap;i++){
+        state.controlledRegions.push({
+          id: "legacy-"+i,
+          name: "Claimed Land",
+          tier: 1,
+          summary: "Territory claimed before the territory update."
+        });
       }
     }
     return state;
@@ -2157,6 +2246,149 @@ function decreeMult(){
 
   function battleCooldownMs(){ return 35_000; }
 
+  
+// === Land Type Effects (flat base output) ===
+const LAND_TYPE_EFFECTS = {
+  "Riverlands":      { den: 2, pop: 1 },
+  "Farmlands":       { den: 1, pop: 2 },
+  "Forest Edge":     { den: 1, pop: 1 },
+  "Grazing Commons": { den: 1, pop: 1 },
+  "Marsh Flats":     { den: 0, pop: 1 },
+  "Old Quarry":      { den: 2, pop: 0 },
+
+  // higher-tier examples (future-safe)
+  "Hamlet":          { den: 3, pop: 3 },
+  "Village":         { den: 5, pop: 6 },
+  "Market Town":     { den: 8, pop: 8 },
+  "Stronghold":      { den: 6, pop: 4 },
+  "City":            { den: 12, pop: 12 }
+};
+
+function landBaseIncome(){
+  if(!Array.isArray(S.controlledRegions)) return 0;
+  let sum = 0;
+  for(const r of S.controlledRegions){
+    const eff = LAND_TYPE_EFFECTS[r.name];
+    if(eff && eff.den) sum += eff.den;
+  }
+  return sum;
+}
+
+function landBasePopCap(){
+  if(!Array.isArray(S.controlledRegions)) return 0;
+  let sum = 0;
+  for(const r of S.controlledRegions){
+    const eff = LAND_TYPE_EFFECTS[r.name];
+    if(eff && eff.pop) sum += eff.pop;
+  }
+  return sum;
+}
+
+// === Territory System (named lands instead of abstract plots) ===
+  function territoryCount(){
+    return Array.isArray(S.controlledRegions) ? S.controlledRegions.length : 0;
+  }
+
+  const TERRITORY_POOLS = {
+  // Tier 1 — Intra-Village Prestige: *lands*, not settlements (no "tribute from hamlets")
+  1: [
+    { id:"riverlands",   name:"Riverlands",       tier:1, summary:"Fertile banks that feed your village." },
+    { id:"forest_edge",  name:"Forest Edge",     tier:1, summary:"Woodlots and game close to home." },
+    { id:"farmlands",    name:"Farmlands",       tier:1, summary:"Open fields you can work and defend." },
+    { id:"pastures",     name:"Grazing Commons", tier:1, summary:"Common pastureland for herds and carts." },
+    { id:"marsh",        name:"Marsh Flats",     tier:1, summary:"Difficult ground that hides you from raiders." },
+    { id:"quarry",       name:"Old Quarry",      tier:1, summary:"Stone and clay to shore up walls and huts." }
+  ],
+
+  // Tier 2 — Clan Leadership: small holdings begin to appear
+  2: [
+    { id:"orchards",     name:"Orchard Lands",   tier:2, summary:"Fruit and cider for trade and feasts." },
+    { id:"timber",       name:"Timber Stand",    tier:2, summary:"Good lumber for palisades and carts." },
+    { id:"streamford",   name:"Streamford",      tier:2, summary:"A ford you can watch and tax lightly." },
+    { id:"outstead",     name:"Outlying Stead",  tier:2, summary:"A distant homestead sworn to your clan." }
+  ],
+
+  // Tier 3 — Tribal Influence: hamlets and villages become plausible
+  3: [
+    { id:"palisaded",    name:"Palisaded Hamlet", tier:3, summary:"A small hamlet protected by timber walls." },
+    { id:"rivervillage", name:"River Village",    tier:3, summary:"A riverside village that boosts trade and food." },
+    { id:"hillvillage",  name:"Hill Village",     tier:3, summary:"High ground that makes musters safer." },
+    { id:"marketcross",  name:"Market Crossing",  tier:3, summary:"A crossroads where coin begins to flow." }
+  ],
+
+  // Tier 4 — Confederation Level: fortified settlements and sacred sites
+  4: [
+    { id:"walled",       name:"Walled Village",   tier:4, summary:"Stonework and gates harden your reach." },
+    { id:"councilfield", name:"Council Field",    tier:4, summary:"A meeting ground that strengthens legitimacy." },
+    { id:"shrine",       name:"Shrine Settlement",tier:4, summary:"A holy place drawing pilgrims and prestige." },
+    { id:"traderoad",    name:"Trade Road",       tier:4, summary:"A route that lifts steady denarii." }
+  ],
+
+  // Tier 5 — Proto-king / Chiefdom-State: towns, forts, industry
+  5: [
+    { id:"bordertower",  name:"Border Fort",      tier:5, summary:"A strong point that steadies your frontier." },
+    { id:"mines",        name:"Mineworks",        tier:5, summary:"Ore and coin for arms and pay." },
+    { id:"sacredgrove",  name:"Sacred Grove",     tier:5, summary:"Oaths and rites bind clans to you." },
+    { id:"smalltown",    name:"Growing Town",     tier:5, summary:"Markets and craftsmen expand your treasury." }
+  ],
+
+  // Tier 6 — Kingship: capitals and major strongholds
+  6: [
+    { id:"stronghold",   name:"Border Stronghold", tier:6, summary:"A major fortress anchoring your realm." },
+    { id:"capital",      name:"Regional Capital",  tier:6, summary:"A seat of rule where taxes and law flow." },
+    { id:"greatmarket",  name:"Great Market",      tier:6, summary:"Trade surges under your banner." },
+    { id:"subduedseat",  name:"Subdued Seat",      tier:6, summary:"A rival seat brought into your domain." }
+  ]
+};
+
+  function pickTerritoryTemplate(tier){
+    const pool = TERRITORY_POOLS[tier] || TERRITORY_POOLS[1];
+    if(!pool || !pool.length){
+      return { id:"wilds", name:"Unmarked Land", tier:tier||1, summary:"Rough country slowly being tamed." };
+    }
+    return pool[rnd(0, pool.length - 1)];
+  }
+
+  
+function titleTier(){
+    const { idx } = titleInfo();
+    return titleTierFromIdx(idx);
+  }
+
+  function titleTierFromIdx(idx){
+    // Your title ladder (index ranges):
+    // Tier 1: 0–4, Tier 2: 5–9, Tier 3: 10–15, Tier 4: 16–21, Tier 5: 22–27, Tier 6: 28+
+    if(idx <= 4) return 1;
+    if(idx <= 9) return 2;
+    if(idx <= 15) return 3;
+    if(idx <= 21) return 4;
+    if(idx <= 27) return 5;
+    return 6;
+  }
+
+function captureTerritory(battleTier){
+    if(!Array.isArray(S.controlledRegions)) S.controlledRegions = [];
+
+    // IMPORTANT: Your title limits *what kind* of land you can realistically claim.
+    // Elders can only be associated with local features (riverlands, forest edge, farmlands),
+    // even if they win larger fights. Higher titles unlock settlement/holdings names.
+    const tier = clamp(Math.min((battleTier||1), titleTier()), 1, 6);
+
+    const tmpl = pickTerritoryTemplate(tier);
+    const index = S.controlledRegions.length + 1;
+
+    const terr = {
+      id: `${tmpl.id}#${index}`,
+      name: tmpl.name,
+      tier: tmpl.tier,
+      summary: tmpl.summary
+    };
+
+    S.controlledRegions.push(terr);
+    return terr;
+  }
+
+
   function battleSim(slot){
   const b = currentBattleSet()[slot];
   const enemyCount = rnd(b.enemyMin, b.enemyMax);
@@ -2384,12 +2616,15 @@ function favorCostInf(){ return Math.round(18 + S.decrees*4 + Math.floor(S.renow
     return Math.round((0.10*idx + 0.08*idx*idx) * 10) / 10; // to nearest 0.1
   }
 
-  function handleRankUps(){
+  
+function handleRankUps(){
     const { idx } = titleInfo();
     if(typeof S.rankIdx !== "number") S.rankIdx = 0;
-    if(idx <= S.rankIdx) return;
+    const prevIdx = S.rankIdx;
 
-    const gained = idx - S.rankIdx;
+    if(idx <= prevIdx) return;
+
+    const gained = idx - prevIdx;
     // Award a small permanent tap increase each rank-up
     // (this stacks with multipliers like Provinces/Decrees/Crowns and crit/streak).
     const before = S.tribute;
@@ -2398,6 +2633,32 @@ function favorCostInf(){ return Math.round(18 + S.decrees*4 + Math.floor(S.renow
 
     logLine(`Rank up! Your tribute grows. (+${(S.tribute - before).toFixed(1)} tap base)`, "warn");
     toast("Rank up!");
+
+    // NEW: notify when a new land tier unlocks
+    try{
+      const prevTier = titleTierFromIdx(prevIdx);
+      const newTier  = titleTierFromIdx(idx);
+
+      if(!S.maxTerritoryTierNotified || typeof S.maxTerritoryTierNotified !== "number"){
+        S.maxTerritoryTierNotified = prevTier;
+      }
+
+      if(newTier > S.maxTerritoryTierNotified){
+        const unlockedNames = [];
+        for(let t = S.maxTerritoryTierNotified + 1; t <= newTier; t++){
+          const pool = TERRITORY_POOLS[t];
+          if(pool && pool.length){
+            pool.forEach(p => unlockedNames.push(p.name));
+          }
+        }
+        S.maxTerritoryTierNotified = newTier;
+        if(unlockedNames.length && typeof showLandTierUnlockPopup === "function"){
+          showLandTierUnlockPopup(newTier, unlockedNames);
+        }
+      }
+    }catch(e){
+      if(console && console.warn) console.warn("Land tier unlock notify failed", e);
+    }
   }
 
 
@@ -3229,7 +3490,7 @@ function renderObjectives(){
       ["Milites", S.warriors],
       ["Legion strength", S.legion],
       ["Raids won", S.battlesWon],
-      ["Land", S.land],
+      ["Territories", territoryCount()],
       ["Influence", S.influence],
       ["Population", S.population],
       ["Milites (pop used)", S.populationUsed],
@@ -3427,22 +3688,85 @@ function renderObjectives(){
     const crownsGain = ascendCrownGain();
     $("#ascendDesc").textContent = crownsGain>0 ? `Reset for +${crownsGain} crowns` : `Need 25,000 renown`;
 
-    // Land
-    const plotsTotal = totalLandPlots();
-    const plotsFree = freeLandPlots();
-    const la = S.landAgriculture||0;
-    const lm = S.landMilitary||0;
-    const lh = S.landHousing||0;
-    const lg = S.landGovernance||0;
 
-    if($("#landPlots")) $("#landPlots").textContent = fmt(plotsTotal);
-    if($("#landPlotsFree")) $("#landPlotsFree").textContent = fmt(plotsFree);
-    if($("#landAgricultureVal")) $("#landAgricultureVal").textContent = fmt(la);
-    if($("#landMilitaryVal")) $("#landMilitaryVal").textContent = fmt(lm);
-    if($("#landHousingVal")) $("#landHousingVal").textContent = fmt(lh);
-    if($("#landGovernanceVal")) $("#landGovernanceVal").textContent = fmt(lg);
+    // Territories (named lands)
+    const terrCount = territoryCount();
+    if($("#territoryCount")) $("#territoryCount").textContent = fmt(terrCount);
+    if($("#landTotal")) $("#landTotal").textContent = fmt(S.land||0);
 
+    // Land output summary
+    const landDen = landBaseIncome();
+    const landPop = landBasePopCap();
+    if($("#landOutputDen")) $("#landOutputDen").textContent = `+${fmt(landDen)} Denarii / tick`;
+    if($("#landOutputPop")) $("#landOutputPop").textContent = `+${fmt(landPop)} Cap`;
 
+    // HUD Land counters show numeric land
+    if($("#landHud"))    $("#landHud").textContent = fmt(S.land||0);
+    if($("#landLegion")) $("#landLegion").textContent = fmt(S.land||0);
+
+    
+    const listEl  = $("#territoryList");
+    const emptyEl = $("#territoryEmpty");
+    const summaryEl = $("#landSummaryBlock");
+
+    const arr = Array.isArray(S.controlledRegions) ? S.controlledRegions : [];
+
+    // Compact land summary line, tied to the cards below
+    if(summaryEl){
+      if(!arr.length){
+        summaryEl.style.display = "none";
+        summaryEl.textContent = "";
+      }else{
+        summaryEl.style.display = "block";
+        summaryEl.textContent = `Controlled Land — ${fmt(arr.length)} Territories`;
+      }
+    }
+
+    if(listEl){
+      listEl.innerHTML = "";
+
+      if(emptyEl){
+        emptyEl.style.display = arr.length ? "none" : "block";
+      }
+
+      // Group territories by type so each card shows Owned: X
+      const grouped = {};
+      for(const terr of arr){
+        if(!grouped[terr.name]){
+          grouped[terr.name] = {
+            count: 0,
+            summary: terr.summary,
+            den: 0,
+            cap: 0
+          };
+        }
+        const g = grouped[terr.name];
+        g.count += 1;
+        const eff = LAND_TYPE_EFFECTS[terr.name] || {};
+        if(eff.den) g.den += eff.den;
+        if(eff.pop) g.cap += eff.pop;
+      }
+
+      // Render one card per land type
+      Object.entries(grouped).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([name,info])=>{
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "smallBtn territoryCard";
+
+        btn.innerHTML = `
+          <div class="territoryCardHeader">
+            <div class="t">${name}</div>
+            <div class="territoryOwnedTag">Owned: ${fmt(info.count)}</div>
+          </div>
+          <div class="d" style="text-align:left;">
+            ${info.den ? "&#x1F4B0; +" + fmt(info.den) + " Denarii (Income)<br>" : ""}
+            ${info.cap ? "&#x1F465; +" + fmt(info.cap) + " Cap (Population)<br>" : ""}
+            <span class="territoryFlavor">${info.summary || "Claimed territory."}</span>
+          </div>
+        `;
+        listEl.appendChild(btn);
+      });
+    }
 // Stats
     const body = $("#statsTable");
     if(body){
@@ -3629,26 +3953,61 @@ render();
   
     
 // --- Battle Report overlay (after every battle) ---
+
 function showBattleReport(rep){
   const overlay = document.getElementById("battleOverlay");
   const body = document.getElementById("battleBody");
   const title = document.getElementById("battleTitle");
   if(!overlay || !body || !title) return;
 
-  title.textContent = rep.win ? "Victory Report" : "Defeat Report";
+  const denChange = rep.denDelta || 0;
+  const landChange = rep.landDelta || 0;
+  const renChange = rep.renDelta || 0;
+  const slotsChange = rep.landSlots || 0; // kept for mechanics, not shown in UI
+
+  title.textContent = rep.win ? "Battle Victory!" : "Battle Defeat";
+
+  const lines = [];
+  lines.push(rep.win ? "Battle Victory!" : "Battle Defeat.");
+
+  if(rep.win){
+    const names = Array.isArray(rep.territoryNames) ? rep.territoryNames : [];
+    if(names.length > 0){
+      // Group captured territory names into a "Captured:" section
+      lines.push("Captured:");
+      const counts = {};
+      for(const n of names){
+        counts[n] = (counts[n]||0) + 1;
+      }
+      Object.entries(counts).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([name,count])=>{
+        lines.push(`• ${name} ×${fmt(count)}`);
+      });
+    }else if(landChange > 0){
+      // Fallback if we somehow gained land but have no names
+      lines.push(`Captured: +${fmt(landChange)} land`);
+    }else{
+      lines.push("Captured: No new land");
+    }
+  }
+
+  if(renChange !== 0){
+    const r = renChange;
+    lines.push(`${r > 0 ? "+" : "−"}${fmt(Math.abs(r))} Renown`);
+  }
+
+  {
+    const d = denChange;
+    const denLabel = `${d >= 0 ? "+" : "−"}${fmt(Math.abs(d))} Denarii`;
+    lines.push(denLabel);
+  }
+
+  lines.push(`Milites lost: ${fmt(rep.losses || 0)}`);
 
   body.innerHTML = `
-    <table class="table" style="margin:0;">
-      <tbody>
-        <tr><td>Engagement</td><td>${rep.label}</td></tr>
-        <tr><td>Enemies</td><td>${fmt(rep.enemies)}</td></tr>
-        <tr><td>Your milites</td><td>${fmt(rep.beforeWarriors)} → ${fmt(rep.afterWarriors)}</td></tr>
-        <tr><td>Milites lost</td><td>${fmt(rep.losses)}</td></tr>
-        <tr><td>Denarii change</td><td>${rep.denDelta>=0?"+":""}${fmt(Math.abs(rep.denDelta))}</td></tr>
-        <tr><td>Land change</td><td>${rep.landDelta>=0?"+":""}${fmt(Math.abs(rep.landDelta))}</td></tr>
-      </tbody>
-    </table>
-    <div style="margin-top:10px;font-family:var(--sans);color:var(--muted);font-size:.82rem;line-height:1.25;">
+    <div class="battleSummaryBlock">
+      ${lines.map(l => `<div class="battleSummaryLine">${l}</div>`).join("")}
+    </div>
+    <div class="battleSummaryNote">
       ${rep.note || ""}
     </div>
   `;
@@ -4130,12 +4489,12 @@ function showBattleSimulation(rep, tier){
 
   // Modest early reward so the opener feels impactful
   const denGain = 16;
-  const landGain = 1;
+  const landGain = 0; // Tutorial battle: no land granted
   const renGain = 4;
 
   S.gold += denGain;
   S.lifetimeGold += denGain;
-  S.land = (S.land || 0) + landGain;
+  // Do NOT grant land for the intro battle – rewards are denarii + renown only.
   S.renown = (S.renown || 0) + renGain;
   S.lifetimeRenown = (S.lifetimeRenown || 0) + renGain;
 
@@ -4150,6 +4509,9 @@ function showBattleSimulation(rep, tier){
     losses,
     denDelta: denGain,
     landDelta: landGain,
+    renDelta: renGain,
+    landSlots: 0,
+    territoryNames: [],
     note: "You hold the field when it should have broken.",
     isIntro: true
   };
@@ -4160,7 +4522,15 @@ function showBattleSimulation(rep, tier){
   S.population = prevPopulation;
   S.populationUsed = S.warriors;
 
-  logLine(`First defence of the village: +${fmt(denGain)} denarii, +${fmt(landGain)} land, +${fmt(renGain)} renown.`, "good");
+  const introLines = [
+    "Battle Victory!",
+    "Captured: (tutorial – no new land)",
+    `+${fmt(renGain)} Renown`,
+    `+${fmt(denGain)} Denarii`,
+    `Milites lost: ${fmt(losses)}`
+  ];
+
+  logLine(introLines.join("\n"), "good");
   logLine("The warband that saved your village marches on, leaving you to build your own legion.", "warn");
   toast("The village stands. Barely.");
   showBattleSimulation(rep, 1);
@@ -4185,6 +4555,7 @@ function doBattle(slot){
   const beforeWarriors = S.warriors||0;
   const startGold = S.gold;
   const startLand = S.land||0;
+  const startRenown = S.renown||0;
 
   // Apply casualties
   let losses = Math.min(beforeWarriors, sim.losses);
@@ -4228,6 +4599,8 @@ function doBattle(slot){
   // Loot / penalties
 let loot = 0;
 let landGain = 0;
+let capturedNames = [];
+let landSlotsGain = 0;
 
 if(sim.win){
   S.battlesWon = (S.battlesWon||0) + 1;
@@ -4262,6 +4635,22 @@ if(sim.win){
 
   S.land = (S.land||0) + landGain;
 
+  // NEW: capture named territories (1 per land gained)
+  const newTerritories = [];
+  for(let i=0;i<landGain;i++){
+    const t = captureTerritory(tier);
+    if(t) newTerritories.push(t);
+  }
+  // Track captured names for the victory report + logs
+  capturedNames = newTerritories.map(t=>t.name);
+
+  // Compute land-effect "slots" from land type system (pop contribution)
+  landSlotsGain = 0;
+  for(const terr of newTerritories){
+    const eff = LAND_TYPE_EFFECTS && LAND_TYPE_EFFECTS[terr.name];
+    if(eff && eff.pop) landSlotsGain += eff.pop;
+  }
+
   // Renown is now earned primarily from victories.
   let renGain = Math.max(1, Math.round(loot/130) + Math.round(landGain*2) + tier*3);
   renGain = Math.round(renGain * landAllocRenownMult());
@@ -4285,10 +4674,37 @@ if(sim.win){
   else if(yourLossPct <= 18) winTag = "Hard win";
   else                       winTag = "Pyrrhic win";
 
-  logLine(
-    `🏆 ${b.label} — ${winTag}. +${fmt(loot)}d • +${fmt(landGain)} land • +${fmt(renGain)} ren • -${fmt(losses)} milites`,
-    "good"
-  );
+  
+  // Build a multi-line victory log using the land-type system:
+  // Battle Victory!
+  // Captured:
+  // • Farmlands ×2
+  // • Marsh Flats ×1
+  // +80 Renown
+  // +120 Denarii
+  // Milites lost: 4
+
+  const lines = [];
+  lines.push("Battle Victory!");
+
+  if(landGain > 0 && newTerritories.length){
+    lines.push("Captured:");
+    const counts = {};
+    for(const terr of newTerritories){
+      counts[terr.name] = (counts[terr.name]||0) + 1;
+    }
+    Object.entries(counts).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([name,count])=>{
+      lines.push(`• ${name} ×${fmt(count)}`);
+    });
+  }else{
+    lines.push("Captured: No new land");
+  }
+
+  lines.push(`+${fmt(renGain)} Renown`);
+  lines.push(`+${fmt(loot)} Denarii`);
+  lines.push(`Milites lost: ${fmt(losses)}`);
+
+  logLine(lines.join("\n"), "good");
 }else{
 
   const tier = sim.tier;
@@ -4367,6 +4783,9 @@ const rep = {
     losses,
     denDelta: Math.round(S.gold - startGold),
     landDelta: Math.round((S.land||0) - startLand),
+    renDelta: Math.round((S.renown||0) - startRenown),
+    landSlots: sim.win ? landSlotsGain : 0,
+    territoryNames: sim.win ? (capturedNames || []) : [],
     note: sim.win ? "You held the field and counted the fallen." : "You retreat to lick your wounds."
   };
 
@@ -4631,9 +5050,49 @@ $("#btnExport").addEventListener("click", async ()=>{
   render();
   maybeShowIntro();
 })();
+
+  // Land tier unlock popup helpers
+  function showLandTierUnlockPopup(tier, names){
+    const overlay = document.getElementById('landTierOverlay');
+    const listEl  = document.getElementById('landTierList');
+    const textEl  = document.getElementById('landTierText');
+    const btn     = document.getElementById('landTierOkBtn');
+    if(!overlay || !listEl || !textEl || !btn) return;
+
+    listEl.innerHTML = '';
+    names.forEach(n => {
+      const li = document.createElement('li');
+      li.textContent = n;
+      listEl.appendChild(li);
+    });
+
+    textEl.textContent = `Your new rank lets you claim:`;
+    overlay.style.display = 'flex';
+
+    btn.onclick = function(){
+      overlay.style.display = 'none';
+    };
+  }
+
 </script>
 
-  <!-- Loot Chest Overlay -->
+  
+  <!-- Land Tier Unlock Overlay -->
+  <div id="landTierOverlay" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:1900;">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.55);"></div>
+    <div class="card" style="position:relative;max-width:420px;width:92%;max-height:80vh;overflow:auto;z-index:10;">
+      <div class="sectionTitle"><span>New Lands Unlocked</span><span></span></div>
+      <div class="cardBody">
+        <p id="landTierText" style="font-size:.85rem;margin:0 0 8px;">
+          Your growing renown lets you claim new kinds of territory.
+        </p>
+        <ul id="landTierList" style="margin:4px 0 10px;padding-left:18px;font-size:.82rem;"></ul>
+        <button class="primaryBtn" id="landTierOkBtn" type="button">Continue</button>
+      </div>
+    </div>
+  </div>
+
+<!-- Loot Chest Overlay -->
   <div id="chestOverlay" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:2000;">
     <div id="chestBackdrop" style="position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);"></div>
     <div id="chestCard" class="card" style="position:relative;width:min(520px, calc(100vw - 26px));border-radius:26px;overflow:hidden;">
