@@ -709,7 +709,84 @@ body::after{
 .simEvents .good{color:#32c96b;font-weight:900;}
 .simEvents .bad{color:#ff4760;font-weight:900;}
 .simEvents .warn{color:#6E7379;font-weight:900;}
-    /* Intro overlay */
+    
+    /* Offline welcome-back overlay */
+    .offlineOverlay{
+      position:fixed;
+      inset:0;
+      z-index:1900;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      pointer-events:auto;
+      background:radial-gradient(800px 600px at 50% 0%, rgba(244,208,111,.20), transparent 60%),
+                 linear-gradient(180deg, rgba(7,10,8,.96), rgba(7,10,8,.98));
+    }
+    .offlineOverlay[hidden]{
+      display:none;
+    }
+    .offlineOverlay.visible{
+      display:flex;
+    }
+    .offlineCard{
+      max-width:640px;
+      width:100%;
+      border-radius:24px;
+      background:rgba(3,7,5,0.96);
+      border:1px solid rgba(244,208,111,0.28);
+      box-shadow:var(--shadow);
+      padding:18px 18px 16px;
+      color:var(--text);
+      font-family:var(--sans);
+    }
+    .offlineTitle{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:10px;
+    }
+    .offlineTitleText{
+      font-size:1.05rem;
+      letter-spacing:.03em;
+    }
+    .offlineSub{
+      font-family:var(--mono);
+      font-size:.78rem;
+      color:var(--muted);
+      margin-bottom:8px;
+    }
+    .offlineBody{
+      font-size:.82rem;
+      line-height:1.4;
+      color:var(--muted);
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      margin-bottom:14px;
+    }
+    .offlineBody p{
+      margin:0;
+    }
+    .offlineOkRow{
+      display:flex;
+      justify-content:flex-end;
+    }
+    .offlineOkBtn{
+      min-width:120px;
+      padding:7px 14px;
+      border-radius:999px;
+      border:none;
+      cursor:pointer;
+      background:linear-gradient(180deg, rgba(244,208,111,.95), rgba(209,146,72,1));
+      color:#301a04;
+      font-family:var(--mono);
+      font-size:.82rem;
+      letter-spacing:.05em;
+      text-transform:uppercase;
+      box-shadow:0 8px 20px rgba(0,0,0,0.55);
+    }
+/* Intro overlay */
     .introOverlay{
       position:fixed;
       inset:0;
@@ -1163,7 +1240,26 @@ header{
       </section>
 
     </div>
+  
+  <div id="offlineOverlay" class="offlineOverlay" hidden>
+    <section class="offlineCard" role="dialog" aria-modal="true" aria-labelledby="offlineTitle">
+      <div class="offlineTitle">
+        <div>
+          <div id="offlineTitle" class="offlineTitleText">Welcome back</div>
+          <div class="offlineSub">Your village kept working while you were away.</div>
+        </div>
+        <div style="font-size:1.6rem;line-height:1;">⏳</div>
+      </div>
+      <div id="offlineBody" class="offlineBody">
+        <!-- Filled by JS -->
+      </div>
+      <div class="offlineOkRow">
+        <button id="offlineOkBtn" class="offlineOkBtn">OK</button>
+      </div>
+    </section>
   </div>
+
+</div>
 
   <header>
     <div class="wrap">
@@ -1527,6 +1623,10 @@ header{
     lifetimeRenown: 0,
     rankIdx: 0,
 
+    // offline progression tracking
+    lastSeenAt: 0,
+    lifetimeOfflineSec: 0,
+
     tapsSinceCashout: 0,
     cashoutBanked: 0,
 
@@ -1591,7 +1691,22 @@ header{
   }
 
   let S = normalizeState(load()) || defaultState();
+
+  // Offline tracking: if lastSeenAt is missing or zero, seed it from created time.
+  if(!S.lastSeenAt || !Number.isFinite(S.lastSeenAt)){
+    S.lastSeenAt = S.created || Date.now();
+  }
+
+  // Apply any offline progress since the last session.
+  try{
+    applyOfflineProgress();
+  }catch(e){
+    // If anything goes wrong with offline calc, just skip it rather than breaking the game.
+    console && console.warn && console.warn("Offline progress failed", e);
+  }
+
   // --- Population migration / compatibility ---
+
   // population = total settlers (civilians + milites). populationUsed tracks milites.
   if(typeof S.population !== "number") S.population = Math.max(0, S.populationUsed||0, S.warriors||0);
   if(typeof S.settlerProg !== "number") S.settlerProg = 0;
@@ -1657,6 +1772,8 @@ header{
   }
 
   function save(silent=false){
+    // Record last time we saw the player for offline progression.
+    S.lastSeenAt = Date.now();
     const payload = JSON.stringify(S);
     try{ localStorage.setItem(STORAGE_KEY, payload); }catch(e){}
     // IndexedDB write (best-effort, async)
@@ -4202,7 +4319,144 @@ function renderObjectives(){
     $("#progressFill").style.width = (t*100).toFixed(1) + "%";
   }
 
-  function statsRows(){
+  
+  // ---- Offline Progress + Welcome Back Screen ----
+  function applyOfflineProgress(){
+    const now = Date.now();
+    const last = Number(S.lastSeenAt || 0) || S.created || now;
+    let elapsedSec = Math.max(0, (now - last) / 1000);
+
+    // Skip tiny gaps to avoid spamming the player with popups.
+    if(elapsedSec < 60){
+      S.lastSeenAt = now;
+      return;
+    }
+
+    // Cap offline time for balance.
+    const cappedSec = Math.min(elapsedSec, 24 * 60 * 60);
+
+    const grossInc = Math.max(0, incomePerSec());
+    const upkeep   = Math.max(0, warriorUpkeepPerSec());
+    const netRate  = Math.max(0, grossInc - upkeep);
+
+    // Slight dampening so offline is good but not strictly better than active.
+    const rateMult = 0.85;
+    const goldGain = Math.floor(netRate * cappedSec * rateMult);
+
+    // Offline settlers based on migration rate, clamped to pop cap.
+    const cap = populationCap();
+    const beforePop = S.population || 0;
+    const migRate = (typeof migrationPerSec === "function") ? migrationPerSec() : 0;
+    let settlersGain = 0;
+    if(beforePop < cap && migRate > 0){
+      const potential = Math.floor(migRate * cappedSec);
+      settlersGain = Math.min(potential, Math.max(0, cap - beforePop));
+    }
+
+    // Apply gains
+    if(goldGain > 0){
+      S.gold += goldGain;
+      S.lifetimeGold += goldGain;
+    }
+    if(settlersGain > 0){
+      S.population = beforePop + settlersGain;
+    }
+
+    // Lifetime offline tracking
+    if(!S.lifetimeOfflineSec || !Number.isFinite(S.lifetimeOfflineSec)){
+      S.lifetimeOfflineSec = 0;
+    }
+    S.lifetimeOfflineSec += cappedSec;
+
+    S.lastSeenAt = now;
+
+    // Build a compact summary object for the welcome-back overlay.
+    const farmRate  = (S.farmCount || 0) * 0.75;
+    const villaRate = (S.villaCount || 0) * 3.0;
+    const baseRate  = farmRate + villaRate;
+    const landBoost = Math.max(0, grossInc - baseRate);
+
+    const summary = {
+      seconds: cappedSec,
+      goldGain,
+      settlersGain,
+      grossRate: grossInc,
+      netRate,
+      farmRate,
+      villaRate,
+      landBoost,
+      land: S.land || 0,
+      territories: (typeof territoryCount === "function") ? territoryCount() : (S.land || 0)
+    };
+
+    showOfflineOverlay(summary);
+  }
+
+  function formatDuration(seconds){
+    const s = Math.floor(seconds);
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const rem = s % 60;
+    if(h > 0){
+      return `${h}h ${m}m`;
+    }
+    if(m > 0){
+      return `${m}m ${rem}s`;
+    }
+    return `${rem}s`;
+  }
+
+  function showOfflineOverlay(summary){
+    const overlay = document.getElementById("offlineOverlay");
+    const body = document.getElementById("offlineBody");
+    if(!overlay || !body) return;
+
+    const duration = formatDuration(summary.seconds || 0);
+    const goldLine = summary.goldGain > 0
+      ? `Your lands produced ${fmt(summary.goldGain)} denarii while you were away.`
+      : `Your lands held steady while you were away.`;
+
+    const settlersLine = summary.settlersGain > 0
+      ? `👥 ${summary.settlersGain} settler${summary.settlersGain===1?"":"s"} joined your village.`
+      : "No new settlers arrived (village at capacity).";
+
+    const farmVillaBits = [];
+    if(summary.farmRate > 0)  farmVillaBits.push(`Farms ~${summary.farmRate.toFixed(2)}/s`);
+    if(summary.villaRate > 0) farmVillaBits.push(`Villas ~${summary.villaRate.toFixed(2)}/s`);
+    if(summary.landBoost > 0) farmVillaBits.push(`Territories boosted income`);
+
+    const economyLine = farmVillaBits.length
+      ? farmVillaBits.join(" • ")
+      : "Build farms, villas, and claim land to earn while away.";
+
+    const tilesLine = `You now hold ${fmt(summary.territories || 0)} territories (${fmt(summary.land || 0)} land).`;
+
+    body.innerHTML = "";
+
+    const pIntro = document.createElement("p");
+    pIntro.textContent = `You were away for about ${duration}.`;
+    body.appendChild(pIntro);
+
+    const pGold = document.createElement("p");
+    pGold.textContent = goldLine;
+    body.appendChild(pGold);
+
+    const pSet = document.createElement("p");
+    pSet.textContent = settlersLine;
+    body.appendChild(pSet);
+
+    const pEco = document.createElement("p");
+    pEco.textContent = economyLine;
+    body.appendChild(pEco);
+
+    const pTiles = document.createElement("p");
+    pTiles.textContent = tilesLine;
+    body.appendChild(pTiles);
+
+    overlay.removeAttribute("hidden");
+    overlay.classList.add("visible");
+  }
+function statsRows(){
     const rows = [
       ["Gold", S.gold],
       ["Renown", S.renown],
@@ -5941,6 +6195,19 @@ $("#btnExport").addEventListener("click", async ()=>{
     // Nice little flavour toast
     toast("A new story begins.");
   });
+
+
+  const offlineOk = document.getElementById("offlineOkBtn");
+  if(offlineOk && !offlineOk._wired){
+    offlineOk._wired = true;
+    offlineOk.addEventListener("click", ()=>{
+      const overlay = document.getElementById("offlineOverlay");
+      if(overlay){
+        overlay.classList.remove("visible");
+        overlay.setAttribute("hidden","hidden");
+      }
+    });
+  }
 
   // Tabs click
   $$(".tab").forEach(btn=>{
