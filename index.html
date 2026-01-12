@@ -2470,43 +2470,39 @@ const BATTLE_ARCHETYPES = {
     "Domitia","Flaminia","Claudiana","Tarquitia","Valeria","Aemilia","Cornelia","Fabia"
   ];
 
-  const HOUSE_TERRITORIES_T1 = [
-    "the Lower Pastures","the Ridge Fields","the Fen-March","the Alder Holt",
-    "the Narrow Fields","the Red Marsh","the Three Springs","the Far Paddocks"
+  // Faction "classes" stay extremely short and minimal for card readability.
+  const HOUSE_CLASSES_TRIBAL = [
+    "Herders","Reivers","Rustlers","Spearmen","Youth"
   ];
-  const HOUSE_TERRITORIES_T2 = [
-    "the Upper Valley","the Hillforts","the Riverlands","the Ford Country",
-    "the Marcher Slopes","the Council Fields","the Granary Belt"
+  const HOUSE_CLASSES_MARCHER = [
+    "Levies","Banners","Marchers","Retinue","Shieldmen"
   ];
-  const HOUSE_TERRITORIES_T3 = [
-    "the Provincial Road","the Granary District","the Market Quarter",
-    "the Border March","the Outer Cantons","the Royal Approach"
+  const HOUSE_CLASSES_ROMAN = [
+    "Decurions","Procurators","Auxilia","Cohorts","Tribunes"
   ];
 
   function makeHouseIdentity(tier, kind){
-    let roots, placePool, style;
+    let roots, classes;
     if(tier <= 2){
+      // Early Italic tribal: short clan-style roots and pastoral classes
       roots = HOUSE_ROOTS_TRIBAL;
-      placePool = HOUSE_TERRITORIES_T1;
-      style = "House";
+      classes = HOUSE_CLASSES_TRIBAL;
     }else if(tier <= 4){
+      // Marcher / levy era: same roots, more organised military classes
       roots = HOUSE_ROOTS_TRIBAL;
-      placePool = HOUSE_TERRITORIES_T2;
-      // Field & siege actions feel like bannered forces by mid-game
-      style = (kind === "field" || kind === "siege") ? "Banner of" : "House";
+      classes = HOUSE_CLASSES_MARCHER;
     }else{
-      // Late game: mixture of Italic houses and Romanised lineages
+      // Late-game: mixture of Italic and Romanised houses with civic/military classes
       roots = Math.random() < 0.5 ? HOUSE_ROOTS_TRIBAL : HOUSE_ROOTS_ROMAN;
-      placePool = HOUSE_TERRITORIES_T3;
-      style = Math.random() < 0.5 ? "House" : "Domus";
+      classes = HOUSE_CLASSES_ROMAN;
     }
 
     const root = sample(roots);
-    const place = sample(placePool);
-    const houseLabel = `${style} ${root}`;
-    const leader = `${houseLabel} of ${place}`;
-    return { houseLabel, leader };
+    const cls  = sample(classes);
+    const label = `${root} — ${cls}`;
+    return { root, cls, label };
   }
+
 
 function leaderTitleFor(tier, kind){
     if(tier <= 1){
@@ -2531,7 +2527,7 @@ function leaderTitleFor(tier, kind){
     const kind = arch && arch.kind || "";
     // Generate a house / faction identity that persists per tier+slot until defeated.
     const house = makeHouseIdentity(tier, kind);
-    const leader = house.leader;
+    const leader = house.label;
     const min = baseDef.enemyMin;
     const max = baseDef.enemyMax;
     const approx = (min === max) ? `${min}` : `${min}–${max}`;
@@ -4031,18 +4027,10 @@ function renderObjectives(){
           ? `${range} enemies • ${kindTag}`
           : `${range} enemies`;
 
-        // Line 2: named enemy + short flavour
+        // Line 2: minimal faction identity (root — class)
         const leader = ctx.leader || "";
-        const flavour = ctx.doing || "";
 
-        let line2 = "";
-        if (leader && flavour) {
-          line2 = `${leader} — ${flavour}`;
-        } else {
-          line2 = leader || flavour;
-        }
-
-        dEl.textContent = line2 ? `${line1}\n${line2}` : line1;
+        dEl.textContent = leader ? `${line1}\n${leader}` : line1;
       }
     }
     const cd = 0; // battle cooldown disabled
