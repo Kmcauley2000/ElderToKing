@@ -19,6 +19,13 @@
 
   <title>ElderToKing</title>
   <style>
+
+@font-face{
+      font-family:'Alagard';
+      src:url('font/alagard.ttf') format('truetype');
+      font-weight:normal;
+      font-style:normal;
+    }
 :root{
       --bg:#0b0f0c;
       --panel:#101a14;
@@ -32,8 +39,8 @@
       --line:#1f3a2a;
       --shadow: 0 14px 36px rgba(0,0,0,.38);
       --radius:22px;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
-      --sans: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      --mono:'Alagard', monospace;
+      --sans:'Alagard', sans-serif;
     }
     *{box-sizing:border-box;}
     html{font-size:20px;-webkit-text-size-adjust:100%;text-size-adjust:100%;}
@@ -1195,6 +1202,7 @@ header{
             <div class="t">Siege town</div>
             <div class="d" id="battleSiegeDesc">1,000–5,000 enemies • deadly</div>
           </button>
+          <div class="hint">Renown gained from winning battles.</div>
         </div>
 
         <div class="meta">
@@ -1420,6 +1428,7 @@ header{
     // renown soft-tech progression
     renownPerkLevel: 0,
     lastTap: 0,
+    streak: 1,
     lifetimeGold: 0,
     lifetimeRenown: 0,
     rankIdx: 0,
@@ -2854,7 +2863,15 @@ function captureTerritory(battleTier){
   lossFrac = clamp(lossFrac, 0, win ? 0.65 : 0.90);
 
   let losses = Math.round(yourTroops * lossFrac);
-  if(yourTroops > 0 && losses <= 0) losses = 1;
+
+  // Ensure meaningful attrition, especially for large forces.
+  if (yourTroops > 0) {
+    const minFrac   = win ? 0.03 : 0.06; // ~3% losses on wins, ~6% on defeats for big armies
+    const minLosses = Math.max(1, Math.round(yourTroops * minFrac));
+    if (yourTroops >= 15 && losses < minLosses) losses = minLosses;
+    if (losses <= 0) losses = 1;
+  }
+
   losses = Math.min(yourTroops, Math.max(0, losses));
 
   // Approximate win chance for UI based on starting power + morale
@@ -2887,8 +2904,8 @@ function captureTerritory(battleTier){
   function ascendCrownGain(){
     // you need renown to ascend; crowns scale gently to keep long-term
     const r = S.renown;
-    if(r < 25000) return 0;
-    return Math.floor(Math.sqrt(r/650)); // e.g. 5000=>2, 20k=>5, 80k=>11
+    if(r < 8000) return 0;
+    return Math.max(1, Math.floor(Math.sqrt(r/900)));
   }
 
   
@@ -3996,7 +4013,7 @@ function renderObjectives(){
     $("#blessDesc").textContent = blessCd>0 ? `CD ${blessCd}s • doubles crits` : `Ready • doubles crits`;
     $("#btnBless").disabled = blessCd>0;
     const crownsGain = ascendCrownGain();
-    $("#ascendDesc").textContent = crownsGain>0 ? `Reset for +${crownsGain} crowns` : `Need 25,000 renown`;
+    $("#ascendDesc").textContent = crownsGain>0 ? `Reset for +${crownsGain} crowns` : `Need 8,000 renown`;
 
 
     // Territories (named lands)
@@ -5040,8 +5057,8 @@ function doBattle(slot, opts){
       S.lifetimeGold += loot;
       bumpEarnedDenarii(loot);
 
-      // Moderate renown for holding the line
-      let renGain = Math.max(1, Math.round(enemies / 18) + tier * 2);
+      // Moderate renown for holding the line (slightly higher now)
+      let renGain = Math.max(1, Math.round(enemies / 12) + tier * 3);
       renGain = Math.round(renGain * landAllocRenownMult());
       S.renown += renGain;
       S.lifetimeRenown += renGain;
@@ -5131,14 +5148,15 @@ function doBattle(slot, opts){
         capturedNames = [];
       }
 
-      // Renown from big wins
-      let renGain = Math.max(1, Math.round(loot/130) + Math.round(landGain*2) + tier*3);
+      // Renown from big wins (buffed so progression feels faster)
+      let renGain = Math.max(1, Math.round(loot/90) + Math.round(landGain*3) + tier*4);
       renGain = Math.round(renGain * landAllocRenownMult());
       S.renown += renGain;
       S.lifetimeRenown += renGain;
 
       bumpObjective("winBattle", 1);
-      bumpObjective("gainLand", landGain);
+      const objLandGain = landGain > 0 ? landGain : (sim.win ? 1 : 0);
+      bumpObjective("gainLand", objLandGain);
 
       maybeBurst("battle");
 
@@ -5294,7 +5312,7 @@ $("#btnBattleSiege").addEventListener("click", ()=> doBattle(3));
 
   $("#btnAscend").addEventListener("click", ()=>{
     const gain = ascendCrownGain();
-    if(gain <= 0){ toast("Need 25,000 renown"); return; }
+    if(gain <= 0){ toast("Need 8,000 renown"); return; }
     if(!confirm(`Ascend for +${gain} crowns? (Resets most progress)`)) return;
 
     const keepCrowns = (S.crowns || 0) + gain;
