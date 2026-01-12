@@ -1314,8 +1314,8 @@ header{
   const unlock = {
     legion: 0,
     temple: 0,
-    court: 0,
-    stats: 0
+    
+    
   };
 
   // Define the title progression and the renown required to reach each rank.
@@ -1388,7 +1388,6 @@ header{
     // legion
     warriors: 0,    legion: 0,  // derived strength (kept for compatibility)
     battlesWon: 0,
-    battleReadyAt: 0,
 
     // upkeep tracking
     unpaidUpkeepSeconds: 0,
@@ -1396,7 +1395,7 @@ header{
 
     // land & politics
     land: 0,
-    influence: 0,
+    
     landAgriculture: 0,
     landMilitary: 0,
     landHousing: 0,
@@ -1415,22 +1414,17 @@ header{
     buffUntil: 0,
     blessReadyAt: 0,
 
-    // court
+    // decrees from renown
     decrees: 0,
-    feastReadyAt: 0,
 
     // renown soft-tech progression
     renownPerkLevel: 0,
-
-    // streak + lifetime
-    streak: 1,
     lastTap: 0,
     lifetimeGold: 0,
     lifetimeRenown: 0,
     rankIdx: 0,
 
     tapsSinceCashout: 0,
-    cashoutReadyAt: 0,
     cashoutBanked: 0,
 
     // objectives
@@ -1440,7 +1434,6 @@ header{
     // burst events
     feverUntil: 0,
     objDoubleUntil: 0,
-    lastGoldStormAt: 0,
 
     // temp buffs
     prosperUntil: 0,
@@ -2504,25 +2497,6 @@ const BATTLE_ARCHETYPES = {
   }
 
 
-function leaderTitleFor(tier, kind){
-    if(tier <= 1){
-      return kind === "skirmish" ? "Ridge Elder" : "Village Headman";
-    }
-    if(tier === 2){
-      return kind === "siege" ? "March-Lord" : "March-Lord of the Fen";
-    }
-    if(tier === 3){
-      return kind === "feud" ? "Speaker of the League" : "League Captain";
-    }
-    if(tier === 4){
-      return kind === "feud" ? "Prefect" : "Confederation Captain";
-    }
-    if(tier === 5){
-      return kind === "siege" ? "Provincial Captain" : "Provincial Officer";
-    }
-    return kind === "siege" ? "Royal Captain" : "Royal Magistrate";
-  }
-
   function makeBattleContext(tier, slot, arch, baseDef){
     const kind = arch && arch.kind || "";
     // Generate a house / faction identity that persists per tier+slot until defeated.
@@ -2579,8 +2553,6 @@ function battleArchetypeFor(tier, slot){
     return BATTLE_SETS[Math.min(idx, BATTLE_SETS.length-1)];
   }
 
-
-  function battleCooldownMs(){ return 35_000; }
 
   
 // === Land Type Effects (flat base output) ===
@@ -2919,24 +2891,14 @@ function captureTerritory(battleTier){
     return Math.floor(Math.sqrt(r/650)); // e.g. 5000=>2, 20k=>5, 80k=>11
   }
 
-  function courtCost(){ return Math.round(12 + S.decrees*3 + Math.floor(S.renown/900)); }
-  function courtRenownGain(){ return Math.round(28 + (S.decrees*6) + (S.land*4)); }
-function favorCostInf(){ return Math.round(18 + S.decrees*4 + Math.floor(S.renown/1400)); }
-  function favorGoldGain(){
-    const base = 400 + S.land*80 + S.decrees*120;
-    return Math.round(base);
-  }
+  
+  
+
+  
 
 
-  function decreeCostGold(){ return Math.round(2200 * Math.pow(1.52, S.decrees)); }
-  function decreeCostInf(){ return Math.round(30 * Math.pow(1.22, S.decrees)); }
-
-  function feastCooldownMs(){ return 75_000; }
-  function feastRenown(){
-    return Math.round(260 + S.decrees*120);
-  }
-  function feastCostGold(){ return Math.round(900 + S.decrees*250); }
-
+  
+  
 
   // ---- Titles + unlocks ----
   function titleInfo(){
@@ -3227,7 +3189,7 @@ function makeObjective(slotIndex = 0){
     }
   }
 
-  // --- Lane: meta / temple / streak / cashout / court (slot 2 bias) ---
+  // --- Lane: meta / temple / streak / cashout (slot 2 bias) ---
   if(lane === "meta"){
     // Streak objective encourages tap rhythm play
     pushObj({
@@ -3254,21 +3216,6 @@ function makeObjective(slotIndex = 0){
         min: 1,
         max: Math.min(3, 1 + progTier),
         weight: 3
-      });
-    }
-
-    // Court / feasts
-    if(r >= unlock.court){
-      pushObj({
-        min: 1,
-        max: Math.min(2, 1 + Math.floor(progTier/3)),
-        weight: 3
-      });
-      pushObj({
-        type:"feast",
-        min: 1,
-        max: 1 + (progTier >= 4 ? 1 : 0),
-        weight: 2
       });
     }
 
@@ -3377,21 +3324,15 @@ function objText(o){
   if(o.type==="offerFaith")
     return `Make ${o.target} temple offering${o.target>1?"s":""} (${left} left)`;
 
-    return `Hold court ${o.target} time${o.target>1?"s":""} (${left} left)`;
-
-  if(o.type==="feast")
-    return `Host ${o.target} feast${o.target>1?"s":""} (${left} left)`;
-
   if(o.type==="cashout")
     return `Cash out ${o.target} time${o.target>1?"s":""} (${left} left)`;
 
-  return `Do something (${left} left)`;
+  return `Complete this task (${left} left)`;
 }
 
 function objComplete(o){ return o.progress >= o.target; }
-
+function objComplete(o){ return o.progress >= o.target; }
 function bumpObjective(type, amount=1){
-  ensureObjectives();
   for(const o of S.objectives){
     if(o.claimed) continue;
     if(o.type !== type) continue;
@@ -3524,8 +3465,6 @@ function renderObjectives(){
 
   function triggerGoldStorm(){
     const now = Date.now();
-    S.lastGoldStormAt = now;
-
     // Small burst of gold
     const base = 18 + Math.floor((S.renown||0)/160) + (S.crowns||0)*4;
     const gain = Math.max(10, Math.round(base * (1 + Math.random()*3)));
@@ -3572,7 +3511,7 @@ function renderObjectives(){
 
 // ---- Loot Chests (2-second dopamine overlay) ----
   function chestRarityFrom(source){
-    // source: "skirmish" | "feast" | other
+    // source: "skirmish" | "objective" | "battle" | other
     // For skirmishes, we bias rarity by total battles won so early fights feel juicy:
     // e.g. after 5 wins, guaranteed Common; after 8+, Rare+; after 12+, Epic chance.
     if(source === "skirmish"){
@@ -3600,10 +3539,10 @@ function renderObjectives(){
       }
     }
 
-    // Feast / other sources mostly RNG, but feasts skew better.
+    // Events / gifts are mostly RNG with a slight rarity curve.
     const roll = Math.random();
-    let epicP = source==="feast" ? 0.14 : 0.05;
-    let rareP = source==="feast" ? 0.40 : 0.28;
+    let epicP = 0.05;
+    let rareP = 0.28;
 
     // 🌟 Renown perk: famous rulers see better gifts.
     const ren = S.renown || 0;
@@ -3829,8 +3768,7 @@ function renderObjectives(){
       ["Legion strength", S.legion],
       ["Raids won", S.battlesWon],
       ["Territories", territoryCount()],
-      ["Influence", S.influence],
-      ["Population", S.population],
+      
       ["Milites (pop used)", S.populationUsed],
       ["Population Cap", populationCap()],
       ["Faith", S.faith],
@@ -3838,8 +3776,7 @@ function renderObjectives(){
       ["Ascensions", S.ascends || 0],
       ["Best streak (all time)", S.bestStreak || 0],
       ["Biggest cashout", S.biggestCashout || 0],
-      ["Decrees", S.decrees],
-      ["Multipliers", `Land x${landMult().toFixed(2)} • Decree x${decreeMult().toFixed(2)} • Crown x${crownMult().toFixed(2)}`],
+      ["Multipliers", `Land x${landMult().toFixed(2)} • Crown x${crownMult().toFixed(2)}`],
       ["Lifetime denarii", S.lifetimeGold],
       ["Lifetime renown", S.lifetimeRenown],
     ];
@@ -4599,114 +4536,6 @@ function battleFlavorByTier(tier){
   return { place:["capital outskirts","campaign road","great plain","breached wall"], foe:["coalition army","claimants","elite guard","rival host"] };
 }
 
-function generateBattleLines(rep, tier){
-  const f = battleFlavorByTier(tier);
-  const place = f.place[rnd(0, f.place.length - 1)];
-  const foe = f.foe[rnd(0, f.foe.length - 1)];
-
-  // Safety clamps
-  const youMax = Math.max(1, rep.beforeWarriors || 0);
-  const youFinal = Math.max(0, rep.afterWarriors || 0);
-  const enemyMax = Math.max(1, rep.enemies || 0);
-
-  // Enemy final strength is implied (you don't track enemy casualties),
-  // so fake a plausible end-state depending on win/lose.
-  const enemyFinal = rep.win
-    ? 0
-    : Math.round(enemyMax * (0.55 + Math.random() * 0.15)); // they take hits but hold
-
-  const rounds = 3; // number of "beats" shown
-
-  function bar(current, max, width = 10){
-    if(max <= 0) return "▉".repeat(width);
-    const ratio = current / max;
-    const filled = clamp(Math.round(ratio * width), 0, width);
-    const empty = width - filled;
-    return "█".repeat(filled) + "▉".repeat(empty);
-  }
-
-  const odds = rep.winP || 0;
-  const close = odds > 0.40 && odds < 0.70;
-  const desperate = odds <= 0.40;
-
-  const lines = [];
-
-  // Short opener
-  lines.push(`At the ${place}, your line meets ${fmt(rep.enemies)} ${foe}.`);
-  if(desperate) lines.push("The omens are poor — your ranks feel thin.");
-  else if(close) lines.push("Both hosts dress their ranks; no-one expects an easy win.");
-  else lines.push("Your milites move with quiet confidence.");
-  lines.push(""); // spacer
-
-  let youPrev = youMax;
-  let enemyPrev = enemyMax;
-  let casualtiesSoFar = 0;
-
-  for(let r = 1; r <= rounds; r++){
-    const t = r / rounds;
-
-    // Linear approach to the final values
-    const enemyNow = Math.max(0, Math.round(enemyMax - (enemyMax - enemyFinal) * t));
-    const youNow = Math.max(0, Math.round(youMax - (youMax - youFinal) * t));
-
-    const dmgToEnemy = Math.max(0, enemyPrev - enemyNow);
-    const dmgToYou = Math.max(0, youPrev - youNow);
-    casualtiesSoFar = youMax - youNow;
-
-    // ENEMY BLOCK
-    lines.push("[ ENEMY HOST ]");
-    lines.push(`${bar(enemyNow, enemyMax)} (${fmt(enemyNow)} / ${fmt(enemyMax)})`);
-
-    if(dmgToEnemy > 0){
-      const heavyHit = dmgToEnemy / enemyMax >= 0.20;
-      if(heavyHit && rep.win){
-        lines.push(`🔥 CRIT! +${fmt(dmgToEnemy)} as the enemy line buckles.`);
-      }else{
-        lines.push(`⚔ Clash! — you deal ${fmt(dmgToEnemy)} dmg.`);
-      }
-    }else{
-      lines.push("⚔ Clash! — your first blows test their shieldwall.");
-    }
-
-    if(dmgToYou > 0){
-      const heavyLoss = dmgToYou / youMax >= 0.12;
-      if(heavyLoss){
-        lines.push(`💥 Counter-charge — you lose ${fmt(dmgToYou)} milites.`);
-      }else{
-        lines.push(`🛡 Shieldwall — enemy steel slips through, ${fmt(dmgToYou)} fall.`);
-      }
-    }else{
-      lines.push("🛡 Shieldwall — your ranks hold with no losses.");
-    }
-
-    lines.push(""); // spacer between sides
-
-    // YOUR ARMY BLOCK
-    lines.push("[ YOUR ARMY ]");
-    lines.push(`${bar(youNow, youMax)} (${fmt(youNow)} / ${fmt(youMax)})`);
-    lines.push(`- - - casualties: ${fmt(casualtiesSoFar)}`);
-    lines.push(""); // extra spacer
-
-    youPrev = youNow;
-    enemyPrev = enemyNow;
-  }
-
-  // Closing note
-  if(rep.win){
-    if(rep.losses === 0){
-      lines.push("The enemy hosts break early — your banners do not dip once.");
-    }else if(rep.losses <= Math.max(1, Math.floor(youMax * 0.08))){
-      lines.push("The enemy scatters; the field is yours for a modest cost in blood.");
-    }else{
-      lines.push("The foe flees, but the field is heavy with your fallen.");
-    }
-  }else{
-    lines.push("Your line buckles, then breaks — survivors fall back towards the village.");
-  }
-
-  return lines;
-}
-
 function showBattleSimulation(rep, tier){
   const makeAsciiBar = (current, max, width = 12) => {
     if (max <= 0) return "░".repeat(width);
@@ -5313,10 +5142,9 @@ function doBattle(slot, opts){
 
       maybeBurst("battle");
 
-      // Political capital: victories generate influence for the Court.
+      // Political capital: victories generate influence with your realm.
       const infGain = Math.max(1, Math.round(1 + sim.tier * 0.8 + landGain * 0.4));
-      S.influence += infGain;
-
+      
       toast("Victory!");
 
       const yourLossPct = Math.round(100 * losses / Math.max(1, beforeWarriors || 1));
@@ -5408,8 +5236,6 @@ function doBattle(slot, opts){
     }
   }
 
-  // Cooldown
-  S.battleReadyAt = Date.now() + battleCooldownMs();
 
   const rep = {
     label: b.label,
