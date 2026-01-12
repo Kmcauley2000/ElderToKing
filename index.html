@@ -165,6 +165,39 @@ body::after{
     .smallBtn:hover{border-color: rgba(244,208,111,.38);}
     .smallBtn .t{font-weight:900;color:var(--accent);font-size:.92rem;}
     .smallBtn .d{font-family:var(--sans);color:var(--muted);font-size:.74rem;line-height:1.25;opacity:.82;}
+
+    /* Minimal battle cards (Variant C) */
+    .smallBtn.battleCard{
+      align-items:flex-start;
+      justify-content:flex-start;
+      gap:2px;
+      padding:8px 11px;
+      border-radius:16px;
+      border:1px solid rgba(158,104,54,.45);
+      background:linear-gradient(180deg,#fbf5ea,#f3e4cf);
+      box-shadow:none;
+    }
+
+    .smallBtn.battleCard .t{
+      font-size:.82rem;
+      font-weight:700;
+      letter-spacing:.01em;
+      color:var(--text);
+    }
+
+    .smallBtn.battleCard .d{
+      font-family:var(--sans);
+      font-size:.7rem;
+      line-height:1.35;
+      color:var(--muted);
+      white-space:pre-line; /* so \n in JS becomes a second line */
+    }
+
+    .smallBtn.battleCard .d::first-line{
+      font-weight:600;
+    }
+
+
     .bar{margin-top:12px;border:1px solid rgba(31,58,42,.85);border-radius: 999px;overflow:hidden;background: rgba(0,0,0,.16);}
     .bar > div{height:12px;width:10%;background: linear-gradient(90deg, rgba(244,208,111,.92), rgba(107,230,117,.80));transition: width .22s ease;}
     .villagePopBlock{margin-top:10px;font-family:var(--mono);font-size:.74rem;color:var(--muted);display:flex;flex-direction:column;gap:2px;}
@@ -1146,19 +1179,19 @@ header{
 
         
         <div class="row2">
-          <button class="smallBtn" id="btnBattleBandits1">
+          <button class="smallBtn battleCard" id="btnBattleBandits1">
             <div class="t">Crush bandits</div>
             <div class="d" id="battleBandits1Desc">10–50 enemies • quick skirmish</div>
           </button>
-          <button class="smallBtn" id="btnBattleLevy">
+          <button class="smallBtn battleCard" id="btnBattleLevy">
             <div class="t">Muster your levy (local lord)</div>
             <div class="d" id="battleLevyDesc">250–500 enemies • moderate risk</div>
           </button>
-          <button class="smallBtn" id="btnBattleVillageRaid">
+          <button class="smallBtn battleCard" id="btnBattleVillageRaid">
             <div class="t">Take nearby village</div>
             <div class="d" id="battleVillageRaidDesc">500–1,000 enemies • high risk</div>
           </button>
-          <button class="smallBtn" id="btnBattleSiege">
+          <button class="smallBtn battleCard" id="btnBattleSiege">
             <div class="t">Siege town</div>
             <div class="d" id="battleSiegeDesc">1,000–5,000 enemies • deadly</div>
           </button>
@@ -1994,6 +2027,9 @@ function decreeMult(){
   }
 
   function expireStreakIfNeeded(){
+    // Don’t let the streak expire while a defensive popup is on screen
+    if(window.defenceOverlayOpen) return;
+
     if(S.streak > 1 && S.lastTap && (Date.now() - S.lastTap) > STREAK_WINDOW_MS){
       S.streak = 1;
     }
@@ -2042,9 +2078,9 @@ function decreeMult(){
   // --- Battles  ---
   const BATTLE_SETS = [
     [
-      { label:"Break Up Farm Brawl", enemyMin:10, enemyMax:10 },
-      { label:"Defend Stray Herd", enemyMin:5, enemyMax:10 },
-      { label:"Drive Off Rustlers", enemyMin:5, enemyMax:10 },
+      { label:"Break Up Farm Brawl", enemyMin:8, enemyMax:14 },
+      { label:"Defend Stray Herd", enemyMin:6, enemyMax:11 },
+      { label:"Drive Off Rustlers", enemyMin:6, enemyMax:12 },
       { label:"Feud at the Wall", enemyMin:5, enemyMax:10 }
     ], // Elder
     [
@@ -2238,6 +2274,310 @@ function decreeMult(){
     return 6;
   }
 
+  // Narrative battle archetypes by tier (Hybrid: title tier × slot)
+  // kind:
+  //  - "skirmish"  → never grants land
+  //  - "feud"      → may grant land at higher tiers
+  //  - "field"     → always territorial
+  //  - "siege"     → always territorial, heavier land
+
+  
+const BATTLE_ARCHETYPES = {
+    1: [
+      {
+        label: "Drive Off the Ridge Herders",
+        kind: "skirmish",
+        short: "Border skirmish",
+        flavour: "Clans test your borders with small herds."
+      },
+      {
+        label: "Settle the Winter Grazing Feud",
+        kind: "feud",
+        short: "Grazing feud",
+        flavour: "A boundary quarrel draws spears to the wall."
+      },
+      {
+        label: "Seize the Lower Pastures",
+        kind: "field",
+        short: "Pasture field",
+        flavour: "Hold the meadows that feed your village."
+      },
+      {
+        label: "Enclose the Village Palisade",
+        kind: "siege",
+        short: "Village siege",
+        flavour: "Timber walls decide who rules this place."
+      }
+    ],
+
+    2: [
+      {
+        label: "Break the Spring Muster at the River Ford",
+        kind: "skirmish",
+        short: "River skirmish",
+        flavour: "A rival clan gathers men where the road runs shallow."
+      },
+      {
+        label: "Subdue the March-Lord of Senna",
+        kind: "feud",
+        short: "March feud",
+        flavour: "A frontier lord refuses your voice in his valley."
+      },
+      {
+        label: "Secure the Broad Valley of Ilma",
+        kind: "field",
+        short: "Valley field",
+        flavour: "Levies muster along the slopes above Ilma."
+      },
+      {
+        label: "Storm the Hill-Fort at Narrow Gate",
+        kind: "siege",
+        short: "Hill-fort siege",
+        flavour: "One gate, one crest, and all the uplands follow."
+      }
+    ],
+
+    3: [
+      {
+        label: "Scatter the League Scouts at Reed-Bank",
+        kind: "skirmish",
+        short: "League skirmish",
+        flavour: "League riders test the strength of your watch."
+      },
+      {
+        label: "Answer the League’s Tribute Demands",
+        kind: "feud",
+        short: "Tribute feud",
+        flavour: "Merchants arrive with terms backed by spears."
+      },
+      {
+        label: "Command the Valley of Three Rivers",
+        kind: "field",
+        short: "River-valley field",
+        flavour: "Three valleys meet; whoever holds them sets the toll."
+      },
+      {
+        label: "Break the Tribal Stronghold of Fen-Croft",
+        kind: "siege",
+        short: "Tribal siege",
+        flavour: "A fen-ringed timber keep shelters your rivals."
+      }
+    ],
+
+    4: [
+      {
+        label: "Intercept Confederation Riders",
+        kind: "skirmish",
+        short: "Confed skirmish",
+        flavour: "Messengers race between confederate chiefs."
+      },
+      {
+        label: "Punish the March Coalition’s Envoys",
+        kind: "feud",
+        short: "Coalition feud",
+        flavour: "Envoys arrive under arms and speak as equals."
+      },
+      {
+        label: "Contest the Confederation Granary Basin",
+        kind: "field",
+        short: "Granary field",
+        flavour: "Grain stores and river land decide the winter."
+      },
+      {
+        label: "Besiege the Confederation Citadel at River-Bend",
+        kind: "siege",
+        short: "Citadel siege",
+        flavour: "A stone keep crowns the bend where two rivers meet."
+      }
+    ],
+
+    5: [
+      {
+        label: "Test the Provincial Muster at Low-Ford",
+        kind: "skirmish",
+        short: "Provincial skirmish",
+        flavour: "Provincial banners appear at the shallows."
+      },
+      {
+        label: "Humiliate the Provincial Tax-Farmers",
+        kind: "feud",
+        short: "Tax feud",
+        flavour: "Collectors return with short tribute and long complaints."
+      },
+      {
+        label: "Reduce the Tributary Valley of Altar-Kings",
+        kind: "field",
+        short: "Tributary field",
+        flavour: "Old altar-stones mark a valley that pays two masters."
+      },
+      {
+        label: "Compel Submission of the Provincial Seat",
+        kind: "siege",
+        short: "Provincial siege",
+        flavour: "The province’s officers shelter behind old walls."
+      }
+    ],
+
+    6: [
+      {
+        label: "Scatter the Royal Scouts of the March",
+        kind: "skirmish",
+        short: "Royal skirmish",
+        flavour: "The king’s riders taste the edge of your realm."
+      },
+      {
+        label: "Defy the Royal Magistrate of the Cross-Road",
+        kind: "feud",
+        short: "Royal feud",
+        flavour: "A royal judge arrives with laws and escorts."
+      },
+      {
+        label: "Enforce Dominion over the River-Marches",
+        kind: "field",
+        short: "River-march field",
+        flavour: "Whole marches decide whether to bow or bleed."
+      },
+      {
+        label: "Take the Captaincy of the Tributary Citadel",
+        kind: "siege",
+        short: "Royal siege",
+        flavour: "The garrison decides who truly rules this frontier."
+      }
+    ]
+  };
+
+  const FRONTIER_PRAENOMEN = [
+    "Varro","Lucius","Hostor","Marus","Aulus","Caius","Secundus",
+    "Tatius","Brennus","Florus","Silvanus","Drusus","Cassian"
+  ];
+  const FRONTIER_COGNOMEN = [
+    "Tatius","Brennus","of Three Rivers","of the Fen","of the Ridge",
+    "of Low-Ford","of Senna","of the March","of the Lower Valley",
+    "of Reed-Bank","of Narrow Gate","of the Granary Basin"
+  ];
+
+  function sample(arr){
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  
+
+  // House / faction identity by tier: early Italic → later Roman-provincial
+  const HOUSE_ROOTS_TRIBAL = [
+    "Tasca","Verro","Serri","Caian","Varno","Tarru","Marro","Hostor","Silvan","Druso"
+  ];
+  const HOUSE_ROOTS_ROMAN = [
+    "Domitia","Flaminia","Claudiana","Tarquitia","Valeria","Aemilia","Cornelia","Fabia"
+  ];
+
+  const HOUSE_TERRITORIES_T1 = [
+    "the Lower Pastures","the Ridge Fields","the Fen-March","the Alder Holt",
+    "the Narrow Fields","the Red Marsh","the Three Springs","the Far Paddocks"
+  ];
+  const HOUSE_TERRITORIES_T2 = [
+    "the Upper Valley","the Hillforts","the Riverlands","the Ford Country",
+    "the Marcher Slopes","the Council Fields","the Granary Belt"
+  ];
+  const HOUSE_TERRITORIES_T3 = [
+    "the Provincial Road","the Granary District","the Market Quarter",
+    "the Border March","the Outer Cantons","the Royal Approach"
+  ];
+
+  function makeHouseIdentity(tier, kind){
+    let roots, placePool, style;
+    if(tier <= 2){
+      roots = HOUSE_ROOTS_TRIBAL;
+      placePool = HOUSE_TERRITORIES_T1;
+      style = "House";
+    }else if(tier <= 4){
+      roots = HOUSE_ROOTS_TRIBAL;
+      placePool = HOUSE_TERRITORIES_T2;
+      // Field & siege actions feel like bannered forces by mid-game
+      style = (kind === "field" || kind === "siege") ? "Banner of" : "House";
+    }else{
+      // Late game: mixture of Italic houses and Romanised lineages
+      roots = Math.random() < 0.5 ? HOUSE_ROOTS_TRIBAL : HOUSE_ROOTS_ROMAN;
+      placePool = HOUSE_TERRITORIES_T3;
+      style = Math.random() < 0.5 ? "House" : "Domus";
+    }
+
+    const root = sample(roots);
+    const place = sample(placePool);
+    const houseLabel = `${style} ${root}`;
+    const leader = `${houseLabel} of ${place}`;
+    return { houseLabel, leader };
+  }
+
+function leaderTitleFor(tier, kind){
+    if(tier <= 1){
+      return kind === "skirmish" ? "Ridge Elder" : "Village Headman";
+    }
+    if(tier === 2){
+      return kind === "siege" ? "March-Lord" : "March-Lord of the Fen";
+    }
+    if(tier === 3){
+      return kind === "feud" ? "Speaker of the League" : "League Captain";
+    }
+    if(tier === 4){
+      return kind === "feud" ? "Prefect" : "Confederation Captain";
+    }
+    if(tier === 5){
+      return kind === "siege" ? "Provincial Captain" : "Provincial Officer";
+    }
+    return kind === "siege" ? "Royal Captain" : "Royal Magistrate";
+  }
+
+  function makeBattleContext(tier, slot, arch, baseDef){
+    const kind = arch && arch.kind || "";
+    // Generate a house / faction identity that persists per tier+slot until defeated.
+    const house = makeHouseIdentity(tier, kind);
+    const leader = house.leader;
+    const min = baseDef.enemyMin;
+    const max = baseDef.enemyMax;
+    const approx = (min === max) ? `${min}` : `${min}–${max}`;
+    let doing;
+    if(arch && arch.flavour){
+      doing = arch.flavour;
+    }else if(arch && arch.kind === "skirmish"){
+      doing = "Their riders test the edges of your land.";
+    }else if(arch && arch.kind === "feud"){
+      doing = "A feud spills over your borders.";
+    }else if(arch && arch.kind === "field"){
+      doing = "Two sides gather to decide who holds the ground.";
+    }else if(arch && arch.kind === "siege"){
+      doing = "A garrison braces behind its walls.";
+    }else{
+      doing = "Steel gathers somewhere beyond your boundary.";
+    }
+    return {
+      tier,
+      slot,
+      label: arch && arch.label || baseDef.label,
+      kind: arch && arch.kind,
+      leader,
+      approx,
+      doing
+    };
+  }
+
+  function getBattleContext(tier, slot, arch, baseDef){
+    if(typeof S !== "object") return makeBattleContext(tier, slot, arch, baseDef);
+    if(!S.battleContexts) S.battleContexts = {};
+    const key = tier + ":" + slot;
+    const existing = S.battleContexts[key];
+    const archLabel = arch && arch.label || baseDef.label;
+    if(existing && existing.label === archLabel){
+      return existing;
+    }
+    const ctx = makeBattleContext(tier, slot, arch, baseDef);
+    S.battleContexts[key] = ctx;
+    return ctx;
+  }
+function battleArchetypeFor(tier, slot){
+    const t = BATTLE_ARCHETYPES[tier] || BATTLE_ARCHETYPES[1];
+    return t && t[slot] ? t[slot] : t ? t[0] : null;
+  }
+
   function currentBattleSet(){
     const { idx } = titleInfo();
     return BATTLE_SETS[Math.min(idx, BATTLE_SETS.length-1)];
@@ -2395,6 +2735,8 @@ function captureTerritory(battleTier){
 
   const wins = (S.battlesWon || 0);
   const tier = battleTierFromTitleIdx(titleInfo().idx);
+  const arch = battleArchetypeFor(tier, slot);
+  if(arch && arch.label) b.label = arch.label;
 
   // --- YOUR TROOPS ---
   const yourTroops = Math.max(0, S.warriors || 0);
@@ -3650,28 +3992,71 @@ function renderObjectives(){
       { btn:"#btnBattleVillageRaid", titleSel:"#btnBattleVillageRaid .t", desc:"#battleVillageRaidDesc" },
       { btn:"#btnBattleSiege",    titleSel:"#btnBattleSiege .t",    desc:"#battleSiegeDesc" }
     ];
+    const { idx } = titleInfo();
+    const tier = battleTierFromTitleIdx(idx);
+
     for(let i=0;i<4;i++){
-      const b = bs[i];
-      const min = b.enemyMin, max = b.enemyMax;
-      const range = (min===max) ? `${min}` : `${min}–${max}`;
+      const base = bs[i];
+      if(!base) continue;
       const tEl = $(btns[i].titleSel);
       const dEl = $(btns[i].desc);
-      if(tEl) tEl.textContent = b.label;
-      if(dEl) dEl.textContent = `${range} enemies`;
+
+      const arch = battleArchetypeFor(tier, i);
+      const ctx  = getBattleContext(tier, i, arch, base);
+
+      const min = base.enemyMin;
+      const max = base.enemyMax;
+      const range = (min===max) ? `${min}` : `${min}–${max}`;
+
+      // Keep the archetype label everywhere
+      const label = ctx.label;
+      base.label = label;
+
+      if(tEl) tEl.textContent = label;
+      if(dEl){
+        // Example: "10–25 enemies • Skirmish • Led by Varro Tatius"
+        const kind = ctx.kind || (arch && arch.kind) || "";
+        const kindTag = kind === "skirmish"
+          ? "Skirmish"
+          : kind === "feud"
+            ? "Feud"
+            : kind === "field"
+              ? "Field action"
+              : kind === "siege"
+                ? "Siege"
+                : "";
+
+        // Line 1: short mechanical summary
+        const line1 = kindTag
+          ? `${range} enemies • ${kindTag}`
+          : `${range} enemies`;
+
+        // Line 2: named enemy + short flavour
+        const leader = ctx.leader || "";
+        const flavour = ctx.doing || "";
+
+        let line2 = "";
+        if (leader && flavour) {
+          line2 = `${leader} — ${flavour}`;
+        } else {
+          line2 = leader || flavour;
+        }
+
+        dEl.textContent = line2 ? `${line1}\n${line2}` : line1;
+      }
     }
     const cd = 0; // battle cooldown disabled
 
-    const canBandits1 = (S.warriors||0) >= 1;
-    const canLevy     = (S.warriors||0) >= 10;
-    const canVillageR = (S.warriors||0) >= 25;
-    const canSiege    = (S.warriors||0) >= 60;
+    // Battles: only requirement is "do you have any milites?"
+    const hasTroops = (S.warriors || 0) > 0;
 
-    $("#btnBattleBandits1").disabled   = !canBandits1;
-    $("#btnBattleLevy").disabled       = !canLevy;
-    $("#btnBattleVillageRaid").disabled= !canVillageR;
-    $("#btnBattleSiege").disabled      = !canSiege;
+    $("#btnBattleBandits1").disabled    = !hasTroops;
+    $("#btnBattleLevy").disabled        = !hasTroops;
+    $("#btnBattleVillageRaid").disabled = !hasTroops;
+    $("#btnBattleSiege").disabled       = !hasTroops;
 
-    // Village capacity hint: recruiting uses capacity, but battles are allowed regardless.
+
+// Village capacity hint: recruiting uses capacity, but battles are allowed regardless.
     if(!hasVillageCapacity()){
     }
 
@@ -3850,7 +4235,12 @@ function renderObjectives(){
     S.tapsSinceCashout += 1;
     bankCashout(gain + Math.round(jackpotGain*0.08));
     
-render();
+
+    // Chance for a defensive/local skirmish popup (does not break streak)
+    maybeSpawnDefenceFromTap();
+    
+    render();
+
   });
 
   $("#btnHut").addEventListener("click", ()=>{
@@ -3927,6 +4317,192 @@ render();
 
   render();
 });
+// ---- Defensive/local skirmish popups ----
+
+// We piggyback off taps: occasionally, your lands are tested.
+// These are *defensive* battles: no land gain, just gold + renown.
+// Ignoring them is safe but costly (gold + renown loss).
+
+function defenceSpawnChance(){
+  const wins = S.battlesWon || 0;
+  // Starts small, ramps up as your realm gets bloodier
+  const base = 0.012;
+  const extra = Math.min(wins * 0.0006, 0.02);
+  return base + extra;
+}
+
+function defenceIgnoreCostDen(){
+  const gold = S.gold || 0;
+  const tier = battleTierFromTitleIdx(titleInfo().idx);
+  // 6–18% of current gold, scaled by title tier, with a floor
+  const pct = 0.06 + tier * 0.02;
+  const pctLoss = Math.round(gold * pct);
+  const floor = 12 + tier * 9;
+  return Math.max(floor, pctLoss);
+}
+
+function defenceIgnoreCostRen(){
+  const tier = battleTierFromTitleIdx(titleInfo().idx);
+  // Small but non-trivial hit to reputation
+  return Math.max(1, tier * 3);
+}
+
+function maybeSpawnDefenceFromTap(){
+  // Don’t stack multiple popups, don’t fire during intro, and only if you actually have troops
+  if(window.defenceOverlayOpen) return;
+  if(!S.introBattleDone) return;
+  if((S.warriors || 0) <= 0) return;
+
+  if(Math.random() > defenceSpawnChance()) return;
+
+  const slot = 0; // use the lowest slot as a local-border defence template
+  const b = currentBattleSet()[slot];
+  if(!b) return;
+
+  openDefencePopup(slot, b);
+}
+
+
+
+
+function openDefencePopup(slot, battle){
+  if(window.defenceOverlayOpen) return;
+  window.defenceOverlayOpen = true;
+
+  // Protect the streak window while the player is reading this
+  S.lastTap = Date.now();
+
+  const overlay = document.createElement("div");
+  overlay.id = "defencePopup";
+  overlay.style.position = "fixed";
+  overlay.style.inset = "0";
+  overlay.style.background = "rgba(0,0,0,0.55)";
+  overlay.style.display = "flex";
+  overlay.style.alignItems = "center";
+  overlay.style.justifyContent = "center";
+  overlay.style.zIndex = "1600";
+
+  const card = document.createElement("section");
+  card.className = "card";
+  card.style.maxWidth = "420px";
+  card.style.margin = "0 14px";
+
+  const header = document.createElement("div");
+  header.className = "sectionTitle";
+
+  // Risk icon based on size of the raid
+  const min = battle.enemyMin || 5;
+  const max = battle.enemyMax || (min + 10);
+  let riskWord = "Small raid";
+  let riskIcon = "🟢";
+  if(max >= 60){ riskWord = "Large warband"; riskIcon = "🔴"; }
+  else if(max >= 30){ riskWord = "Raiding party"; riskIcon = "🟠"; }
+
+  header.innerHTML = `<span style="font-weight:700;color:var(--text)">Defence</span>`;
+
+  const bodyWrap = document.createElement("div");
+  bodyWrap.className = "cardBody";
+
+  const title = document.createElement("div");
+  title.textContent = battle.label;
+  title.style.fontFamily = "var(--mono)";
+  title.style.fontSize = ".86rem";
+  title.style.fontWeight = "700";
+  title.style.color = "var(--text)";
+  title.style.marginBottom = "4px";
+
+  const desc = document.createElement("div");
+  desc.style.fontSize = ".8rem";
+  desc.style.marginBottom = "10px";
+  desc.textContent = "Enemy raiders are disrupting your lands.";
+
+  const stats = document.createElement("div");
+  stats.style.fontFamily = "var(--mono)";
+  stats.style.fontSize = ".78rem";
+  stats.style.border = "1px solid rgba(158,104,54,.6)";
+  stats.style.borderRadius = "12px";
+  stats.style.padding = "8px 10px";
+  stats.style.marginBottom = "12px";
+  stats.style.background = "rgba(255,255,255,0.45)";
+
+  let enemyLine;
+  if(min === max){
+    enemyLine = `Enemies: ${min} (${riskWord})`;
+  }else{
+    enemyLine = `Enemies: ${min}–${max} (${riskWord})`;
+  }
+  const defendersLine = `Defenders Available: ${fmt(S.warriors||0)} milites`;
+
+  stats.innerHTML = `<div>${enemyLine}</div><div>${defendersLine}</div>`;
+
+  const costsDen = defenceIgnoreCostDen();
+  const costsRen = defenceIgnoreCostRen();
+
+  const actions = document.createElement("div");
+  actions.style.display = "flex";
+  actions.style.flexDirection = "column";
+  actions.style.gap = "8px";
+
+  const btnEngage = document.createElement("button");
+  btnEngage.className = "smallBtn";
+  btnEngage.innerHTML = `<div class="t">🛡️ Defend</div><div class="d">Risk milites, no payment.</div>`;
+
+  const btnIgnore = document.createElement("button");
+  btnIgnore.className = "smallBtn";
+  btnIgnore.innerHTML = `<div class="t">💰 Buy Them Off — ${fmt(costsDen)}d, ${fmt(costsRen)}r</div><div class="d">Avoid casualties.</div>`;
+
+  btnEngage.addEventListener("click", ()=>{
+    closeDefencePopup(overlay);
+    // Refresh lastTap so streak window resumes from now
+    S.lastTap = Date.now();
+    // Run this as a *defensive* battle: no land, different rewards
+    doBattle(slot, { defence: true });
+  });
+
+  btnIgnore.addEventListener("click", ()=>{
+    const costDen = defenceIgnoreCostDen();
+    const costRen = defenceIgnoreCostRen();
+
+    const goldLoss = Math.min(costDen, S.gold || 0);
+    S.gold = (S.gold || 0) - goldLoss;
+    S.renown = Math.max(0, (S.renown || 0) - costRen);
+
+    closeDefencePopup(overlay);
+    S.lastTap = Date.now();
+
+    toast("You pay them off.");
+    logLine(
+      `You buy off raiders instead of fighting. -${fmt(goldLoss)} denarii, -${fmt(costRen)} renown.`,
+      "warn"
+    );
+    render();
+  });
+
+  actions.appendChild(btnEngage);
+  actions.appendChild(btnIgnore);
+
+  bodyWrap.appendChild(title);
+  bodyWrap.appendChild(desc);
+  bodyWrap.appendChild(stats);
+  bodyWrap.appendChild(actions);
+
+  card.appendChild(header);
+  card.appendChild(bodyWrap);
+
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+}
+
+
+function closeDefencePopup(overlay){
+  window.defenceOverlayOpen = false;
+  try{
+    if(overlay && overlay.parentNode){
+      overlay.parentNode.removeChild(overlay);
+    }
+  }catch(e){}
+}
+
   // Land allocation buttons: tap to assign a plot if any are free.
   function adjustLandAllocation(key){
     const free = freeLandPlots();
@@ -4541,21 +5117,40 @@ function showBattleSimulation(rep, tier){
 window.startIntroBattle = startIntroBattle;
 
 // --- Battle execution (rank-based) ---
-function doBattle(slot){
+// Optional second arg opts: { defence: true } for pop-up defence battles
+function doBattle(slot, opts){
+  opts = opts || {};
+  const isDefence = !!opts.defence;
+
   const now = Date.now(); // cooldown disabled
   const b = currentBattleSet()[slot];
   if(!b){ toast("No battle available"); return; }
 
-  // Requirements (keep original thresholds)
-  const w = (S.warriors||0);
-  const need = (slot===0)?1:(slot===1)?10:(slot===2)?25:60;
-  if(w < need){ toast(`Need ${need} milites`); return; }
+  // Minimal requirement: you need at least *some* milites for offensive campaigns.
+  const w = (S.warriors || 0);
+  if (!isDefence && w <= 0) {
+    toast("You have no milites to muster.");
+    return;
+  }
 
   const sim = battleSim(slot);
   const beforeWarriors = S.warriors||0;
   const startGold = S.gold;
   const startLand = S.land||0;
   const startRenown = S.renown||0;
+
+  // Soft warning: under-strength force vs enemy numbers / odds (no hard gate)
+  if (!isDefence && sim && typeof sim.enemies === "number") {
+    const enemies = sim.enemies;
+    const winP = typeof sim.winP === "number" ? sim.winP : 0.5;
+
+    // “Recommended” force: ~40% of enemy count
+    const recommended = Math.max(1, Math.round(enemies * 0.4));
+
+    if (beforeWarriors > 0 && beforeWarriors < recommended && winP < 0.75) {
+      toast("Very risky with so few milites — expect heavy losses.");
+    }
+  }
 
   // Apply casualties
   let losses = Math.min(beforeWarriors, sim.losses);
@@ -4580,11 +5175,6 @@ function doBattle(slot){
     const goldBefore = (S.gold||0);
     const extraGoldLoss = Math.round(goldBefore * 0.1);
     S.gold = Math.max(0, goldBefore - extraGoldLoss);
-
-    logLine(
-      `Your last milite falls; panic spreads and some citizens flee. (-${fmt(extraGoldLoss)} denarii, -${fmt(extraPopLoss+1)} people)`,
-      "bad"
-    );
   }
 
   // Keep pop-used in sync with milites
@@ -4597,141 +5187,201 @@ function doBattle(slot){
   recalcLegionStrength();
 
   // Loot / penalties
-let loot = 0;
-let landGain = 0;
-let capturedNames = [];
-let landSlotsGain = 0;
+  let loot = 0;
+  let landGain = 0;
+  let capturedNames = [];
+  let landSlotsGain = 0;
 
-if(sim.win){
-  S.battlesWon = (S.battlesWon||0) + 1;
-
-  const tier = sim.tier;
-  const enemies = sim.enemies;
-  const winP = sim.winP;
-
-  // Base loot scales strongly with enemy count and tier
-  const basePerEnemy = 4 + tier * 1.4; // 5.4–12.4 denarii per enemy
-  let baseLoot = enemies * basePerEnemy;
-
-  // Risk bonus: riskier fights (lower winP) pay more
-  const riskBonus = 0.9 + (1 - winP) * 1.6; // 0.9x at 100% win, up to ~2.5x at very risky
-
-  // Slight extra for higher tiers so late-game fights feel chunky
-  const tierBonus = 1 + Math.max(0, tier - 1) * 0.18;
-
-  loot = Math.round(baseLoot * riskBonus * tierBonus);
-
-  S.gold += loot;
-  S.lifetimeGold += loot;
-  bumpEarnedDenarii(loot);
-
-  // Land gain: larger and higher-tier fights grant more territory
-  let baseLand = enemies / (42 - tier * 3); // generous at high tiers
-  if(winP < 0.45) baseLand *= 1.35; // reward gutsy wins
-
-  // Ensure every victory grants at least 1 land so battles always feel rewarding.
-  landGain = Math.max(1, Math.floor(Math.max(0, baseLand)));
-  landGain = clamp(landGain, 1, 10 + tier * 2);
-
-  S.land = (S.land||0) + landGain;
-
-  // NEW: capture named territories (1 per land gained)
-  const newTerritories = [];
-  for(let i=0;i<landGain;i++){
-    const t = captureTerritory(tier);
-    if(t) newTerritories.push(t);
-  }
-  // Track captured names for the victory report + logs
-  capturedNames = newTerritories.map(t=>t.name);
-
-  // Compute land-effect "slots" from land type system (pop contribution)
-  landSlotsGain = 0;
-  for(const terr of newTerritories){
-    const eff = LAND_TYPE_EFFECTS && LAND_TYPE_EFFECTS[terr.name];
-    if(eff && eff.pop) landSlotsGain += eff.pop;
-  }
-
-  // Renown is now earned primarily from victories.
-  let renGain = Math.max(1, Math.round(loot/130) + Math.round(landGain*2) + tier*3);
-  renGain = Math.round(renGain * landAllocRenownMult());
-  S.renown += renGain;
-  S.lifetimeRenown += renGain;
-
-  bumpObjective("winBattle", 1);
-  bumpObjective("gainLand", landGain);
-
-  maybeBurst("battle");
-
-  // Political capital: victories generate influence for the Court.
-  const infGain = Math.max(1, Math.round(1 + sim.tier * 0.8 + landGain * 0.4));
-  S.influence += infGain;
-
-  toast("Victory!");
-
-  const yourLossPct = Math.round(100 * losses / Math.max(1, beforeWarriors || 1));
-  let winTag;
-  if(yourLossPct <= 6)       winTag = "Clean win";
-  else if(yourLossPct <= 18) winTag = "Hard win";
-  else                       winTag = "Pyrrhic win";
-
-  
-  // Build a multi-line victory log using the land-type system:
-  // Battle Victory!
-  // Captured:
-  // • Farmlands ×2
-  // • Marsh Flats ×1
-  // +80 Renown
-  // +120 Denarii
-  // Milites lost: 4
-
-  const lines = [];
-  lines.push("Battle Victory!");
-
-  if(landGain > 0 && newTerritories.length){
-    lines.push("Captured:");
-    const counts = {};
-    for(const terr of newTerritories){
-      counts[terr.name] = (counts[terr.name]||0) + 1;
+  if(sim.win){
+    // Retire this enemy context so a new named foe can appear next time at this slot.
+    if (S.battleContexts && sim && typeof sim.tier === "number") {
+      const key = sim.tier + ":" + slot;
+      delete S.battleContexts[key];
     }
-    Object.entries(counts).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([name,count])=>{
-      lines.push(`• ${name} ×${fmt(count)}`);
-    });
+    S.battlesWon = (S.battlesWon||0) + 1;
+
+    const tier = sim.tier;
+    const enemies = sim.enemies;
+    const winP = sim.winP;
+
+    // Base loot scales strongly with enemy count and tier
+    const basePerEnemy = 4 + tier * 1.4; // 5.4–12.4 denarii per enemy
+    let baseLoot = enemies * basePerEnemy;
+
+    // Risk bonus: riskier fights (lower winP) pay more
+    const riskBonus = 0.9 + (1 - winP) * 1.6; // 0.9x at 100% win, up to ~2.5x at very risky
+
+    // Slight extra for higher tiers so late-game fights feel chunky
+    const tierBonus = 1 + Math.max(0, tier - 1) * 0.18;
+
+    loot = Math.round(baseLoot * riskBonus * tierBonus);
+
+    if(isDefence){
+      // --- DEFENSIVE BATTLE REWARD (no land, safer fantasy) ---
+      loot = Math.max(5, Math.round(loot * 0.55));
+      S.gold += loot;
+      S.lifetimeGold += loot;
+      bumpEarnedDenarii(loot);
+
+      // Moderate renown for holding the line
+      let renGain = Math.max(1, Math.round(enemies / 18) + tier * 2);
+      renGain = Math.round(renGain * landAllocRenownMult());
+      S.renown += renGain;
+      S.lifetimeRenown += renGain;
+
+      bumpObjective("winBattle", 1);
+      maybeBurst("battle");
+
+      toast("Village defended!");
+
+      const yourLossPct = Math.round(100 * losses / Math.max(1, beforeWarriors || 1));
+      let winTag;
+      if(yourLossPct <= 6)       winTag = "Clean defence";
+      else if(yourLossPct <= 18) winTag = "Hard defence";
+      else                       winTag = "Pyrrhic defence";
+
+      const lines = [];
+      lines.push("Defence Successful!");
+      lines.push(`• ${b.label}`);
+      lines.push("");
+      lines.push(`+${fmt(renGain)} Renown`);
+      lines.push(`+${fmt(loot)} Denarii`);
+      lines.push(`Milites lost: ${fmt(losses)} (${winTag})`);
+
+      logLine(lines.join("\\n"), "good");
+    } else {
+      // --- OFFENSIVE CAMPAIGN REWARD (normal land-granting battles) ---
+      S.gold += loot;
+      S.lifetimeGold += loot;
+      bumpEarnedDenarii(loot);
+
+      // Land gain: only from territorial battles (field actions, sieges, and some high-tier feuds)
+      let baseLand = enemies / (42 - tier * 3); // generous at high tiers
+      if(winP < 0.45) baseLand *= 1.35; // reward gutsy wins
+
+      // Raw land from fight size (may be zeroed by archetype rules)
+      let rawLand = Math.floor(Math.max(0, baseLand));
+      rawLand = clamp(rawLand, 0, 10 + tier * 2);
+
+      let territorial = 0;
+
+      // Archetype-based land rules
+      const arch = battleArchetypeFor(tier, slot);
+      const kind = arch && arch.kind ? arch.kind : "";
+
+      if(kind === "skirmish"){
+        // Slot 1 / pressure: never land, just momentum and loot
+        territorial = 0;
+      }else if(kind === "feud"){
+        // Feuds sometimes displace rivals at higher tiers
+        if(tier >= 3 && Math.random() < 0.45){
+          territorial = Math.max(1, rawLand || 1);
+        }else{
+          territorial = 0;
+        }
+      }else if(kind === "field"){
+        // Territorial field actions: always at least 1 land on win
+        territorial = Math.max(1, rawLand || 1);
+      }else if(kind === "siege"){
+        // Sieges / major control changes: heavier land swing
+        territorial = Math.max(2, rawLand || 2);
+      }else{
+        // Fallback: behave like a cautious territorial battle
+        territorial = Math.max(1, rawLand || 1);
+      }
+
+      landGain = territorial;
+
+      if(landGain > 0){
+        S.land = (S.land||0) + landGain;
+
+        // capture named territories (1 per land gained)
+        const newTerritories = [];
+        for(let i=0;i<landGain;i++){
+          const t = captureTerritory(tier);
+          if(t) newTerritories.push(t);
+        }
+        capturedNames = newTerritories.map(t=>t.name);
+
+        // Compute land-effect "slots" from land type system (pop contribution)
+        landSlotsGain = 0;
+        for(const terr of newTerritories){
+          const eff = LAND_TYPE_EFFECTS && LAND_TYPE_EFFECTS[terr.name];
+          if(eff && eff.pop) landSlotsGain += eff.pop;
+        }
+      } else {
+        landSlotsGain = 0;
+        capturedNames = [];
+      }
+
+      // Renown from big wins
+      let renGain = Math.max(1, Math.round(loot/130) + Math.round(landGain*2) + tier*3);
+      renGain = Math.round(renGain * landAllocRenownMult());
+      S.renown += renGain;
+      S.lifetimeRenown += renGain;
+
+      bumpObjective("winBattle", 1);
+      bumpObjective("gainLand", landGain);
+
+      maybeBurst("battle");
+
+      // Political capital: victories generate influence for the Court.
+      const infGain = Math.max(1, Math.round(1 + sim.tier * 0.8 + landGain * 0.4));
+      S.influence += infGain;
+
+      toast("Victory!");
+
+      const yourLossPct = Math.round(100 * losses / Math.max(1, beforeWarriors || 1));
+      let winTag;
+      if(yourLossPct <= 6)       winTag = "Clean win";
+      else if(yourLossPct <= 18) winTag = "Hard win";
+      else                       winTag = "Pyrrhic win";
+
+      const lines = [];
+      lines.push("Battle Victory!");
+
+      if(landGain > 0 && capturedNames.length){
+        lines.push("Captured:");
+        const counts = {};
+        for(const name of capturedNames){
+          counts[name] = (counts[name]||0) + 1;
+        }
+        Object.entries(counts).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([name,count])=>{
+          lines.push(`• ${name} ×${fmt(count)}`);
+        });
+      }else{
+        lines.push("Captured: No new land");
+      }
+
+      lines.push(`+${fmt(S.renown - startRenown)} Renown`);
+      lines.push(`+${fmt(loot)} Denarii`);
+      lines.push(`Milites lost: ${fmt(losses)} (${winTag})`);
+
+      logLine(lines.join("\\n"), "good");
+    }
   }else{
-    lines.push("Captured: No new land");
+    // Defeat path (same for both defence & offence – flavour already good)
+    const tier = sim.tier;
+    const enemies = sim.enemies;
+
+    // You lose some denarii and power, proportional to fight size.
+    const lost = Math.round((enemies * (3 + tier*1.1)) * 0.4);
+    S.gold = Math.max(0, (S.gold||0) - lost);
+    S.power = Math.max(0, S.power - (3 + Math.floor(tier/2)));
+
+    toast(isDefence ? "Defence lost" : "Defeat");
+
+    const yourLossPct = Math.round(100 * losses / Math.max(1, beforeWarriors || 1));
+    let lossTag;
+    if(yourLossPct <= 12)      lossTag = isDefence ? "Breach at the edge" : "Setback";
+    else if(yourLossPct <= 28) lossTag = "Bloody loss";
+    else                       lossTag = "Crushing loss";
+
+    logLine(
+      `☠ ${b.label} — ${lossTag}. -${fmt(lost)}d • -${fmt(losses)} milites`,
+      "bad"
+    );
   }
-
-  lines.push(`+${fmt(renGain)} Renown`);
-  lines.push(`+${fmt(loot)} Denarii`);
-  lines.push(`Milites lost: ${fmt(losses)}`);
-
-  logLine(lines.join("\n"), "good");
-}else{
-
-  const tier = sim.tier;
-
-  // Losses still sting, but not catastrophically
-  const enemies = sim.enemies;
-  const baseLoss = 14 + enemies * 0.22;
-  const scaledLoss = baseLoss * (0.7 + tier * 0.22);
-  const lost = Math.min(S.gold, Math.round(scaledLoss));
-
-  S.gold -= lost;
-  S.power = Math.max(0, S.power - (3 + Math.floor(tier/2)));
-
-  toast("Defeat");
-
-  const yourLossPct = Math.round(100 * losses / Math.max(1, beforeWarriors || 1));
-  let lossTag;
-  if(yourLossPct <= 12)      lossTag = "Setback";
-  else if(yourLossPct <= 28) lossTag = "Bloody loss";
-  else                       lossTag = "Crushing loss";
-
-  logLine(
-    `☠ ${b.label} — ${lossTag}. -${fmt(lost)}d • -${fmt(losses)} milites`,
-    "bad"
-  );
-}
-
 
   // --- Legion morale & veterancy (hidden) ---
   const baseBefore = beforeWarriors || 0;
@@ -4770,10 +5420,10 @@ if(sim.win){
     }
   }
 
-// Cooldown
-S.battleReadyAt = Date.now() + battleCooldownMs();
+  // Cooldown
+  S.battleReadyAt = Date.now() + battleCooldownMs();
 
-const rep = {
+  const rep = {
     label: b.label,
     enemies: sim.enemies,
     winP: sim.winP,
@@ -4786,14 +5436,15 @@ const rep = {
     renDelta: Math.round((S.renown||0) - startRenown),
     landSlots: sim.win ? landSlotsGain : 0,
     territoryNames: sim.win ? (capturedNames || []) : [],
-    note: sim.win ? "You held the field and counted the fallen." : "You retreat to lick your wounds."
+    note: sim.win
+      ? (isDefence ? "You hold the fields around your village." : "You held the field and counted the fallen.")
+      : "You retreat to lick your wounds."
   };
 
   // Show cinematic sim, then report
   showBattleSimulation(rep, sim.tier);
   render();
 }
-
 // Battle buttons
 $("#btnBattleBandits1").addEventListener("click", ()=> doBattle(0));
 $("#btnBattleLevy").addEventListener("click", ()=> doBattle(1));
@@ -5178,5 +5829,5 @@ $("#btnExport").addEventListener("click", async ()=>{
   </div>
 
 
-</body>
-</html>
+
+<!-- === Battle Variety & Land Plausibility Patch (appended) === -->
