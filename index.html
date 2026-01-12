@@ -4362,6 +4362,42 @@ function renderObjectives(){
       S.population = beforePop + settlersGain;
     }
 
+    // ----- Living Realm Offline: build farms and villas while away -----
+    // After collecting income and settlers, villagers may cultivate new farms and erect villas.
+    // Use a simple time-slicing model: each farm takes ~2h of offline time and each villa ~8h.
+    // Only build if you can afford the cost and, for villas, if your village has enough people.
+    let offlineFarmsBuilt = 0;
+    let offlineVillasBuilt = 0;
+    let timeRemaining = cappedSec;
+    const farmBuildTime = 2 * 60 * 60;   // 2 hours per farm
+    const villaBuildTime = 8 * 60 * 60;  // 8 hours per villa
+
+    // Build farms first: inexpensive economic expansion.
+    while(timeRemaining >= farmBuildTime){
+      const c = costFarm();
+      // Break if you can't afford the next farm.
+      if(S.gold < c) break;
+      // Deduct cost and build.
+      S.gold -= c;
+      S.farmCount = (S.farmCount || 0) + 1;
+      offlineFarmsBuilt++;
+      // Advance time and update any relevant objectives.
+      if(typeof bumpObjective === "function") bumpObjective("buildFarm", 1);
+      timeRemaining -= farmBuildTime;
+    }
+
+    // Then build villas: slow, prestige-oriented expansion.
+    while(timeRemaining >= villaBuildTime){
+      const c = costVilla();
+      // Must have enough gold and at least 20 residents to justify a new villa.
+      if(S.gold < c || (S.population || 0) < 20) break;
+      S.gold -= c;
+      S.villaCount = (S.villaCount || 0) + 1;
+      offlineVillasBuilt++;
+      if(typeof bumpObjective === "function") bumpObjective("buildVilla", 1);
+      timeRemaining -= villaBuildTime;
+    }
+
     // Lifetime offline tracking
     if(!S.lifetimeOfflineSec || !Number.isFinite(S.lifetimeOfflineSec)){
       S.lifetimeOfflineSec = 0;
@@ -4387,6 +4423,9 @@ function renderObjectives(){
       landBoost,
       land: S.land || 0,
       territories: (typeof territoryCount === "function") ? territoryCount() : (S.land || 0)
+      ,
+      farmsBuilt: offlineFarmsBuilt,
+      villasBuilt: offlineVillasBuilt
     };
 
     showOfflineOverlay(summary);
@@ -4412,47 +4451,78 @@ function renderObjectives(){
     if(!overlay || !body) return;
 
     const duration = formatDuration(summary.seconds || 0);
+
+    // Construct narrative lines reflecting offline events.
     const goldLine = summary.goldGain > 0
-      ? `Your lands produced ${fmt(summary.goldGain)} denarii while you were away.`
-      : `Your lands held steady while you were away.`;
+      ? `💰 Your stewards collected ${fmt(summary.goldGain)} denarii in taxes.`
+      : `💰 No taxes were collected.`;
 
-    const settlersLine = summary.settlersGain > 0
-      ? `👥 ${summary.settlersGain} settler${summary.settlersGain===1?"":"s"} joined your village.`
-      : "No new settlers arrived (village at capacity).";
+    const familiesLine = summary.settlersGain > 0
+      ? `👥 ${summary.settlersGain} new famil${summary.settlersGain===1?"y":"ies"} settled in your lands.`
+      : "👥 No new families settled (village at capacity).";
 
+    // Offline construction lines.
+    const buildLines = [];
+    if(summary.farmsBuilt && summary.farmsBuilt > 0){
+      const n = summary.farmsBuilt;
+      buildLines.push(`🌾 ${n} farm${n===1?"":"s"} ${n===1?"was":"were"} cultivated while you were away`);
+    }
+    if(summary.villasBuilt && summary.villasBuilt > 0){
+      const n = summary.villasBuilt;
+      buildLines.push(
+        n===1
+          ? `🏛 A villa was completed while you were away`
+          : `🏛 ${n} villas were completed while you were away`
+      );
+    }
+
+    // Economic hints for active play: show income rates and boosts if present.
     const farmVillaBits = [];
     if(summary.farmRate > 0)  farmVillaBits.push(`Farms ~${summary.farmRate.toFixed(2)}/s`);
     if(summary.villaRate > 0) farmVillaBits.push(`Villas ~${summary.villaRate.toFixed(2)}/s`);
     if(summary.landBoost > 0) farmVillaBits.push(`Territories boosted income`);
-
     const economyLine = farmVillaBits.length
       ? farmVillaBits.join(" • ")
       : "Build farms, villas, and claim land to earn while away.";
 
-    const tilesLine = `You now hold ${fmt(summary.territories || 0)} territories (${fmt(summary.land || 0)} land).`;
+    const tilesLine = `You now hold ${fmt(summary.territories || 0)} territor${(summary.territories || 0)===1?"y":"ies"} (${fmt(summary.land || 0)} land).`;
 
+    // Render lines into overlay body.
     body.innerHTML = "";
 
+    // Intro line
     const pIntro = document.createElement("p");
     pIntro.textContent = `You were away for about ${duration}.`;
     body.appendChild(pIntro);
 
+    // Construction lines, each as its own paragraph.
+    for(const line of buildLines){
+      const p = document.createElement("p");
+      p.textContent = line;
+      body.appendChild(p);
+    }
+
+    // Population growth line
+    const pFamilies = document.createElement("p");
+    pFamilies.textContent = familiesLine;
+    body.appendChild(pFamilies);
+
+    // Income/taxes line
     const pGold = document.createElement("p");
     pGold.textContent = goldLine;
     body.appendChild(pGold);
 
-    const pSet = document.createElement("p");
-    pSet.textContent = settlersLine;
-    body.appendChild(pSet);
-
+    // Economic summary / hints
     const pEco = document.createElement("p");
     pEco.textContent = economyLine;
     body.appendChild(pEco);
 
+    // Territory summary
     const pTiles = document.createElement("p");
     pTiles.textContent = tilesLine;
     body.appendChild(pTiles);
 
+    // Finally show overlay
     overlay.removeAttribute("hidden");
     overlay.classList.add("visible");
   }
