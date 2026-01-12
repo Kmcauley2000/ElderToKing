@@ -99,7 +99,23 @@ body::after{
       white-space:nowrap;
       user-select:none;
     }
-    .pill b{color:var(--accent);font-weight:900;font-size:.9rem;letter-spacing:.03em;}
+    
+/* Main resource pill (Renown) */
+.pill--main{
+  padding:10px 14px;
+  border-color: rgba(244,208,111,.95);
+  box-shadow: 0 14px 30px rgba(0,0,0,.25), 0 0 18px rgba(244,208,111,.22);
+  transform: translateY(-1px);
+}
+.pill--main b{ font-size: 18px; letter-spacing:.2px; }
+.pillSub{
+  display:block;
+  margin-top:2px;
+  font-size:11px;
+  color: var(--muted);
+  line-height:1.1;
+}
+.pill b{color:var(--accent);font-weight:900;font-size:.9rem;letter-spacing:.03em;}
     .card{
       background: rgba(255,255,255,0.06);
       border:1px solid rgba(244, 170, 92, 0.55);
@@ -1143,16 +1159,16 @@ header{
           <p class="sub" id="subline">One main action per tab. Everything else is optional.</p>
         </div>
         <div class="hud">
-          <div class="pill">
+          <div class="pill pill--main" id="renownPill">
             <span style="display:inline-flex;align-items:center;gap:6px;">
-              <img src="Sprites/Denarii Icon.png" alt="Denarii" style="width:18px;height:18px;image-rendering:pixelated;">
-              <span>Denarii <b id="gold">0</b></span>
+              <img src="Sprites/Renown Icon.png" alt="Renown" style="width:18px;height:18px;image-rendering:pixelated;">
+              <span>Renown <b id="renown">0</b></span>
             </span>
           </div>
           <div class="pill">
             <span style="display:inline-flex;align-items:center;gap:6px;">
-              <img src="Sprites/Renown Icon.png" alt="Renown" style="width:18px;height:18px;image-rendering:pixelated;">
-              <span>Renown <b id="renown">0</b></span>
+              <img src="Sprites/Denarii Icon.png" alt="Denarii" style="width:18px;height:18px;image-rendering:pixelated;">
+              <span>Denarii <b id="gold">0</b></span>
             </span>
           </div>
           <div class="pill">Land <b id="landHud">0</b></div>
@@ -4808,6 +4824,20 @@ function showBattleReport(rep){
   const lines = [];
   lines.push(rep.win ? "Battle Victory!" : "Battle Defeat.");
 
+  // Show treasure tier (if this warband was carrying extra spoils)
+  if(rep && rep.win && rep.treasureType && rep.treasureType !== "normal"){
+    let tLabel = "";
+    if(rep.treasureType === "fat") tLabel = "Treasure: Fat purses";
+    else if(rep.treasureType === "rich") tLabel = "Treasure: Rich caravan";
+    else if(rep.treasureType === "jackpot") tLabel = "Treasure: Jackpot hoard";
+    if(tLabel) lines.push(tLabel);
+  }
+
+  // Show the actual battle loot (not just net delta) so it always "feels" like a reward
+  if(rep && rep.win && typeof rep.loot === "number" && rep.loot > 0){
+    lines.push(`Loot taken: +${fmt(Math.round(rep.loot))} Denarii`);
+  }
+
   if(rep.win){
     const names = Array.isArray(rep.territoryNames) ? rep.territoryNames : [];
     if(names.length > 0){
@@ -5614,6 +5644,10 @@ function doBattle(slot, opts){
     afterWarriors: S.warriors||0,
     losses,
     denDelta: Math.round(S.gold - startGold),
+    loot: loot || 0,
+    treasureType: (sim && sim.treasureType) ? sim.treasureType : "normal",
+    treasureLootMult: (sim && typeof sim.treasureLootMult === "number") ? sim.treasureLootMult : 1,
+
     landDelta: Math.round((S.land||0) - startLand),
     renDelta: Math.round((S.renown||0) - startRenown),
     landSlots: sim.win ? landSlotsGain : 0,
@@ -6101,6 +6135,15 @@ function startTacticalBattle(slot, defenceFlag){
     btn.onclick = function(){
       overlay.style.display = 'none';
     };
+  }
+
+
+  // --- Renown feedback toast (small) ---
+  function showRenownToast(amount, label){
+    try{
+      const s = (amount>=0?"+":"") + amount;
+      showToast(`${s} Renown${label?(" • "+label):""}`, amount>=0 ? "good" : "bad");
+    }catch(e){}
   }
 
 </script>
