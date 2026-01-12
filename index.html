@@ -719,8 +719,11 @@ body::after{
       align-items:center;
       justify-content:center;
       pointer-events:auto;
-      background:radial-gradient(800px 600px at 50% 0%, rgba(244,208,111,.20), transparent 60%),
-                 linear-gradient(180deg, rgba(7,10,8,.96), rgba(7,10,8,.98));
+      background:
+        radial-gradient(900px 700px at 10% 0%, rgba(244,208,111,.22), transparent 55%),
+        radial-gradient(900px 650px at 90% 25%, rgba(192,108,59,.22), transparent 55%),
+        linear-gradient(180deg, rgba(7,10,8,.96), rgba(7,10,8,.98));
+      backdrop-filter: blur(4px);
     }
     .offlineOverlay[hidden]{
       display:none;
@@ -732,9 +735,9 @@ body::after{
       max-width:640px;
       width:100%;
       border-radius:24px;
-      background:rgba(3,7,5,0.96);
-      border:1px solid rgba(244,208,111,0.28);
-      box-shadow:var(--shadow);
+      border:1px solid rgba(158,104,54,.9);
+      background: linear-gradient(180deg,#fbf4e7,#f4e3cf);
+      box-shadow:0 18px 42px rgba(0,0,0,.65);
       padding:18px 18px 16px;
       color:var(--text);
       font-family:var(--sans);
@@ -744,14 +747,17 @@ body::after{
       align-items:center;
       justify-content:space-between;
       gap:12px;
-      margin-bottom:10px;
+      margin-bottom:8px;
     }
     .offlineTitleText{
-      font-size:1.05rem;
-      letter-spacing:.03em;
+      font-family:var(--mono);
+      font-size:1rem;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      color:var(--accent);
     }
     .offlineSub{
-      font-family:var(--mono);
+      font-family:var(--sans);
       font-size:.78rem;
       color:var(--muted);
       margin-bottom:8px;
@@ -759,7 +765,7 @@ body::after{
     .offlineBody{
       font-size:.82rem;
       line-height:1.4;
-      color:var(--muted);
+      color:var(--text);
       display:flex;
       flex-direction:column;
       gap:4px;
@@ -774,18 +780,22 @@ body::after{
     }
     .offlineOkBtn{
       min-width:120px;
-      padding:7px 14px;
+      padding:9px 18px;
       border-radius:999px;
-      border:none;
+      border:1px solid rgba(158,104,54,.9);
       cursor:pointer;
-      background:linear-gradient(180deg, rgba(244,208,111,.95), rgba(209,146,72,1));
-      color:#301a04;
+      background: linear-gradient(180deg,#fdf6eb,#f2e0c5);
+      color:var(--text);
       font-family:var(--mono);
       font-size:.82rem;
       letter-spacing:.05em;
       text-transform:uppercase;
-      box-shadow:0 8px 20px rgba(0,0,0,0.55);
+      box-shadow:0 10px 26px rgba(0,0,0,.45);
     }
+    .offlineOkBtn:active{
+      transform:translateY(1px) scale(.985);
+    }
+
 /* Intro overlay */
     .introOverlay{
       position:fixed;
