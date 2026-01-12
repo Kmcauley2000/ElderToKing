@@ -165,6 +165,7 @@ body::after{
     .bigRight .gain{font-size:.90rem;}
     .bigRight .hint{font-size:.72rem;color:var(--muted);margin-top:2px;}
     .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+    .row2.battleRow{grid-template-columns:1fr;}
     .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;}
     @media (max-width: 520px){ .row3{grid-template-columns:1fr;} }
 
@@ -202,10 +203,23 @@ body::after{
     }
 
     .smallBtn.battleCard .t{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:6px;
       font-size:.82rem;
       font-weight:700;
       letter-spacing:.01em;
       color:var(--text);
+    }
+    .battleTitleText{
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .battleStars{
+      font-size:.78rem;
+      opacity:.9;
     }
 
     .smallBtn.battleCard .d{
@@ -1265,7 +1279,7 @@ header{
         </button>
 
         
-        <div class="row2">
+        <div class="row2 battleRow">
           <button class="smallBtn battleCard" id="btnBattleBandits1">
             <div class="t">Crush bandits</div>
             <div class="d" id="battleBandits1Desc">10–50 enemies • quick skirmish</div>
@@ -2529,6 +2543,77 @@ function decreeMult(){
     return 6;
   }
 
+  function battleDifficultyForTier(tier){
+    if(tier <= 1) return { baseStars: 1, name: "Easy" };
+    if(tier === 2) return { baseStars: 2, name: "Normal" };
+    if(tier === 3) return { baseStars: 3, name: "Hard" };
+    if(tier === 4) return { baseStars: 4, name: "Very Hard" };
+    return { baseStars: 5, name: "Deadly" };
+  }
+
+  function battleRarityFromStars(stars){
+    if(stars <= 1) return "Common";
+    if(stars === 2) return "Uncommon";
+    if(stars === 3) return "Rare";
+    if(stars === 4) return "Epic";
+    return "Mythic";
+  }
+
+
+  function battleFactionMetaForTier(tier, kind, min, max){
+    const maxEnemies = max || min || 0;
+    let scale;
+    if(maxEnemies <= 40)      scale = "Small";
+    else if(maxEnemies <= 200) scale = "Medium";
+    else if(maxEnemies <= 800) scale = "Large";
+    else                       scale = "Huge";
+
+    let icon = "⚔️";
+    let name = "Warband";
+    let order = "Disciplined";
+
+    if(tier <= 1){
+      icon = "🗡";
+      name = "Bandits";
+      order = "Disorganized";
+    }else if(tier === 2){
+      icon = "⚔️";
+      name = "Clan Raiders";
+      order = "Loose warbands";
+    }else if(tier === 3){
+      icon = "⚔️";
+      name = "Levy of Local Lord";
+      order = "Disciplined";
+    }else if(tier === 4){
+      icon = "🏰";
+      name = "Town Militia";
+      order = "Fortified";
+    }else if(tier === 5){
+      icon = "🏰";
+      name = "City Garrison";
+      order = "Veteran garrison";
+    }else{
+      icon = "👑";
+      name = "Royal Host";
+      order = "Elite host";
+    }
+
+    return { icon, name, scale, order };
+  }
+
+  function battleOutcomeLabel(kind, tier){
+    if(kind === "skirmish") return "Outcome: Gold + small renown";
+    if(kind === "feud"){
+      return tier <= 2
+        ? "Outcome: Renown, small chance of territory"
+        : "Outcome: Renown + chance of territory";
+    }
+    if(kind === "field") return "Outcome: Renown + territory";
+    if(kind === "siege") return "Outcome: High renown + territory";
+    return "Outcome: Renown";
+  }
+
+
   // Narrative battle archetypes by tier (Hybrid: title tier × slot)
   // kind:
   //  - "skirmish"  → never grants land
@@ -2727,7 +2812,7 @@ const BATTLE_ARCHETYPES = {
 
   // Faction "classes" stay extremely short and minimal for card readability.
   const HOUSE_CLASSES_TRIBAL = [
-    "Herders","Reivers","Rustlers","Spearmen","Youth"
+    "Bandits","Rustlers","Hill Raiders","Cattle-Thieves","Marsh Bandits"
   ];
   const HOUSE_CLASSES_MARCHER = [
     "Levies","Banners","Marchers","Retinue","Shieldmen"
@@ -2767,6 +2852,22 @@ const BATTLE_ARCHETYPES = {
     const min = baseDef.enemyMin;
     const max = baseDef.enemyMax;
     const approx = (min === max) ? `${min}` : `${min}–${max}`;
+
+    // Base difficulty from title tier
+    const baseDiff = battleDifficultyForTier(tier);
+    let stars = baseDiff.baseStars;
+
+    // Rarity roll: most cards stay at base difficulty, some roll higher
+    const roll = Math.random();
+    if(roll > 0.97){
+      stars += 2;
+    }else if(roll > 0.85){
+      stars += 1;
+    }
+    stars = clamp(stars, 1, 5);
+
+    const rarity = battleRarityFromStars(stars);
+
     let doing;
     if(arch && arch.flavour){
       doing = arch.flavour;
@@ -2788,7 +2889,10 @@ const BATTLE_ARCHETYPES = {
       kind: arch && arch.kind,
       leader,
       approx,
-      doing
+      doing,
+      difficultyStars: stars,
+      difficultyName: baseDiff.name,
+      rarityLabel: rarity
     };
   }
 
@@ -4291,9 +4395,24 @@ function renderObjectives(){
       const label = ctx.label;
       base.label = label;
 
-      if(tEl) tEl.textContent = label;
+      if(tEl){
+        const starsCount = ctx.difficultyStars || 1;
+        const stars = "★".repeat(starsCount);
+        const rarity = ctx.rarityLabel || "";
+        const diffName = ctx.difficultyName || "";
+        const ariaHint = diffName
+          ? (rarity ? diffName + " • " + rarity : diffName)
+          : rarity;
+        tEl.innerHTML =
+          `<span class="battleTitleText">${label}</span>` +
+          `<span class="battleStars" aria-label="${ariaHint}">${stars}</span>`;
+      }
       if(dEl){
-        // Example: "10–25 enemies • Skirmish • Led by Varro Tatius"
+        // Structured battle preview:
+        //  Line 1: Faction (icon + name)
+        //  Line 2: Scale • Discipline • enemies • Tier
+        //  Line 3: Leader
+        //  Line 4: Outcome hint
         const kind = ctx.kind || (arch && arch.kind) || "";
         const kindTag = kind === "skirmish"
           ? "Skirmish"
@@ -4305,15 +4424,28 @@ function renderObjectives(){
                 ? "Siege"
                 : "";
 
-        // Line 1: short mechanical summary
-        const line1 = kindTag
-          ? `${range} enemies • ${kindTag}`
-          : `${range} enemies`;
-
-        // Line 2: minimal faction identity (root — class)
+        const faction = battleFactionMetaForTier(tier, kind, min, max);
         const leader = ctx.leader || "";
+        const outcome = battleOutcomeLabel(kind, tier);
 
-        dEl.textContent = leader ? `${line1}\n${leader}` : line1;
+        const line1 = `${faction.icon} ${faction.name}`;
+
+        const parts2 = [];
+        if(faction.scale) parts2.push(faction.scale);
+        if(faction.order) parts2.push(faction.order);
+        if(range) parts2.push(`${range} enemies`);
+        parts2.push(`Tier ${tier}`);
+        const line2 = parts2.join(" • ");
+
+        const line3 = leader ? `Leader: ${leader}` : "";
+        const line4 = outcome;
+
+        let txt = line1;
+        if(line2) txt += "\n" + line2;
+        if(line3) txt += "\n" + line3;
+        if(line4) txt += "\n" + line4;
+
+        dEl.textContent = txt;
       }
     }
     const cd = 0; // battle cooldown disabled
@@ -4894,6 +5026,15 @@ window.closeBattleReport = closeBattleReport;
 window.showBattleReport = showBattleReport;
 
 // --- Battle Simulation (cinematic log before the report) ---
+function battleTierFoeLabel(tier){
+  if(tier===1) return "Bandit gangs & feuding kin";
+  if(tier===2) return "Rival clans & raiders";
+  if(tier===3) return "Border levies & warbands";
+  if(tier===4) return "Rebellions & allied hosts";
+  if(tier===5) return "Lords, veterans & garrisons";
+  return "Royal armies & great hosts";
+}
+
 function battleFlavorByTier(tier){
   if(tier===1) return { place:["farm edge","stone well","fence line","grazing field"], foe:["brawlers","rustlers","feuding kin","thieves"] };
   if(tier===2) return { place:["clan boundary","ancestral fields","ridge path","cattle track"], foe:["militia","raiders","retainers","clansmen"] };
