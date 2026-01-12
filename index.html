@@ -2997,11 +2997,38 @@ function captureTerritory(battleTier){
 
   enemyPower *= tierMult * slotMult;
 
+  // --- Treasure caravans: sometimes enemies are richer (and tougher) ---
+  let treasureType = "normal";
+  let treasureLootMult = 1;
+  let treasurePowerMult = 1;
+
+  {
+    const tRoll = Math.random();
+    // Mildly loaded warband
+    if (tRoll < 0.32) {
+      treasureType = "fat";
+      treasureLootMult = 1.35;
+      treasurePowerMult = 1.06;
+    }
+    // Well‑supplied caravan
+    if (tRoll < 0.12) {
+      treasureType = "rich";
+      treasureLootMult = 1.8;
+      treasurePowerMult = 1.12;
+    }
+    // Rare jackpot hoard
+    if (tRoll < 0.04) {
+      treasureType = "jackpot";
+      treasureLootMult = 3.0;
+      treasurePowerMult = 1.25;
+    }
+  }
+
   // Enemies "learn" you as you win more.
   const learnDivBase = [1000, 260, 190, 140];
   const learnDiv = learnDivBase[Math.min(slot, learnDivBase.length - 1)] || 250;
   const learn = 1 + Math.min(wins / learnDiv, 0.18);
-  enemyPower *= learn;
+  enemyPower *= learn * treasurePowerMult;
 
   // --- CONVERT POWER → HIDDEN STATS (HP / ATK / DEF / Armor) ---
   const hpPerPower   = 14;
@@ -3154,7 +3181,9 @@ function captureTerritory(battleTier){
     winP,
     win,
     losses,
-    tier
+    tier,
+    treasureType,
+    treasureLootMult
   };
 }
 
@@ -5337,9 +5366,11 @@ function doBattle(slot, opts){
     const enemies = sim.enemies;
     const winP = sim.winP;
 
-    // Base loot scales strongly with enemy count and tier
-    const basePerEnemy = 4 + tier * 1.4; // 5.4–12.4 denarii per enemy
-    let baseLoot = enemies * basePerEnemy;
+    // Base loot is now mostly driven by how many enemies you defeat,
+    // with per‑battle noise so some groups carry fatter purses than others.
+    const basePerEnemy = 6 + tier * 2.5; // 8.5–18.5 denarii per enemy (before modifiers)
+    const perEnemyNoise = 0.8 + Math.random() * 0.8; // 0.8x–1.6x variation per battle
+    let baseLoot = enemies * basePerEnemy * perEnemyNoise;
 
     // Risk bonus: riskier fights (lower winP) pay more
     const riskBonus = 0.9 + (1 - winP) * 1.6; // 0.9x at 100% win, up to ~2.5x at very risky
@@ -5347,7 +5378,10 @@ function doBattle(slot, opts){
     // Slight extra for higher tiers so late-game fights feel chunky
     const tierBonus = 1 + Math.max(0, tier - 1) * 0.18;
 
-    loot = Math.round(baseLoot * riskBonus * tierBonus);
+    // Treasure caravans (from battleSim) further swing the payout.
+    const treasureLootMult = sim.treasureLootMult || 1;
+
+    loot = Math.round(baseLoot * riskBonus * tierBonus * treasureLootMult);
 
     if(isDefence){
       // --- DEFENSIVE BATTLE REWARD (no land, safer fantasy) ---
@@ -5377,11 +5411,20 @@ function doBattle(slot, opts){
       lines.push("Defence Successful!");
       lines.push(`• ${b.label}`);
       lines.push("");
+
+      if (sim.treasureType && sim.treasureType !== "normal") {
+        let tLabel = "";
+        if (sim.treasureType === "fat")      tLabel = "Treasure: Fat purses";
+        else if (sim.treasureType === "rich")    tLabel = "Treasure: Rich caravan";
+        else if (sim.treasureType === "jackpot") tLabel = "Treasure: Jackpot hoard";
+        if (tLabel) lines.push(tLabel);
+      }
+
       lines.push(`+${fmt(renGain)} Renown`);
       lines.push(`+${fmt(loot)} Denarii`);
       lines.push(`Milites lost: ${fmt(losses)} (${winTag})`);
 
-      logLine(lines.join("\\n"), "good");
+      logLine(lines.join("\n"), "good");
     } else {
       // --- OFFENSIVE CAMPAIGN REWARD (normal land-granting battles) ---
       S.gold += loot;
@@ -5486,11 +5529,19 @@ function doBattle(slot, opts){
         lines.push("Captured: No new land");
       }
 
+      if (sim.treasureType && sim.treasureType !== "normal") {
+        let tLabel = "";
+        if (sim.treasureType === "fat")      tLabel = "Treasure: Fat purses";
+        else if (sim.treasureType === "rich")    tLabel = "Treasure: Rich caravan";
+        else if (sim.treasureType === "jackpot") tLabel = "Treasure: Jackpot hoard";
+        if (tLabel) lines.push(tLabel);
+      }
+
       lines.push(`+${fmt(S.renown - startRenown)} Renown`);
       lines.push(`+${fmt(loot)} Denarii`);
       lines.push(`Milites lost: ${fmt(losses)} (${winTag})`);
 
-      logLine(lines.join("\\n"), "good");
+      logLine(lines.join("\n"), "good");
     }
   }else{
     // Defeat path (same for both defence & offence – flavour already good)
