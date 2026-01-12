@@ -1031,6 +1031,70 @@ header{
 .card:first-of-type{
   margin-top: 18px;
 }
+
+
+/* --- Refined battle HP bar styling (ally/enemy) --- */
+.battleBar{
+  position: relative;
+  display: inline-block;
+  max-width: 280px;
+  width: 100%;
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+  background: radial-gradient(circle at 10% 0%, rgba(255,255,255,0.55), rgba(0,0,0,0.45));
+}
+
+.battleBarSprite{
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: none;
+  image-rendering: auto;
+}
+
+.battleBar::before{
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 999px;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(0,0,0,0.5), transparent 35%, transparent 65%, rgba(0,0,0,0.45));
+  mix-blend-mode: soft-light;
+}
+
+.battleBarCount{
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--mono);
+  font-size: .86rem;
+  letter-spacing: .03em;
+  font-weight: 600;
+}
+
+.battleBarCount--ally{
+  color: #e9f9ec;
+  text-shadow: 0 0 4px rgba(0,40,0,0.95);
+}
+
+.battleBarCount--enemy{
+  color: #ffe6e6;
+  text-shadow: 0 0 4px rgba(60,0,0,0.95);
+}
+
+@media (max-width: 520px){
+  .battleBar{
+    max-width: 240px;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.4);
+  }
+  .battleBarCount{
+    right: 14px;
+    font-size: .78rem;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -1817,6 +1881,174 @@ header{
     }
   }
 
+
+  // --- Rank up celebration: confetti + popup + follow-up toast ---
+
+  function rankTierLabel(tier){
+    if(tier === 1) return "Title Tier I";
+    if(tier === 2) return "Title Tier II";
+    if(tier === 3) return "Title Tier III";
+    if(tier === 4) return "Title Tier IV";
+    if(tier === 5) return "Title Tier V";
+    return "High Tier";
+  }
+
+  function rankUpFlavorLine(tier){
+    const poolByTier = {
+      1: [
+        "The village finally understands who is in charge.",
+        "Fireside whispers turn into open praise."
+      ],
+      2: [
+        "Clans begin measuring themselves against you.",
+        "Your banner is becoming a rallying point."
+      ],
+      3: [
+        "Warbands start to offer their steel first.",
+        "Tribes weigh their plans around your mood."
+      ],
+      4: [
+        "Councils fall quiet when you enter the hall.",
+        "Borders shift a little when you nod."
+      ],
+      5: [
+        "Whole realms tighten their defenses at your name.",
+        "You’re no longer just a leader — you’re an era."
+      ]
+    };
+    const pool = poolByTier[tier] || poolByTier[5];
+    const i = rnd(0, pool.length - 1);
+    return pool[i];
+  }
+
+  function rankUpConfettiBurst(){
+    try{
+      const vw = window.innerWidth || 400;
+      const vh = window.innerHeight || 700;
+      const bursts = 16;
+      for(let i=0; i<bursts; i++){
+        const x = rnd(Math.floor(vw*0.12), Math.floor(vw*0.88));
+        const y = rnd(Math.floor(vh*0.12), Math.floor(vh*0.55));
+        // nice, bright “royal” coins
+        sparkAt(x, y, 0.85);
+      }
+    }catch(e){}
+  }
+
+  function showRankUpPopup(cfg){
+  const titleName   = cfg.titleName   || "New Title";
+  const tier        = cfg.tier        || 1;
+  const tributeGain = cfg.tributeGain || 1;
+  const gainedRanks = cfg.gainedRanks || 1;
+
+  const tierLabel   = rankTierLabel(tier);
+  const flavour     = rankUpFlavorLine(tier);
+
+  const overlay = document.createElement("div");
+  overlay.style.position = "fixed";
+  overlay.style.inset = "0";
+  overlay.style.display = "flex";
+  overlay.style.alignItems = "center";
+  overlay.style.justifyContent = "center";
+  overlay.style.zIndex = "1200";
+
+  const backdrop = document.createElement("div");
+  backdrop.style.position = "absolute";
+  backdrop.style.inset = "0";
+  backdrop.style.background = "rgba(0,0,0,.55)";
+  backdrop.style.backdropFilter = "blur(4px)";
+
+  const card = document.createElement("section");
+  card.className = "card";
+  card.style.position = "relative";
+  card.style.maxWidth = "420px";
+  card.style.width = "92%";
+  card.style.maxHeight = "80vh";
+  card.style.overflow = "auto";
+  card.style.zIndex = "10";
+
+  const header = document.createElement("div");
+  header.className = "sectionTitle";
+  header.style.justifyContent = "center";
+  const headerSpan = document.createElement("span");
+  headerSpan.style.color = "var(--accent)";
+  headerSpan.style.fontWeight = "900";
+  headerSpan.textContent = "Rank Up!";
+  header.appendChild(headerSpan);
+
+  const body = document.createElement("div");
+  body.className = "cardBody";
+
+  const p = document.createElement("p");
+  p.style.fontSize = ".85rem";
+  p.style.margin = "0 0 10px";
+  p.textContent = flavour;
+
+  const infoBlock = document.createElement("div");
+  infoBlock.style.marginBottom = "10px";
+
+  const label = document.createElement("div");
+  label.style.fontFamily = "var(--sans)";
+  label.style.fontSize = ".84rem";
+  label.style.color = "var(--muted)";
+  label.style.marginBottom = "2px";
+  label.textContent = "New title";
+
+  const titleDiv = document.createElement("div");
+  titleDiv.style.fontSize = "1.12rem";
+  titleDiv.style.fontWeight = "700";
+  titleDiv.textContent = titleName;
+
+  const meta = document.createElement("div");
+  meta.style.fontFamily = "var(--mono)";
+  meta.style.fontSize = ".80rem";
+  meta.style.marginTop = "6px";
+  meta.style.color = "var(--muted)";
+  let metaText = tierLabel + " · Tribute base +" + tributeGain;
+  if(gainedRanks > 1){
+    metaText += " · +" + gainedRanks + " ranks at once";
+  }
+  meta.textContent = metaText;
+
+  infoBlock.appendChild(label);
+  infoBlock.appendChild(titleDiv);
+  infoBlock.appendChild(meta);
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "smallBtn";
+  btn.style.width = "100%";
+  btn.style.marginTop = "8px";
+  btn.id = "rankUpOkBtn";
+  btn.textContent = "Continue";
+
+  body.appendChild(p);
+  body.appendChild(infoBlock);
+  body.appendChild(btn);
+
+  card.appendChild(header);
+  card.appendChild(body);
+
+  overlay.appendChild(backdrop);
+  overlay.appendChild(card);
+
+  const close = ()=>{
+    try{
+      if(overlay && overlay.parentNode){
+        overlay.parentNode.removeChild(overlay);
+      }
+    }catch(e){}
+    toast("New title: " + titleName);
+  };
+
+  btn.addEventListener("click", close);
+  overlay.addEventListener("click", (ev)=>{
+    if(ev.target === overlay) close();
+  });
+
+  document.body.appendChild(overlay);
+  rankUpConfettiBurst();
+}
   // ---- Scalind + rates (make it LAST longer) ----
   function crownMult(){
     // very strong long-term scaling, but gradual
@@ -2014,9 +2246,14 @@ function decreeMult(){
     const streakBonus = 1 + Math.min(0.35, (S.streak-1)*0.018);
     const pMult = landMult() * decreeMult() * crownMult();
     const feverMult = (Date.now() < (S.feverUntil || 0)) ? 2.5 : 1;
-    const crit = chance(critChance());
-    const gain = Math.round(base * streakBonus * pMult * feverMult * (crit ? 2 : 1));
-    return { gain, crit };
+    const didCrit = chance(critChance());
+    let critMult = 1;
+    if(didCrit){
+      // Variable crits: feels spikier than a flat 2x.
+      critMult = rnd(2, 4); // 2x–4x, inclusive
+    }
+    const gain = Math.round(base * streakBonus * pMult * feverMult * critMult);
+    return { gain, crit: didCrit, critMult };
   }
 
 
@@ -2862,13 +3099,44 @@ function captureTerritory(battleTier){
   let lossFrac = (yourHPmax - Math.max(0, yourHP)) / yourHPmax;
   lossFrac = clamp(lossFrac, 0, win ? 0.65 : 0.90);
 
+  // Base losses from HP damage
   let losses = Math.round(yourTroops * lossFrac);
 
-  // Ensure meaningful attrition, especially for large forces.
+  // Strength comparison for casualty tuning
+  const powerRatioCas = yourPower / Math.max(enemyPower, 1);
+
+  // Ensure meaningful attrition, and punish underpowered wins more
   if (yourTroops > 0) {
-    const minFrac   = win ? 0.03 : 0.06; // ~3% losses on wins, ~6% on defeats for big armies
-    const minLosses = Math.max(1, Math.round(yourTroops * minFrac));
-    if (yourTroops >= 15 && losses < minLosses) losses = minLosses;
+    // Baseline chip damage for all fights
+    const baseMinFracWin = 0.03;
+    const baseMinFracLose = 0.06;
+    const baseMinFrac = win ? baseMinFracWin : baseMinFracLose;
+    let minLosses = Math.max(1, Math.round(yourTroops * baseMinFrac));
+
+    // If you scraped a win while weaker on paper, raise the floor a lot
+    if (win && powerRatioCas < 1.0) {
+      const extra = (1.0 - powerRatioCas); // how underpowered you were
+      const riskyMinFrac = 0.20 + extra * 0.40; // ~20–60% casualties for risky wins
+      const riskyLosses = Math.round(yourTroops * clamp(riskyMinFrac, 0.20, 0.80));
+      minLosses = Math.max(minLosses, riskyLosses);
+    }
+
+    // Small stacks shouldn’t have “free” victories.
+    if (yourTroops <= 8) {
+      let smallMin = win ? 1 : 2;
+      if (powerRatioCas < 0.8) smallMin += 1;
+      if (powerRatioCas < 0.5) smallMin += 1;
+      const smallLosses = Math.min(yourTroops, smallMin);
+      minLosses = Math.max(minLosses, smallLosses);
+    }
+
+    // Large armies keep a gentle floor, but never totally free hits.
+    if (yourTroops >= 15) {
+      const bigFloor = Math.round(yourTroops * baseMinFrac);
+      minLosses = Math.max(minLosses, bigFloor);
+    }
+
+    if (losses < minLosses) losses = minLosses;
     if (losses <= 0) losses = 1;
   }
 
@@ -2935,7 +3203,8 @@ function captureTerritory(battleTier){
 
   
 function handleRankUps(){
-    const { idx } = titleInfo();
+    const info = titleInfo();
+    const idx = info.idx;
     if(typeof S.rankIdx !== "number") S.rankIdx = 0;
     const prevIdx = S.rankIdx;
 
@@ -2948,10 +3217,24 @@ function handleRankUps(){
     S.tribute = Math.max(1, Math.round((S.tribute + gained * 0.25) * 10) / 10);
     S.rankIdx = idx;
 
-    logLine(`Rank up! Your tribute grows. (+${(S.tribute - before).toFixed(1)} tap base)`, "warn");
-    toast("Rank up!");
+    const tributeGain = (S.tribute - before);
+    logLine(`Rank up! Your tribute grows. (+${tributeGain.toFixed(1)} tap base)`, "good");
 
-    // NEW: notify when a new land tier unlocks
+    // Big celebration: confetti + popup + follow-up toast
+    try{
+      const titleName = info.cur && info.cur.name ? info.cur.name : "New Title";
+      const tier = titleTierFromIdx(idx);
+      showRankUpPopup({
+        titleName,
+        tier,
+        tributeGain: tributeGain.toFixed(1),
+        gainedRanks: gained
+      });
+    }catch(e){
+      toast("Rank up!");
+    }
+
+    // Notify when a new land tier unlocks
     try{
       const prevTier = titleTierFromIdx(prevIdx);
       const newTier  = titleTierFromIdx(idx);
@@ -3885,7 +4168,8 @@ function renderObjectives(){
     // Village
     const t = tapGain();
     $("#tributeGain").textContent = `+${fmt(t.gain)} denarii`;
-    $("#tributeHint").textContent = `Streak x${S.streak} • ${Math.ceil(streakTimeLeftMs()/100)/10}s${rushBonus()>0 ? ` • RUSH +${rushBonus()}` : ""}${isBuffed() ? " • BLESSED" : ""}${Date.now() < (S.feverUntil||0) ? " • FEVER" : ""}${Date.now() < (S.objDoubleUntil||0) ? " • DOUBLE OBJ" : ""}`;
+    const critPct = Math.round(critChance() * 100);
+    $("#tributeHint").textContent = `Streak x${S.streak} • ${Math.ceil(streakTimeLeftMs()/100)/10}s${rushBonus()>0 ? ` • RUSH +${rushBonus()}` : ""}${isBuffed() ? " • BLESSED" : ""}${Date.now() < (S.feverUntil||0) ? " • FEVER" : ""}${Date.now() < (S.objDoubleUntil||0) ? " • DOUBLE OBJ" : ""} • CRIT ${critPct}%`;
 
 
     // Cash Out UI
@@ -4123,7 +4407,7 @@ function renderObjectives(){
   // ---- Actions ----
   $("#btnTribute").addEventListener("click", (e)=>{
     applyStreak();
-    const {gain, crit} = tapGain();
+    const {gain, crit, critMult} = tapGain();
 
     // Jackpots: rare huge spikes layered on top of small taps
     const jp = rollJackpot();
@@ -4167,8 +4451,15 @@ function renderObjectives(){
 
     if(jp){ for(let i=0;i<3;i++) sparkAt(rect.left + rect.width*(0.55 + i*0.12), rect.top + rect.height*0.30, 0.70); }
 
-    if(crit){ toast("CRIT!"); logLine(`CRIT tribute! (+${fmt(gain)} denarii)`, "good"); }
-    else if(S.streak % 7 === 0) logLine(`Tribute collected. (+${fmt(gain)} denarii)`, "good");
+    if(crit){
+      const multLabel = (typeof critMult === "number" && critMult > 1)
+        ? ` x${critMult} `
+        : " ";
+      toast(`CRIT${multLabel.trim()}!`);
+      logLine(`CRIT${multLabel}tribute! (+${fmt(gain)} denarii)`, "good");
+    } else if(S.streak % 7 === 0){
+      logLine(`Tribute collected. (+${fmt(gain)} denarii)`, "good");
+    }
 
     // gentle soft cap
     S.power = clamp(S.power, 0, 99999);
@@ -4397,8 +4688,8 @@ function openDefencePopup(slot, battle){
     closeDefencePopup(overlay);
     // Refresh lastTap so streak window resumes from now
     S.lastTap = Date.now();
-    // Run this as a *defensive* battle: no land, different rewards
-    doBattle(slot, { defence: true });
+    // Launch a tactical defence instead of auto-resolve
+    startTacticalBattle(slot, true);
   });
 
   btnIgnore.addEventListener("click", ()=>{
@@ -4968,6 +5259,14 @@ function doBattle(slot, opts){
   }
 
   const sim = battleSim(slot);
+
+  // Allow tactical mode to override win/loss and casualty counts.
+  if (opts && typeof opts.overrideLoss === 'number') {
+    sim.losses = opts.overrideLoss;
+  }
+  if (opts && typeof opts.overrideWin === 'boolean') {
+    sim.win = opts.overrideWin;
+  }
   const beforeWarriors = S.warriors||0;
   const startGold = S.gold;
   const startLand = S.land||0;
@@ -5273,15 +5572,22 @@ function doBattle(slot, opts){
       : "You retreat to lick your wounds."
   };
 
-  // Show cinematic sim, then report
-  showBattleSimulation(rep, sim.tier);
-  render();
+  // Show battle results.  If suppressSim flag is set (e.g. tactical battles), skip the cinematic sim and go straight to the report.
+  if (opts && opts.suppressSim) {
+    showBattleReport(rep);
+    render();
+  } else {
+    showBattleSimulation(rep, sim.tier);
+    render();
+  }
+  return rep;
 }
 // Battle buttons
-$("#btnBattleBandits1").addEventListener("click", ()=> doBattle(0));
-$("#btnBattleLevy").addEventListener("click", ()=> doBattle(1));
-$("#btnBattleVillageRaid").addEventListener("click", ()=> doBattle(2));
-$("#btnBattleSiege").addEventListener("click", ()=> doBattle(3));
+// For offensive battles the player can choose to command tactically.  This will launch the tactical overlay rather than immediately resolving.
+$("#btnBattleBandits1").addEventListener("click", ()=> startTacticalBattle(0));
+$("#btnBattleLevy").addEventListener("click", ()=> startTacticalBattle(1));
+$("#btnBattleVillageRaid").addEventListener("click", ()=> startTacticalBattle(2));
+$("#btnBattleSiege").addEventListener("click", ()=> startTacticalBattle(3));
 
 
 // Skirmish: optional combat later (tiny screen footprint)
@@ -5532,6 +5838,195 @@ $("#btnExport").addEventListener("click", async ()=>{
   logLine("A small village. A few denarii. A long road to the crown.", "warn");
   render();
   maybeShowIntro();
+  
+  /*
+   * Tactical battle system
+   *
+   * When the player chooses to lead a battle manually, we open a simple
+   * turn-based overlay.  Each round the player selects an action
+   * (Assault, Defend, Heal) and the game computes casualties based on
+   * relative troop strength and the chosen stance.  At the end of the
+   * fight, doBattle() is invoked with override flags to apply the
+   * casualties and rewards without showing the old cinematic simulation.
+   */
+  let currentTactical = null;
+
+  function tacBarIndex(current, max){
+    if(max <= 0) return 0;
+    const ratio = Math.max(0, Math.min(1, current / max));
+    const curved = Math.pow(ratio, 1.25);
+    const idx = Math.round(curved * 10);
+    return Math.max(0, Math.min(10, idx));
+  }
+  function tacBarSprite(side, idx){
+    const base = "Sprites/player and enemy bars/";
+    if(side === "player"){
+      if(idx <= 0) return base + "Player bar depleted.png";
+      if(idx >= 10) return base + "Player bar full.png";
+      return base + `Player bar ${idx} out 10.png`;
+    }else{
+      if(idx <= 0) return base + "enemy bar depleted.png";
+      if(idx >= 10) return base + "enemy bar full.png";
+      return base + `enemy bar ${idx} out 10.png`;
+    }
+  }
+
+  function updateTacticalUI(){
+    const s = currentTactical;
+    if(!s) return;
+    const yourImg  = document.getElementById('tacYourBarImg');
+    const enemyImg = document.getElementById('tacEnemyBarImg');
+    const yourCnt  = document.getElementById('tacYourBarCount');
+    const enemyCnt = document.getElementById('tacEnemyBarCount');
+    if(yourImg && enemyImg){
+      const idxY = tacBarIndex(s.currentPlayer, s.initPlayer);
+      const idxE = tacBarIndex(s.currentEnemy, s.sim.enemies);
+      yourImg.src  = tacBarSprite('player', idxY);
+      enemyImg.src = tacBarSprite('enemy', idxE);
+      if(yourCnt)  yourCnt.textContent  = `${fmt(s.currentPlayer)} / ${fmt(s.initPlayer)}`;
+      if(enemyCnt) enemyCnt.textContent = `${fmt(s.currentEnemy)} / ${fmt(s.sim.enemies)}`;
+    }
+    const eventsEl = document.getElementById('tacEvents');
+    if(eventsEl){
+      eventsEl.innerHTML = '';
+      const start = Math.max(0, s.events.length - 6);
+      s.events.slice(start).forEach(line=>{
+        const div = document.createElement('div');
+        div.textContent = line;
+        eventsEl.appendChild(div);
+      });
+    }
+  }
+
+  function finishTacticalBattle(didWin){
+    const s = currentTactical;
+    if(!s) return;
+    // Close overlay
+    const overlay = document.getElementById('tacticalOverlay');
+    if(overlay) overlay.style.display = 'none';
+    // Determine losses relative to start
+    const losses = s.initPlayer - Math.max(0, s.currentPlayer);
+    // Call into main battle function with override values and suppress simulation
+    doBattle(s.slot, { overrideLoss: losses, overrideWin: didWin, suppressSim: true, defence: s.defence });
+    currentTactical = null;
+  }
+
+  function tacAction(action){
+    const s = currentTactical;
+    if(!s || s.finished) return;
+    s.round = (s.round || 0) + 1;
+    let factorPlayer = 1;
+    let factorEnemy  = 1;
+    if(action === 'attack'){
+      factorPlayer = 1.3;
+      factorEnemy  = 1.25;
+    }else if(action === 'defend'){
+      factorPlayer = 0.7;
+      factorEnemy  = 0.5;
+    }else if(action === 'heal'){
+      factorPlayer = 0.5;
+      factorEnemy  = 0.6;
+    }
+    const baseP = Math.max(1, Math.floor(s.currentPlayer * 0.08));
+    const baseE = Math.max(1, Math.floor(s.currentEnemy * 0.08));
+    const ratio = s.currentPlayer / Math.max(1, s.currentEnemy);
+    const ratioAdj = Math.max(0.5, Math.min(2.0, ratio));
+    let dmgToE = Math.round(baseP * factorPlayer * ratioAdj * (0.8 + Math.random()*0.4));
+    let dmgToP = Math.round(baseE * factorEnemy * (1/ratioAdj) * (0.8 + Math.random()*0.4));
+    if(dmgToE > s.currentEnemy) dmgToE = s.currentEnemy;
+    if(dmgToP > s.currentPlayer) dmgToP = s.currentPlayer;
+    // Apply damages
+    s.currentEnemy = Math.max(0, s.currentEnemy - dmgToE);
+    s.currentPlayer = Math.max(0, s.currentPlayer - dmgToP);
+    // Heal if applicable
+    let healMsg = '';
+    if(action === 'heal'){
+      const healable = s.initPlayer - s.currentPlayer;
+      let healAmount = Math.min(healable, Math.max(1, Math.floor(s.initPlayer * 0.06)));
+      const cost = healAmount * 10;
+      if(healAmount > 0 && (S.gold||0) >= cost){
+        S.gold -= cost;
+        s.currentPlayer += healAmount;
+        healMsg = ` Healed ${fmt(healAmount)} milites at cost ${fmt(cost)}d.`;
+      }else if(healAmount > 0){
+        healMsg = ' (Not enough denarii to heal)';
+      }
+    }
+    let actLabel;
+    if(action === 'attack') actLabel = 'Assault';
+    else if(action === 'defend') actLabel = 'Defend';
+    else if(action === 'heal') actLabel = 'Heal';
+    else actLabel = action;
+    const msg = `${actLabel}: you lost ${fmt(dmgToP)} milites, enemy lost ${fmt(dmgToE)}.${healMsg}`;
+    s.events.push(msg);
+    // Check for battle end
+    if(s.currentEnemy <= 0){
+      s.events.push('Enemy routed!');
+      s.finished = true;
+      finishTacticalBattle(true);
+      return;
+    }
+    if(s.currentPlayer <= 0){
+      s.events.push('Your force was wiped out.');
+      s.finished = true;
+      finishTacticalBattle(false);
+      return;
+    }
+    updateTacticalUI();
+  }
+
+function startTacticalBattle(slot, defenceFlag){
+    const initTroops = S.warriors || 0;
+    if(initTroops <= 0){
+      toast('You have no milites to muster.');
+      return;
+    }
+    const sim = battleSim(slot);
+    // Setup battle state
+    currentTactical = {
+      slot: slot,
+      sim: sim,
+      initPlayer: initTroops,
+      currentPlayer: initTroops,
+      currentEnemy: sim && typeof sim.enemies === 'number' ? sim.enemies : 0,
+      events: [],
+      finished: false,
+      round: 0,
+      defence: !!defenceFlag
+    };
+    const overlay = document.getElementById('tacticalOverlay');
+    if(overlay) overlay.style.display = 'flex';
+    // Attach handlers on first open (or re-bind).  Doing this here ensures
+    // elements exist in the DOM because the overlay markup appears after the
+    // main script.
+    const btnA = document.getElementById('tacBtnAttack');
+    const btnD = document.getElementById('tacBtnDefend');
+    const btnH = document.getElementById('tacBtnHeal');
+    const btnAuto = document.getElementById('tacBtnAuto');
+    const btnClose = document.getElementById('tacCloseBtn');
+    if(btnA)    btnA.onclick = ()=> tacAction('attack');
+    if(btnD)    btnD.onclick = ()=> tacAction('defend');
+    if(btnH)    btnH.onclick = ()=> tacAction('heal');
+    if(btnAuto) btnAuto.onclick = ()=>{
+      // Auto-resolve using the default simulation; hide overlay and call doBattle normally
+      if(overlay) overlay.style.display = 'none';
+      if(currentTactical){
+        const autoSlot = currentTactical.slot;
+        currentTactical = null;
+        doBattle(autoSlot, { suppressSim: true });
+      }
+    };
+    if(btnClose) btnClose.onclick = ()=>{
+      if(currentTactical){
+        currentTactical.events.push('Retreat!');
+        currentTactical.finished = true;
+        finishTacticalBattle(false);
+      }
+    };
+    updateTacticalUI();
+  }
+
+  // (handlers attached in startTacticalBattle)
 })();
 
   // Land tier unlock popup helpers
@@ -5656,6 +6151,44 @@ $("#btnExport").addEventListener("click", async ()=>{
         <button id="battleSimContinue" class="tab active" style="margin-top:10px;width:100%;justify-content:center;">
           <span class="dot"></span>View Report
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tactical Battle Overlay -->
+  <div id="tacticalOverlay" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:2250;">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);"></div>
+    <div class="card" style="position:relative;width:min(560px, calc(100vw - 26px));border-radius:26px;overflow:hidden;">
+      <div class="sectionTitle" style="justify-content:space-between;">
+        <span id="tacticalTitle" style="color:var(--accent);font-weight:900;">Battle Orders</span>
+        <button class="tab" style="padding:8px 12px;" id="tacCloseBtn" type="button">Retreat</button>
+      </div>
+      <div class="cardBody" style="padding:14px;">
+        <div class="simBlock">
+          <div class="simLabel">Enemy</div>
+          <div class="simBar">
+            <div class="battleBar">
+              <img id="tacEnemyBarImg" class="battleBarSprite" src="Sprites/player and enemy bars/enemy bar full.png" alt="Enemy bar">
+              <div class="battleBarCount battleBarCount--enemy" id="tacEnemyBarCount"></div>
+            </div>
+          </div>
+        </div>
+        <div class="simBlock">
+          <div class="simLabel">Your force</div>
+          <div class="simBar">
+            <div class="battleBar">
+              <img id="tacYourBarImg" class="battleBarSprite" src="Sprites/player and enemy bars/Player bar full.png" alt="Your bar">
+              <div class="battleBarCount battleBarCount--ally" id="tacYourBarCount"></div>
+            </div>
+          </div>
+        </div>
+        <div id="tacEvents" class="simEvents" style="margin-top:8px;min-height:60px;max-height:160px;overflow-y:auto;"></div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+          <button class="tab" id="tacBtnAttack" type="button" style="flex:1 1 auto;">Assault</button>
+          <button class="tab" id="tacBtnDefend" type="button" style="flex:1 1 auto;">Defend</button>
+          <button class="tab" id="tacBtnHeal" type="button" style="flex:1 1 auto;">Heal</button>
+          <button class="tab" id="tacBtnAuto" type="button" style="flex:1 1 auto;">Auto</button>
+        </div>
       </div>
     </div>
   </div>
