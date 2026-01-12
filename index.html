@@ -1626,6 +1626,8 @@ header{
     // offline progression tracking
     lastSeenAt: 0,
     lifetimeOfflineSec: 0,
+    // whether the player has actually entered the village (name picked)
+    offlineReady: 0,
 
     tapsSinceCashout: 0,
     cashoutBanked: 0,
@@ -1667,6 +1669,15 @@ header{
         state[k] = Number(state[k]);
         if(!Number.isFinite(state[k])) state[k] = d[k];
       }
+    }
+
+    // Arm offline system for existing saves that predate offlineReady.
+    if(typeof state.offlineReady === "undefined"){
+      const hasProgress =
+        (state.playerName && String(state.playerName).trim().length > 0) ||
+        (state.lifetimeGold && state.lifetimeGold > 0) ||
+        (state.renown && state.renown > 0);
+      state.offlineReady = hasProgress ? 1 : 0;
     }
 
     // --- Territory migration (old saves) ---
@@ -1991,6 +2002,8 @@ header{
         if(!S.playerName || !S.playerName.trim()) return;
         overlay.setAttribute("hidden","hidden");
         updatePlayerNameHud();
+        // Mark that the player has properly started a run, so offline gains are valid.
+        S.offlineReady = 1;
         if(typeof scheduleSave === "function") scheduleSave();
         // Intro flavour: invasion hook instead of generic welcome
         toast("Your village is being invaded!");
@@ -4325,6 +4338,13 @@ function renderObjectives(){
     const now = Date.now();
     const last = Number(S.lastSeenAt || 0) || S.created || now;
     let elapsedSec = Math.max(0, (now - last) / 1000);
+
+    // If the player has never actually entered the village (no name yet),
+    // don't show a welcome-back popup or grant offline progress.
+    if(!S.offlineReady){
+      S.lastSeenAt = now;
+      return;
+    }
 
     // Skip tiny gaps to avoid spamming the player with popups.
     if(elapsedSec < 15){
