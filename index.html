@@ -4327,7 +4327,7 @@ function renderObjectives(){
     let elapsedSec = Math.max(0, (now - last) / 1000);
 
     // Skip tiny gaps to avoid spamming the player with popups.
-    if(elapsedSec < 60){
+    if(elapsedSec < 15){
       S.lastSeenAt = now;
       return;
     }
@@ -6278,6 +6278,39 @@ $("#btnExport").addEventListener("click", async ()=>{
       }
     });
   }
+
+
+  // Melvor-like PWA lifecycle handling (iOS/Android Home Screen):
+  // - iOS often *suspends* instead of reloading, so we must record lastSeenAt on background
+  //   and apply offline progress on resume.
+  function stampLastSeenAndSave(){
+    try{
+      S.lastSeenAt = Date.now();
+      save(true);
+    }catch(e){}
+  }
+
+  let _offlineResumeArmed = false;
+  document.addEventListener("visibilitychange", ()=>{
+    // When going to background, stamp time.
+    if(document.visibilityState === "hidden"){
+      _offlineResumeArmed = true;
+      stampLastSeenAndSave();
+      return;
+    }
+    // When returning, apply offline if we were actually backgrounded.
+    if(document.visibilityState === "visible" && _offlineResumeArmed){
+      _offlineResumeArmed = false;
+      try{ applyOfflineProgress(); }catch(e){ console && console.warn && console.warn("Offline progress failed", e); }
+      render();
+    }
+  }, {passive:true});
+
+  // Some iOS/PWA flows fire pagehide without visibilitychange.
+  window.addEventListener("pagehide", ()=>{
+    _offlineResumeArmed = true;
+    stampLastSeenAndSave();
+  }, {passive:true});
 
   // Tabs click
   $$(".tab").forEach(btn=>{
