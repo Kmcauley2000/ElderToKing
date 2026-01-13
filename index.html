@@ -4098,102 +4098,275 @@ function renderObjectives(){
   }
 
 // ---- Loot Chests (2-second dopamine overlay) ----
+  
   function chestRarityFrom(source){
-    // source: "skirmish" | "objective" | "battle" | other
-    // For skirmishes, we bias rarity by total battles won so early fights feel juicy:
-    // e.g. after 5 wins, guaranteed Common; after 8+, Rare+; after 12+, Epic chance.
-    if(source === "skirmish"){
-      const wins = S.battlesWon || 0;
-      if(wins >= 12){
-        const roll = Math.random();
-        if(roll < 0.45) return "Epic";
-        if(roll < 0.85) return "Rare";
-        return "Common";
-      }else if(wins >= 8){
-        const roll = Math.random();
-        if(roll < 0.30) return "Epic";
-        if(roll < 0.80) return "Rare";
-        return "Common";
+    // Tiered rarities:
+    //   Wooden < Bronze < Silver < Gold < Royal
+    // Source can be "skirmish", "objective", "battle" or generic gifts.
+    const wins   = Number(S.battlesWon) || 0;
+    const streak = Number(S.objStreak)  || 0;
+    const ren    = Number(S.renown)     || 0;
+
+    const roll = Math.random();
+
+    // Skirmish / battle rewards bias upwards as you win more wars.
+    if(source === "skirmish" || source === "battle"){
+      if(wins >= 24){
+        if(roll < 0.10) return "Royal";
+        if(roll < 0.40) return "Gold";
+        if(roll < 0.80) return "Silver";
+        if(roll < 0.95) return "Bronze";
+        return "Wooden";
+      }else if(wins >= 12){
+        if(roll < 0.04) return "Royal";
+        if(roll < 0.25) return "Gold";
+        if(roll < 0.65) return "Silver";
+        if(roll < 0.90) return "Bronze";
+        return "Wooden";
       }else if(wins >= 5){
-        // first few chests are almost always common, to teach the loop
-        const roll = Math.random();
-        if(roll < 0.15) return "Rare";
-        return "Common";
+        if(roll < 0.12) return "Gold";
+        if(roll < 0.42) return "Silver";
+        if(roll < 0.82) return "Bronze";
+        return "Wooden";
       }else{
-        // before 5 wins, very small chance from skirmish
-        if(Math.random() < 0.30) return "Common";
-        // no chest; caller shouldn't have asked for rarity
-        return "Common";
+        if(roll < 0.08) return "Silver";
+        if(roll < 0.42) return "Bronze";
+        return "Wooden";
       }
     }
 
-    // Events / gifts are mostly RNG with a slight rarity curve.
-    const roll = Math.random();
-    let epicP = 0.05;
-    let rareP = 0.28;
-
-    // 🌟 Renown perk: famous rulers see better gifts.
-    const ren = S.renown || 0;
-    const renBonus = Math.min(0.08, Math.log10(1 + ren/400) * 0.05);
-    if(renBonus > 0){
-      epicP += renBonus * 0.4;
-      rareP += renBonus * 0.6;
+    // Objective-chain chests get better with streak.
+    if(source === "objective"){
+      if(streak >= 20){
+        if(roll < 0.08) return "Royal";
+        if(roll < 0.40) return "Gold";
+        if(roll < 0.82) return "Silver";
+        if(roll < 0.96) return "Bronze";
+        return "Wooden";
+      }else if(streak >= 12){
+        if(roll < 0.04) return "Royal";
+        if(roll < 0.25) return "Gold";
+        if(roll < 0.70) return "Silver";
+        if(roll < 0.94) return "Bronze";
+        return "Wooden";
+      }else if(streak >= 4){
+        if(roll < 0.12) return "Gold";
+        if(roll < 0.45) return "Silver";
+        if(roll < 0.88) return "Bronze";
+        return "Wooden";
+      }else{
+        if(roll < 0.06) return "Silver";
+        if(roll < 0.52) return "Bronze";
+        return "Wooden";
+      }
     }
-    // keep things sane
-    epicP = clamp(epicP, 0, 0.40);
-    rareP = clamp(rareP, 0, 0.80);
 
-    if(roll < epicP) return "Epic";
-    if(roll < epicP + rareP) return "Rare";
-    return "Common";
+    // Generic gifts: renown very slowly biases towards better tiers.
+    let royalP  = 0.01;
+    let goldP   = 0.06;
+    let silverP = 0.25;
+    let bronzeP = 0.42; // rest is Wooden
+
+    const renBonus = Math.min(0.45, Math.log10(1 + ren / 500) * 0.35);
+    if(renBonus > 0){
+      // Nudge some probability mass from Wooden/Bronze into Silver/Gold/Royal.
+      silverP += renBonus * 0.6;
+      goldP   += renBonus * 0.3;
+      royalP  += renBonus * 0.1;
+      bronzeP = Math.max(0.10, bronzeP - renBonus * 0.4);
+    }
+
+    // Normalise and clamp.
+    royalP  = clamp(royalP,  0, 0.15);
+    goldP   = clamp(goldP,   0, 0.25);
+    silverP = clamp(silverP, 0, 0.55);
+    bronzeP = clamp(bronzeP, 0, 0.75);
+
+    const wCut  = 1 - (royalP + goldP + silverP + bronzeP);
+    const woodenCut  = Math.max(0, wCut);
+
+    if(roll < woodenCut) return "Wooden";
+    if(roll < woodenCut + bronzeP) return "Bronze";
+    if(roll < woodenCut + bronzeP + silverP) return "Silver";
+    if(roll < woodenCut + bronzeP + silverP + goldP) return "Gold";
+    return "Royal";
   }
 
+
   function chestPalette(rarity){
-    if(rarity==="Epic") return { title:"Epic Chest", icon:"👑", border:"rgba(244,208,111,.55)" };
-    if(rarity==="Rare") return { title:"Rare Chest", icon:"🏺", border:"rgba(166,212,172,.55)" };
-    return { title:"Common Chest", icon:"🧰", border:"rgba(31,58,42,.85)" };
+    // Normalise any legacy rarity labels into the new tiered system.
+    if(rarity === "Epic") rarity = "Gold";
+    else if(rarity === "Rare") rarity = "Silver";
+    else if(rarity === "Common") rarity = "Bronze";
+
+    // Base palettes for each tier. These control icon, title and visual accents.
+    switch(rarity){
+      case "Royal":
+        return {
+          tier: "Royal",
+          title: "Royal Chest",
+          icon: "👑",
+          border: "rgba(244,208,111,0.95)",
+          glow: "0 20px 48px rgba(0,0,0,0.70), 0 0 26px rgba(244,208,111,0.65)",
+          bg: "linear-gradient(180deg,#fff7df,#f5d48c)",
+          backdrop: "rgba(0,0,0,0.70)",
+          pillBg: "rgba(255,255,255,0.90)",
+          pillBorder: "rgba(244,208,111,0.95)",
+          sub: "Treasures fit for a king. Very rare.",
+          hint: "Tap to reveal these royal rewards."
+        };
+      case "Gold":
+        return {
+          tier: "Gold",
+          title: "Gold Chest",
+          icon: "💰",
+          border: "rgba(244,208,111,0.85)",
+          glow: "0 18px 42px rgba(0,0,0,0.65), 0 0 18px rgba(244,208,111,0.40)",
+          bg: "linear-gradient(180deg,#fdf6eb,#f2e0c5)",
+          backdrop: "rgba(0,0,0,0.62)",
+          pillBg: "rgba(255,255,255,0.92)",
+          pillBorder: "rgba(244,208,111,0.85)",
+          sub: "Rich spoils from great deeds.",
+          hint: "Tap to reveal high-value rewards."
+        };
+      case "Silver":
+        return {
+          tier: "Silver",
+          title: "Silver Chest",
+          icon: "🥈",
+          border: "rgba(210,219,233,0.9)",
+          glow: "0 16px 38px rgba(0,0,0,0.60)",
+          bg: "linear-gradient(180deg,#f7f7fb,#e5e8f0)",
+          backdrop: "rgba(0,0,0,0.60)",
+          pillBg: "rgba(255,255,255,0.94)",
+          pillBorder: "rgba(210,219,233,0.9)",
+          sub: "Solid rewards from worthy service.",
+          hint: "Tap to reveal your silver spoils."
+        };
+      case "Bronze":
+        return {
+          tier: "Bronze",
+          title: "Bronze Chest",
+          icon: "🥉",
+          border: "rgba(181,120,72,0.95)",
+          glow: "0 14px 34px rgba(0,0,0,0.55)",
+          bg: "linear-gradient(180deg,#f9ecdc,#f0d3af)",
+          backdrop: "rgba(0,0,0,0.55)",
+          pillBg: "rgba(255,252,247,0.94)",
+          pillBorder: "rgba(181,120,72,0.90)",
+          sub: "Modest spoils from everyday efforts.",
+          hint: "Tap to see what your people gathered."
+        };
+      case "Wooden":
+      default:
+        return {
+          tier: "Wooden",
+          title: "Wooden Chest",
+          icon: "📦",
+          border: "rgba(99,71,40,0.95)",
+          glow: "0 12px 30px rgba(0,0,0,0.50)",
+          bg: "linear-gradient(180deg,#f3e2c8,#e0c19a)",
+          backdrop: "rgba(0,0,0,0.50)",
+          pillBg: "rgba(255,251,243,0.92)",
+          pillBorder: "rgba(99,71,40,0.90)",
+          sub: "Simple goods gathered by your villagers.",
+          hint: "Tap to reveal what was saved for you."
+        };
+    }
   }
 
   function makeChestLoot(rarity){
-    // Build 3 rewards. Keep it simple: denarii / power / renown OR a temp buff.
-    const mult = cashoutMultiplier();
-    const base = 35 + Math.floor(S.renown/160) + (S.crowns*7);
+    // New tiered chest loot:
+    // - No influence or power; focus on denarii, renown, faith and temporary buffs.
+    // - Scales with income, renown, crowns and chest tier.
+    if(rarity === "Epic") rarity = "Gold";
+    else if(rarity === "Rare") rarity = "Silver";
+    else if(rarity === "Common") rarity = "Bronze";
 
-    const rarityMult = (rarity==="Epic") ? 2.6 : (rarity==="Rare" ? 1.65 : 1.0);
+    const tierIndexMap = {
+      "Wooden": 0,
+      "Bronze": 1,
+      "Silver": 2,
+      "Gold": 3,
+      "Royal": 4
+    };
+    const tier = tierIndexMap[rarity] ?? 1;
+
+    const mult = cashoutMultiplier();
+    const income = Math.max(0, incomePerSec());
+    const renown = Number(S.renown) || 0;
+    const crowns = Number(S.crowns) || 0;
+
+    // Baseline gold amount leans heavily on current income and a bit on renown/crowns.
+    const baseGold = Math.max(
+      40,
+      Math.round(income * 90 + renown * 1.2 + crowns * 40)
+    );
+
+    const goldMultByTier  = [0.9, 1.1, 1.5, 2.2, 3.2];
+    const renMultByTier   = [0.8, 1.0, 1.35, 1.8, 2.4];
+    const faithMultByTier = [0.9, 1.1, 1.4, 1.9, 2.5];
+    const buffMsExtraByTier = [0, 5_000, 10_000, 18_000, 26_000];
+
+    const goldAmt  = Math.round(baseGold * (goldMultByTier[tier] || 1.0) * mult);
+    const baseRen  = 4 + Math.sqrt(renown) * 0.6;
+    const renAmt   = Math.max(2, Math.round(baseRen * (renMultByTier[tier] || 1.0)));
+    const baseFaith = 40 + (Number(S.ascends) || 0) * 12;
+    const faithAmt = Math.round(baseFaith * (faithMultByTier[tier] || 1.0));
+
+    const buffMs = 20_000 + (buffMsExtraByTier[tier] || 0);
+    const buffSecsLabel = Math.round(buffMs / 1000);
 
     const options = [
-      () => ({ kind:"den",  text:`+${fmt(Math.round((base*10) * rarityMult * mult))} denarii`, apply:()=>{
-        const amt = Math.round((base*10) * rarityMult * mult);
-        S.gold += amt; S.lifetimeGold += amt; bumpEarnedDenarii(amt);
-      }}),
-      () => ({ kind:"pow",  text:`+${fmt(Math.round((2 + base*0.03) * rarityMult))} power`, apply:()=>{
-        S.power += Math.round((2 + base*0.03) * rarityMult);
-      }}),
-      () => ({ kind:"ren",  text:`+${fmt(Math.round((6 + base*0.06) * rarityMult))} power`, apply:()=>{
-        const amt = Math.round((6 + base*0.06) * rarityMult);
-        S.power += amt;
-      }}),
-      () => ({ kind:"buf",  text:`Prosperity (20s)`, apply:()=>{
-        // income multiplier via prosperUntil (stacks by extending)
-        const now = Date.now();
-        const add = 20_000 + (rarity==="Epic" ? 12_000 : (rarity==="Rare" ? 6_000 : 0));
-        S.prosperUntil = Math.max(S.prosperUntil||0, now) + add;
-        toast("Prosperity!");
-      }}),
+      () => ({
+        kind:"den",
+        text:`+${fmt(goldAmt)} denarii`,
+        apply:()=>{
+          S.gold += goldAmt;
+          S.lifetimeGold += goldAmt;
+          bumpEarnedDenarii(goldAmt);
+        }
+      }),
+      () => ({
+        kind:"ren",
+        text:`+${fmt(renAmt)} renown`,
+        apply:()=>{
+          S.renown += renAmt;
+          S.lifetimeRenown += renAmt;
+        }
+      }),
+      () => ({
+        kind:"faith",
+        text:`+${fmt(faithAmt)} faith`,
+        apply:()=>{
+          S.faith += faithAmt;
+        }
+      }),
+      () => ({
+        kind:"buf",
+        text:`Prosperity (${buffSecsLabel}s)`,
+        apply:()=>{
+          const now = Date.now();
+          S.prosperUntil = Math.max(S.prosperUntil || 0, now) + buffMs;
+          toast("Prosperity!");
+        }
+      })
     ];
 
-    // Rarity influences chance of buff appearing
-    const buffChance = (rarity==="Epic") ? 0.45 : (rarity==="Rare" ? 0.25 : 0.12);
+    const buffChanceByTier = [0.18, 0.22, 0.30, 0.38, 0.48];
+    const buffChance = buffChanceByTier[tier] ?? 0.22;
 
     const picks = [];
     for(let i=0;i<3;i++){
       let item;
-      if(chance(buffChance) && picks.filter(p=>p.kind==="buf").length===0){
+      if(chance(buffChance) && picks.filter(p=>p.kind === "buf").length === 0){
         item = options[3]();
       }else{
-        // pick among den/pow/ren biased towards denarii
+        // pick among den/ren/faith biased towards denarii
         const r = Math.random();
-        item = (r < 0.55) ? options[0]() : (r < 0.78 ? options[1]() : options[2]());
+        if(r < 0.58) item = options[0]();
+        else if(r < 0.82) item = options[1]();
+        else item = options[2]();
       }
       picks.push(item);
     }
@@ -4210,17 +4383,29 @@ function renderObjectives(){
     const title = $("#chestTitle");
     const icon = $("#chestIcon");
     const hint = $("#chestHint");
+    const sub = $("#chestSub");
+    const backdrop = $("#chestBackdrop");
     const rev = [$("#rev1"), $("#rev2"), $("#rev3")];
     const btnContinue = $("#chestContinue");
 
     const pal = chestPalette(rarity);
+
     title.textContent = pal.title;
     icon.textContent = pal.icon;
     card.style.borderColor = pal.border;
+    if(pal.bg) card.style.background = pal.bg;
+    if(pal.glow) card.style.boxShadow = pal.glow;
+    if(backdrop && pal.backdrop) backdrop.style.background = pal.backdrop;
+    if(sub && pal.sub) sub.textContent = pal.sub;
 
-    // reset reveal
-    rev.forEach(r=>r.textContent = "?");
-    hint.textContent = "Tap to reveal rewards";
+    // reset reveal visuals
+    rev.forEach(r=>{
+      if(!r) return;
+      r.textContent = "?";
+      if(pal.pillBg) r.style.background = pal.pillBg;
+      if(pal.pillBorder) r.style.borderColor = pal.pillBorder;
+    });
+    hint.textContent = pal.hint || "Tap to reveal rewards";
     if(btnContinue){
       btnContinue.style.display = "none";
       btnContinue.disabled = true;
@@ -4256,7 +4441,7 @@ function renderObjectives(){
     const revealNext = ()=>{
       if(step >= 3) return;
       const item = loot[step];
-      rev[step].textContent = item.text;
+      if(rev[step]) rev[step].textContent = item.text;
       // apply immediately so the HUD updates after close
       item.apply();
       step += 1;
@@ -4294,8 +4479,7 @@ function renderObjectives(){
     overlay.onclick = open;
   }
 
-
-  function canAccess(view){
+function canAccess(view){
     if(view==="legion") return true;
     return (S.renown >= (unlock[view] ?? 0));
   }
@@ -4481,77 +4665,147 @@ function renderObjectives(){
 
     const duration = formatDuration(summary.seconds || 0);
 
-    // Construct narrative lines reflecting offline events.
-    const goldLine = summary.goldGain > 0
-      ? `💰 Your stewards collected ${fmt(summary.goldGain)} denarii in taxes.`
-      : `💰 No taxes were collected.`;
+    // Tiny helper for flavour randomisation.
+    const pick = (arr)=> arr[Math.floor(Math.random() * arr.length)];
 
-    const familiesLine = summary.settlersGain > 0
-      ? `👥 ${summary.settlersGain} new famil${summary.settlersGain===1?"y":"ies"} settled in your lands.`
-      : "👥 No new families settled (village at capacity).";
+    // --- Time line ---
+    const introOptions = [
+      `You were away for about ${duration}.`,
+      `While you were gone (${duration}), your people kept busy.`,
+      `Time passed: about ${duration}… but the village did not sleep.`
+    ];
+    const introLine = pick(introOptions);
 
-    // Offline construction lines.
+    // --- Gold / taxes line ---
+    let goldLine;
+    if(summary.goldGain > 0){
+      const goldPhrases = [
+        `💰 Your stewards collected ${fmt(summary.goldGain)} denarii in tribute.`,
+        `💰 Tax collectors brought in around ${fmt(summary.goldGain)} denarii.`,
+        `💰 Quietly, the coffers filled with ${fmt(summary.goldGain)} denarii.`,
+        `💰 Farmers and merchants paid in ${fmt(summary.goldGain)} denarii of dues.`
+      ];
+      goldLine = pick(goldPhrases);
+    }else{
+      const noGoldPhrases = [
+        "💰 No meaningful taxes were collected.",
+        "💰 The coffers stayed much the same.",
+        "💰 Trade was quiet; almost no taxes came in."
+      ];
+      goldLine = pick(noGoldPhrases);
+    }
+
+    // --- Families / migration line ---
+    let familiesLine;
+    if(summary.settlersGain > 0){
+      const n = summary.settlersGain;
+      const familiesWord = `famil${n===1 ? "y" : "ies"}`;
+      const famPhrases = [
+        `👥 ${n} new ${familiesWord} arrived along the northern roads.`,
+        `👥 ${n} ${familiesWord} drifted in from distant hamlets.`,
+        `👥 ${n} ${familiesWord} pledged themselves to your protection.`,
+        `👥 Word of your realm spread — ${n} ${familiesWord} chose your lands.`
+      ];
+      familiesLine = pick(famPhrases);
+    }else{
+      const noFamPhrases = [
+        "👥 No new families arrived — word of your lands is still spreading.",
+        "👥 No new families settled; homes and fields are at capacity.",
+        "👥 The village held steady; no new faces joined the firelight."
+      ];
+      familiesLine = pick(noFamPhrases);
+    }
+
+    // --- Offline construction lines (farms / villas) ---
     const buildLines = [];
     if(summary.farmsBuilt && summary.farmsBuilt > 0){
       const n = summary.farmsBuilt;
-      buildLines.push(`🌾 ${n} farm${n===1?"":"s"} ${n===1?"was":"were"} cultivated while you were away`);
+      const farmPhrases = [
+        `🌾 ${n} farm${n===1?"":"s"} were carved out of the fields while you were away.`,
+        `🌾 Workers raised ${n} new farm${n===1?"":"s"} along the waterways.`,
+        `🌾 ${n} farm${n===1?"":"s"} quietly took shape beyond the palisade.`
+      ];
+      buildLines.push(pick(farmPhrases));
     }
     if(summary.villasBuilt && summary.villasBuilt > 0){
       const n = summary.villasBuilt;
-      buildLines.push(
-        n===1
-          ? `🏛 A villa was completed while you were away`
-          : `🏛 ${n} villas were completed while you were away`
-      );
+      const villaPhrases = n === 1
+        ? [
+            "🏛 A new villa was completed for a rising family.",
+            "🏛 One villa rose from scaffolds into stone and timber.",
+            "🏛 A proud villa now looks over your roads."
+          ]
+        : [
+            `🏛 ${n} stately villas were finished for your wealthiest subjects.`,
+            `🏛 Builders completed ${n} villas overlooking the countryside.`,
+            `🏛 ${n} villas now house merchants, elders, and minor nobles.`
+          ];
+      buildLines.push(pick(villaPhrases));
     }
 
-    // Economic hints for active play: show income rates and boosts if present.
+    // --- Economy summary / hint ---
     const farmVillaBits = [];
-    if(summary.farmRate > 0)  farmVillaBits.push(`Farms ~${summary.farmRate.toFixed(2)}/s`);
-    if(summary.villaRate > 0) farmVillaBits.push(`Villas ~${summary.villaRate.toFixed(2)}/s`);
-    if(summary.landBoost > 0) farmVillaBits.push(`Territories boosted income`);
-    const economyLine = farmVillaBits.length
-      ? farmVillaBits.join(" • ")
-      : "Build farms, villas, and claim land to earn while away.";
+    if(summary.farmRate > 0)  farmVillaBits.push(`farms bringing in ~${summary.farmRate.toFixed(2)}/s`);
+    if(summary.villaRate > 0) farmVillaBits.push(`villas yielding ~${summary.villaRate.toFixed(2)}/s`);
+    if(summary.landBoost > 0) farmVillaBits.push("territories quietly boosting income");
+    let economyLine;
+    if(farmVillaBits.length){
+      const joined = farmVillaBits.join(", ");
+      const ecoPhrases = [
+        `Behind the scenes, your economy ticked on — ${joined}.`,
+        `Harvests and rents flowed as usual: ${joined}.`,
+        `Even without you, stewards kept things running: ${joined}.`
+      ];
+      economyLine = pick(ecoPhrases);
+    }else{
+      const ecoPhrases = [
+        "Build farms, villas, and claim land to keep gold flowing while you’re away.",
+        "More farms, villas, and territory will let your people thrive in your absence.",
+        "Invest in farms, villas, and new lands so the realm prospers between visits."
+      ];
+      economyLine = pick(ecoPhrases);
+    }
 
-    const tilesLine = `You now hold ${fmt(summary.territories || 0)} territor${(summary.territories || 0)===1?"y":"ies"} (${fmt(summary.land || 0)} land).`;
+    // --- Territory summary ---
+    const territories = summary.territories || 0;
+    const land = summary.land || 0;
+    const terrWord = `territor${territories===1?"y":"ies"}`;
+    const tilesPhrases = [
+      `Your banner now flies over ${fmt(territories)} ${terrWord} (${fmt(land)} land).`,
+      `Elders now count ${fmt(territories)} ${terrWord} under your name (${fmt(land)} land).`,
+      `Altogether, your realm spans ${fmt(territories)} ${terrWord} and ${fmt(land)} parcels of land.`
+    ];
+    const tilesLine = pick(tilesPhrases);
 
-    // Render lines into overlay body.
+    // --- Render lines into overlay body ---
     body.innerHTML = "";
 
-    // Intro line
     const pIntro = document.createElement("p");
-    pIntro.textContent = `You were away for about ${duration}.`;
+    pIntro.textContent = introLine;
     body.appendChild(pIntro);
 
-    // Construction lines, each as its own paragraph.
     for(const line of buildLines){
       const p = document.createElement("p");
       p.textContent = line;
       body.appendChild(p);
     }
 
-    // Population growth line
     const pFamilies = document.createElement("p");
     pFamilies.textContent = familiesLine;
     body.appendChild(pFamilies);
 
-    // Income/taxes line
     const pGold = document.createElement("p");
     pGold.textContent = goldLine;
     body.appendChild(pGold);
 
-    // Economic summary / hints
     const pEco = document.createElement("p");
     pEco.textContent = economyLine;
     body.appendChild(pEco);
 
-    // Territory summary
     const pTiles = document.createElement("p");
     pTiles.textContent = tilesLine;
     body.appendChild(pTiles);
 
-    // Finally show overlay
     overlay.removeAttribute("hidden");
     overlay.classList.add("visible");
   }
