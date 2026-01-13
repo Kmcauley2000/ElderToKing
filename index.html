@@ -1302,8 +1302,29 @@ header{
         <button id="gloryCloseBtn" class="offlineOkBtn">Close</button>
       </div>
     </section>
-  </div>
 
+    </div>
+
+
+
+  <div id="domainOverlay" class="offlineOverlay" hidden>
+    <section class="offlineCard" role="dialog" aria-modal="true" aria-labelledby="domainTitle">
+      <div class="offlineTitle">
+        <div>
+          <div id="domainTitle" class="offlineTitleText">Domain</div>
+          <div id="domainSubtitle" class="offlineSub">Manage your holdings.</div>
+        </div>
+        <div style="font-size:1.4rem;line-height:1;">🏛️</div>
+      </div>
+      <div class="offlineBody">
+        <p id="domainInfo">Merge lesser lands into estates, towns and cities to shape your realm.</p>
+        <div id="domainActions" class="row2" style="margin-top:8px;flex-wrap:wrap;"></div>
+      </div>
+      <div class="offlineOkRow">
+        <button id="domainCloseBtn" class="offlineOkBtn">Close</button>
+      </div>
+    </section>
+  </div>
 
   <header>
     <div class="wrap">
@@ -3146,7 +3167,8 @@ function landBaseIncome(){
   if(!Array.isArray(S.controlledRegions)) return 0;
   let sum = 0;
   for(const r of S.controlledRegions){
-    const eff = LAND_TYPE_EFFECTS[r.name];
+    const kind = r.kind || r.name;
+    const eff = LAND_TYPE_EFFECTS[kind];
     if(eff && eff.den) sum += eff.den;
   }
   return sum;
@@ -3156,7 +3178,8 @@ function landBasePopCap(){
   if(!Array.isArray(S.controlledRegions)) return 0;
   let sum = 0;
   for(const r of S.controlledRegions){
-    const eff = LAND_TYPE_EFFECTS[r.name];
+    const kind = r.kind || r.name;
+    const eff = LAND_TYPE_EFFECTS[kind];
     if(eff && eff.pop) sum += eff.pop;
   }
   return sum;
@@ -3167,7 +3190,230 @@ function landBasePopCap(){
     return Array.isArray(S.controlledRegions) ? S.controlledRegions.length : 0;
   }
 
-  const TERRITORY_POOLS = {
+  
+  
+  // --- Domain merge rules (compress many small holdings into fewer, stronger domains) ---
+  // These are keyed by *kind of holding*, not just tier, so the fantasy makes sense:
+  // lots of fields/estates → hamlets, hamlets/villages → villages, villages → market towns, towns/forts → cities.
+  const TERRITORY_MERGE_RULES = [
+    {
+      // Rural lands and minor holdings become a Hamle
+      sources: [
+        "Riverlands", "Farmlands", "Orchard Lands",
+        "Grazing Commons", "Marsh Flats",
+        "Outlying Stead", "Streamford", "Timber Stand"
+      ],
+      need: 12,
+      resultName: "Hamlet",
+      resultTier: 3,
+      summary: "A small hamlet owing service and grain to your house.",
+      allowNaming: false
+    },
+    {
+      // Hamlets and early villages consolidate into a proper Village
+      sources: [
+        "Hamlet", "Palisaded Hamlet",
+        "River Village", "Hill Village",
+        "Market Crossing"
+      ],
+      need: 3,
+      resultName: "Village",
+      resultTier: 4,
+      summary: "A village with its own green, market and levy.",
+      allowNaming: false
+    },
+    {
+      // Villages and sacred/council sites grow into a Market Town
+      sources: [
+        "Village", "Walled Village",
+        "Council Field", "Shrine Settlement",
+        "Trade Road"
+      ],
+      need: 3,
+      resultName: "Market Town",
+      resultTier: 5,
+      summary: "A town of trade and craftsmen under your banner.",
+      allowNaming: false
+    },
+    {
+      // Market towns, forts and industry centres grow into Cities.
+      // Cities represent the highest urban tier and can be named.
+      sources: [
+        "Market Town", "Growing Town",
+        "Border Fort", "Mineworks",
+        "Sacred Grove", "Great Market"
+      ],
+      need: 2,
+      resultName: "City",
+      resultTier: 6,
+      summary: "A city that anchors your realm and dynasty.",
+      allowNaming: true
+    }
+  ];
+
+  function mergeRuleForTerritory(name, tier){
+    // Name-first matching so we can exclude things like Old Quarry from merges.
+    for(const rule of TERRITORY_MERGE_RULES){
+      if(rule.sources && rule.sources.indexOf(name) !== -1){
+        return rule;
+      }
+    }
+    return null;
+  }
+
+  function openTerritoryOverlay(kindName, info){
+    const overlay   = $("#domainOverlay");
+    if(!overlay){
+      toast("Domain management coming soon.");
+      return;
+    }
+    const titleEl   = $("#domainTitle");
+    const subEl     = $("#domainSubtitle");
+    const infoEl    = $("#domainInfo");
+    const actionsEl = $("#domainActions");
+
+    const tier = info.tier || 1;
+    const rule = mergeRuleForTerritory(kindName, tier);
+
+    if(titleEl) titleEl.textContent = kindName;
+    if(subEl)   subEl.textContent   = `Owned: ${fmt(info.count)}`;
+
+    let desc;
+    if(!rule){
+      desc = "These holdings do not naturally consolidate further; they already serve as inputs to greater domains.";
+    }else{
+      const maxMerges = Math.floor(info.count / rule.need);
+      if(maxMerges <= 0){
+        desc = `You would need at least ${rule.need} holdings of this kind to charter a new ${rule.resultName}.`;
+      }else{
+        desc = `You can charter ${rule.resultName}${maxMerges>1?"s":""} by consolidating groups of ${rule.need} ${kindName}.`;
+      }
+    }
+
+    // If we have sample custom names (for Cities etc.), surface them for flavour.
+    if(info.sampleNames && info.sampleNames.length){
+      desc += ` Notable domains: ${info.sampleNames.join(", ")}.`;
+    }
+
+    if(infoEl) infoEl.textContent = desc;
+
+    if(actionsEl){
+      actionsEl.innerHTML = "";
+      if(rule){
+        const maxMerges = Math.floor(info.count / rule.need);
+        if(maxMerges > 0){
+          const oneBtn = document.createElement("button");
+          oneBtn.type = "button";
+          oneBtn.className = "smallBtn";
+          oneBtn.innerHTML = `
+            <div class="t">Merge ${rule.need} → ${rule.resultName}</div>
+            <div class="d">Form one ${rule.resultName} from ${rule.need} ${kindName}.</div>
+          `;
+          oneBtn.addEventListener("click", ()=>{
+            performTerritoryMerge(kindName, info, rule, 1);
+          });
+          actionsEl.appendChild(oneBtn);
+
+          if(maxMerges > 1){
+            const allBtn = document.createElement("button");
+            allBtn.type = "button";
+            allBtn.className = "smallBtn";
+            allBtn.innerHTML = `
+              <div class="t">Merge All (${maxMerges}×)</div>
+              <div class="d">Compress all eligible ${kindName} into ${rule.resultName} domains.</div>
+            `;
+            allBtn.addEventListener("click", ()=>{
+              performTerritoryMerge(kindName, info, rule, maxMerges);
+            });
+            actionsEl.appendChild(allBtn);
+          }
+        }else{
+          const span = document.createElement("div");
+          span.className = "meta";
+          span.textContent = "Not enough holdings of this type to merge yet.";
+          actionsEl.appendChild(span);
+        }
+      }else{
+        const span = document.createElement("div");
+        span.className = "meta";
+        span.textContent = "This land type does not merge further on its own.";
+        actionsEl.appendChild(span);
+      }
+    }
+
+    overlay.classList.add("visible");
+    overlay.removeAttribute("hidden");
+
+    const closeBtn = $("#domainCloseBtn");
+    if(closeBtn && !closeBtn._bound){
+      closeBtn._bound = true;
+      closeBtn.addEventListener("click", ()=>{
+        overlay.classList.remove("visible");
+        overlay.setAttribute("hidden", "hidden");
+      });
+    }
+  }
+
+  function performTerritoryMerge(kindName, info, rule, times){
+    if(!Array.isArray(S.controlledRegions)) S.controlledRegions = [];
+    const neededPer  = rule.need;
+    const totalNeeded = neededPer * times;
+
+    // Collect indices of territories whose kind/name matches this card
+    const indices = [];
+    for(let i=0;i<S.controlledRegions.length && indices.length < totalNeeded;i++){
+      const terr = S.controlledRegions[i];
+      const terrKind = terr.kind || terr.name;
+      if(terrKind === kindName){
+        indices.push(i);
+      }
+    }
+    if(indices.length < totalNeeded){
+      toast("Not enough matching holdings to merge.");
+      return;
+    }
+
+    // Remove from the end so indexes stay valid
+    indices.sort((a,b)=>b-a);
+    for(const idx of indices){
+      S.controlledRegions.splice(idx, 1);
+    }
+
+    // Add the new merged domains
+    for(let k=0;k<times;k++){
+      const index = S.controlledRegions.length + 1;
+
+      // Allow naming for top-tier urban domains (Cities) without breaking economics:
+      // we store a 'kind' used for effects, and 'name' can be custom.
+      let displayName = rule.resultName;
+      let kind = rule.resultName;
+      if(rule.allowNaming){
+        const suggested = "";
+        try{
+          const user = window.prompt(`Name this ${rule.resultName} (optional):`, "");
+          if(user && typeof user === "string" && user.trim()){
+            displayName = user.trim();
+          }
+        }catch(e){
+          // If prompt is blocked or fails, just fall back to generic name.
+        }
+      }
+
+      const terr = {
+        id: `${kind.toLowerCase().replace(/\s+/g,"_")}#${index}`,
+        name: displayName,
+        kind: kind,
+        tier: rule.resultTier,
+        summary: rule.summary
+      };
+      S.controlledRegions.push(terr);
+    }
+
+    toast(`Forged ${times} new ${rule.resultName}${times>1?"s":""} from your ${kindName}.`);
+    render();
+  }
+
+const TERRITORY_POOLS = {
   // Tier 1 — Intra-Village Prestige: *lands*, not settlements (no "tribute from hamlets")
   1: [
     { id:"riverlands",   name:"Riverlands",       tier:1, summary:"Fertile banks that feed your village." },
@@ -3220,9 +3466,17 @@ function landBasePopCap(){
 };
 
   function pickTerritoryTemplate(tier){
-    const pool = TERRITORY_POOLS[tier] || TERRITORY_POOLS[1];
-    if(!pool || !pool.length){
-      return { id:"wilds", name:"Unmarked Land", tier:tier||1, summary:"Rough country slowly being tamed." };
+    // Use a cumulative pool: all land types from tier 1 up to the current tier.
+    const t = clamp(tier || 1, 1, 6);
+    const pool = [];
+    for(let k = 1; k <= t; k++){
+      const sub = TERRITORY_POOLS[k];
+      if (Array.isArray(sub) && sub.length){
+        pool.push(...sub);
+      }
+    }
+    if(!pool.length){
+      return { id:"wilds", name:"Unmarked Land", tier:t, summary:"Rough country slowly being tamed." };
     }
     return pool[rnd(0, pool.length - 1)];
   }
@@ -5224,25 +5478,35 @@ function statsRows(){
         emptyEl.style.display = arr.length ? "none" : "block";
       }
 
-      // Group territories by type so each card shows Owned: X
+      // Group territories by kind so each card shows Owned: X
       const grouped = {};
       for(const terr of arr){
-        if(!grouped[terr.name]){
-          grouped[terr.name] = {
+        const kind = terr.kind || terr.name;
+        if(!grouped[kind]){
+          grouped[kind] = {
+            key: kind,
             count: 0,
             summary: terr.summary,
             den: 0,
-            cap: 0
+            cap: 0,
+            tier: terr.tier || 1,
+            sampleNames: []
           };
         }
-        const g = grouped[terr.name];
+        const g = grouped[kind];
         g.count += 1;
-        const eff = LAND_TYPE_EFFECTS[terr.name] || {};
+        // track the highest tier we've seen for this named territory
+        if(terr.tier && terr.tier > g.tier) g.tier = terr.tier;
+        // collect a few custom names (for Cities etc.) if present
+        if(terr.name && terr.name !== kind && g.sampleNames.length < 3 && g.sampleNames.indexOf(terr.name) === -1){
+          g.sampleNames.push(terr.name);
+        }
+        const eff = LAND_TYPE_EFFECTS[kind] || {};
         if(eff.den) g.den += eff.den;
         if(eff.pop) g.cap += eff.pop;
       }
 
-      // Render one card per land type
+      // Render one card per land kind
       Object.entries(grouped).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([name,info])=>{
         const btn = document.createElement("button");
         btn.type = "button";
@@ -5259,6 +5523,7 @@ function statsRows(){
             <span class="territoryFlavor">${info.summary || "Claimed territory."}</span>
           </div>
         `;
+        btn.addEventListener("click", ()=> openTerritoryOverlay(name, info));
         listEl.appendChild(btn);
       });
     }
