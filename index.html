@@ -5208,7 +5208,34 @@ function statsRows(){
 
     bumpObjective("tap", 1);
     bumpEarnedDenarii(gain + jackpotGain);
-    // Renown is now battle-only; no passive renown from tapping.
+
+    // Small renown trickle from visible wealth: big tribute taps
+    // and a grown realm make your name travel.
+    const totalTapGold = gain + jackpotGain;
+    if(totalTapGold > 0){
+      const terr = (S.controlledRegions && S.controlledRegions.length) || 0;
+      const villas = S.villaCount || 0;
+      let tapRen = 0;
+
+      // Wealth-based renown: only kicks in on meaningful taps.
+      tapRen += Math.floor(totalTapGold / 18000);
+
+      // Realm size gently boosts it.
+      if(terr >= 3)  tapRen += 1;
+      if(villas >= 6) tapRen += 1;
+
+      // Soft cap and dampening at higher renown so it doesn't explode midgame.
+      if(tapRen > 0){
+        const ren = S.renown || 0;
+        if(ren > 0){
+          tapRen = Math.max(1, Math.round(tapRen / (1 + ren / 9000)));
+        }
+        tapRen = Math.min(tapRen, 12);
+        S.renown += tapRen;
+        S.lifetimeRenown += tapRen;
+      }
+    }
+
     S.power += 1 + (crit ? 1 : 0);
 
     // Streak taps occasionally attract a new settler directly (population dopamine).
@@ -6617,6 +6644,37 @@ $("#btnExport").addEventListener("click", async ()=>{
     // Objectives: passive income counts toward "Earn denarii"
     if(inc > 0) bumpEarnedDenarii(inc);
 
+    // Passive renown: as your wealth, land, villas and population grow,
+    // word of your rule spreads slowly even while you are not tapping.
+    if(inc > 0){
+      const pop   = S.population || 0;
+      const terr  = (S.controlledRegions && S.controlledRegions.length) || 0;
+      const villas = S.villaCount || 0;
+
+      // Base chance scales with income and realm size.
+      let p = 0;
+      p += inc / 25000;
+      p += terr * 0.0025;
+      p += villas * 0.003;
+      p += pop * 0.0004;
+
+      // Soft damping as renown grows, so late-game doesn't explode.
+      const ren = S.renown || 0;
+      if(ren > 0){
+        p = p / (1 + ren / 8000);
+      }
+
+      // Never more than a moderate chance per tick.
+      p = Math.min(0.45, p);
+
+      if(p > 0 && chance(p)){
+        let drip = 1;
+        if(terr >= 10)  drip += 1;
+        if(villas >= 15) drip += 1;
+        S.renown += drip;
+        S.lifetimeRenown += drip;
+      }
+    }
 
     // --- Milites upkeep: ties legion to village economy ---
     const upkeep = warriorUpkeepPerSec() * dt;
