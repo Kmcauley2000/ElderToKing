@@ -1383,6 +1383,16 @@ header{
       </div>
     </section>
   </div>
+  <div id="territoryOverlay" class="offlineOverlay" hidden>
+    <section class="offlineCard" role="dialog" aria-modal="true" aria-labelledby="territoryTitle">
+      <div id="territoryCardInner">
+        <!-- Filled by JS when inspecting a territory -->
+      </div>
+    </section>
+  </div>
+
+
+
 
 
   <header>
@@ -1637,7 +1647,6 @@ header{
   </nav>
 
 <script>
-(() => {
   "use strict";
 
   const $ = (q, el=document)=> el.querySelector(q);
@@ -1831,7 +1840,7 @@ header{
     if(!Array.isArray(state.controlledRegions)){
       state.controlledRegions = [];
     }
-// If this is an old save with land > 0 but no territories yet,
+    // If this is an old save with land > 0 but no territories yet,
     // backfill with generic “Claimed Land” entries so counts stay in sync.
     if(state.controlledRegions.length === 0){
       const legacyLand = Number(state.land) || 0;
@@ -1841,9 +1850,26 @@ header{
           id: "legacy-"+i,
           name: "Claimed Land",
           tier: 1,
-          summary: "Territory claimed before the territory update."
+          summary: "Territory claimed before the territory update.",
+          trait: null,
+          stage: "mature",
+          specialization: null,
+          project: null,
+          workersAssigned: 0,
+          maxWorkers: 0
         });
       }
+    }
+
+    // Ensure modern per‑tile fields exist on all territories from older saves.
+    for(const terr of state.controlledRegions){
+      if(!terr || typeof terr !== "object") continue;
+      if(typeof terr.trait === "undefined") terr.trait = null;
+      if(typeof terr.stage !== "string") terr.stage = "mature";
+      if(typeof terr.specialization === "undefined") terr.specialization = null;
+      if(typeof terr.project === "undefined") terr.project = null;
+      if(typeof terr.workersAssigned !== "number") terr.workersAssigned = 0;
+      if(typeof terr.maxWorkers !== "number") terr.maxWorkers = 0;
     }
     return state;
   }
@@ -3240,20 +3266,52 @@ function battleArchetypeFor(tier, slot){
   
 // === Land Type Effects (flat base output) ===
 const LAND_TYPE_EFFECTS = {
+  // Tier 1 — pure land features
   "Riverlands":      { den: 2, pop: 1 },
-  "Farmlands":       { den: 1, pop: 2 },
   "Forest Edge":     { den: 1, pop: 1 },
+  "Farmlands":       { den: 1, pop: 2 },
   "Grazing Commons": { den: 1, pop: 1 },
   "Marsh Flats":     { den: 0, pop: 1 },
   "Old Quarry":      { den: 2, pop: 0 },
 
-  // higher-tier examples (future-safe)
-  "Hamlet":          { den: 3, pop: 3 },
-  "Village":         { den: 5, pop: 6 },
-  "Market Town":     { den: 8, pop: 8 },
-  "Stronghold":      { den: 6, pop: 4 },
-  "City":            { den: 12, pop: 12 }
+  // Tier 2 — small holdings
+  "Orchard Lands":   { den: 2, pop: 2 },
+  "Timber Stand":    { den: 2, pop: 1 },
+  "Streamford":      { den: 2, pop: 2 },
+  "Outlying Stead":  { den: 1, pop: 2 },
+
+  // Tier 3 — hamlets & villages
+  "Palisaded Hamlet": { den: 3, pop: 3 },
+  "River Village":    { den: 4, pop: 4 },
+  "Hill Village":     { den: 3, pop: 4 },
+  "Market Crossing":  { den: 5, pop: 4 },
+
+  // Tier 4 — fortified / sacred / trade
+  "Walled Village":    { den: 5, pop: 5 },
+  "Council Field":     { den: 2, pop: 3 },
+  "Shrine Settlement": { den: 3, pop: 3 },
+  "Trade Road":        { den: 6, pop: 2 },
+
+  // Tier 5 — forts, mines, groves, town
+  "Border Fort":  { den: 4, pop: 3 },
+  "Mineworks":    { den: 6, pop: 2 },
+  "Sacred Grove": { den: 3, pop: 2 },
+  "Growing Town": { den: 8, pop: 6 },
+
+  // Tier 6 — realm-scale holdings
+  "Border Stronghold": { den: 7, pop: 5 },
+  "Regional Capital":  { den: 10, pop: 10 },
+  "Great Market":      { den: 12, pop: 6 },
+  "Subdued Seat":      { den: 6, pop: 6 },
+
+  // Legacy generic types (for very old saves)
+  "Hamlet":       { den: 3, pop: 3 },
+  "Village":      { den: 5, pop: 6 },
+  "Market Town":  { den: 8, pop: 8 },
+  "Stronghold":   { den: 6, pop: 4 },
+  "City":         { den: 12, pop: 12 }
 };
+
 
 function landBaseIncome(){
   if(!Array.isArray(S.controlledRegions)) return 0;
@@ -3275,7 +3333,966 @@ function landBasePopCap(){
   return sum;
 }
 
-// === Territory System (named lands instead of abstract plots) ===
+function updateTerritoryProjects(){
+  if(!Array.isArray(S.controlledRegions)) return;
+  const now = Date.now();
+  let changed = false;
+  for(const terr of S.controlledRegions){
+    if(!terr || !terr.project || terr.stage !== "developing") continue;
+    if(!terr.project.endsAt) continue;
+    if(now >= terr.project.endsAt){
+      terr.stage = "mature";
+      // For now, workers remain assigned, representing ongoing work/production.
+      changed = true;
+    }
+  }
+  if(changed && typeof scheduleSave === "function"){
+    scheduleSave();
+  }
+}
+
+function landDevelopmentBonuses(){
+  if(!Array.isArray(S.controlledRegions)) return { den: 0, pop: 0 };
+  let bonusDen = 0;
+  let bonusPop = 0;
+
+  for(const terr of S.controlledRegions){
+    if(!terr || terr.stage !== "mature" || !terr.specialization) continue;
+    const specList = TERRITORY_SPECIALIZATIONS[terr.name];
+    if(!specList) continue;
+    const spec = specList.find(s => s.id === terr.specialization);
+    if(!spec) continue;
+    if(spec.bonusDen) bonusDen += spec.bonusDen;
+    if(spec.bonusPop) bonusPop += spec.bonusPop;
+  }
+  return { den: bonusDen, pop: bonusPop };
+}
+
+// Simple emoji icon per territory type for the detail header.
+function territoryIcon(name){
+  switch(name){
+    case "Riverlands": return "🌊";
+    case "Forest Edge": return "🌲";
+    case "Farmlands": return "🌾";
+    case "Grazing Commons": return "🐄";
+    case "Marsh Flats": return "🪵";
+    case "Old Quarry": return "⛏️";
+    case "Orchard Lands": return "🍎";
+    case "Timber Stand": return "🪓";
+    case "Streamford": return "🌉";
+    case "Outlying Stead": return "🏚️";
+    case "Palisaded Hamlet": return "🏘️";
+    case "River Village": return "🏞️";
+    case "Hill Village": return "⛰️";
+    case "Market Crossing": return "🛣️";
+    case "Walled Village": return "🧱";
+    case "Council Field": return "⚖️";
+    case "Shrine Settlement": return "⛩️";
+    case "Trade Road": return "🛤️";
+    case "Border Fort": return "🛡️";
+    case "Mineworks": return "⚒️";
+    case "Sacred Grove": return "🌳";
+    case "Growing Town": return "🏙️";
+    case "Border Stronghold": return "🏰";
+    case "Regional Capital": return "🏛️";
+    case "Great Market": return "💰";
+    case "Subdued Seat": return "👑";
+    default: return "🏞️";
+  }
+}
+
+// Lightweight flavour traits per land type.
+// These are mostly cosmetic for now, but are shown on the tile card.
+const TERRITORY_TRAITS = {
+  "Riverlands": [
+    "Fertile banks (+busy river trade)",
+    "Slow meanders (easy crossings)",
+    "Steep banks (harder to work)"
+  ],
+  "Forest Edge": [
+    "Old growth line (good timber)",
+    "Brushy fringe (thick undergrowth)",
+    "Game-rich margins (plenty of deer)"
+  ],
+  "Farmlands": [
+    "Fertile soil (+good harvests)",
+    "Gentle slopes (easy to plough)",
+    "Stony patches (harder to till)"
+  ],
+  "Grazing Commons": [
+    "Sheltered pasture (+healthy herds)",
+    "Windy upland (tough grazing)",
+    "Wet lowland (boggy ground)"
+  ],
+  "Marsh Flats": [
+    "Reed-choked pools",
+    "Treacherous bog",
+    "Migratory bird haven"
+  ],
+  "Old Quarry": [
+    "Deep-cut stone faces",
+    "Abandoned workings",
+    "Rich in useful rubble"
+  ],
+  "Orchard Lands": [
+    "Well-tended groves",
+    "Scattered old trees",
+    "Blossom-rich rows"
+  ],
+  "Timber Stand": [
+    "Straight trunks (good beams)",
+    "Mixed growth",
+    "Younger saplings"
+  ],
+  "Streamford": [
+    "Shallow ford (easy crossing)",
+    "Rocky bed (careful footing)",
+    "Braided channels"
+  ],
+  "Outlying Stead": [
+    "Hardy families",
+    "Old palisade",
+    "Lonely watch-fire"
+  ],
+  "Palisaded Hamlet": [
+    "Sturdy ditch and bank",
+    "Overlooked by a hill",
+    "Crowded timber walls"
+  ],
+  "River Village": [
+    "Busy ferry landing",
+    "Net-lines along the bank",
+    "Quayside sheds"
+  ],
+  "Hill Village": [
+    "Terraced slopes",
+    "Wind-scoured ridge",
+    "Stone-built houses"
+  ],
+  "Market Crossing": [
+    "Four-road junction",
+    "Permanent stalls",
+    "Seasonal fairs"
+  ],
+  "Walled Village": [
+    "Guarded gate",
+    "Low stone curtain",
+    "Watch platforms"
+  ],
+  "Council Field": [
+    "Speaker's mound",
+    "Ring of old stones",
+    "Tall ash at centre"
+  ],
+  "Shrine Settlement": [
+    "Ancient altar",
+    "Spring-sanctuary",
+    "Pilgrim shelters"
+  ],
+  "Trade Road": [
+    "Well-packed surface",
+    "Posting-stations",
+    "Milestones"
+  ],
+  "Border Fort": [
+    "Ditch and rampart",
+    "Timber tower",
+    "Beacon hill"
+  ],
+  "Mineworks": [
+    "Deep adits",
+    "Ore carts",
+    "Smoke-stained sheds"
+  ],
+  "Sacred Grove": [
+    "Circle of oaks",
+    "Whispering pines",
+    "Clear spring"
+  ],
+  "Growing Town": [
+    "New streets", "Bustling market", "Crammed tenements"
+  ],
+  "Border Stronghold": [
+    "High walls", "Deep cistern", "Old armoury"
+  ],
+  "Regional Capital": [
+    "Grand forum", "Governor's hall", "Marbled streets"
+  ],
+  "Great Market": [
+    "Foreign traders", "Counting houses", "Covered stalls"
+  ],
+  "Subdued Seat": [
+    "Old royal hall", "Tamed banners", "Quiet courtyards"
+  ]
+};
+
+function rollTerritoryTrait(name){
+  const options = TERRITORY_TRAITS[name];
+  if(!options || !options.length) return null;
+  const idx = Math.floor(Math.random() * options.length);
+  return options[idx];
+}
+
+// Per-type development specialisations.
+// Each entry describes a project the player can start on that tile.
+const TERRITORY_SPECIALIZATIONS = {
+  "Farmlands": [
+    {
+      id: "cereal_fields",
+      label: "Develop Wheat Fields",
+      description: "Turn the open land into orderly cereal fields.",
+      costGold: 120,
+      costPop: 2,
+      durationDays: 7,
+      bonusDen: 0,
+      bonusPop: 1,
+      maxWorkers: 4
+    },
+    {
+      id: "vineyard",
+      label: "Plant Vineyard (Luxury)",
+      description: "Plant vines that slowly become valuable.",
+      costGold: 300,
+      costPop: 3,
+      durationDays: 30,
+      bonusDen: 1,
+      bonusPop: 0,
+      maxWorkers: 3
+    },
+    {
+      id: "pasture",
+      label: "Prepare Pasture (Livestock)",
+      description: "Fence and seed the land for grazing herds.",
+      costGold: 150,
+      costPop: 2,
+      durationDays: 10,
+      bonusDen: 0,
+      bonusPop: 1,
+      maxWorkers: 4
+    }
+  ],
+  "Riverlands": [
+    {
+      id: "irrigated_fields",
+      label: "Lay Irrigated Fields",
+      description: "Channel riverwater to nearby plots.",
+      costGold: 180,
+      costPop: 2,
+      durationDays: 10,
+      bonusDen: 0,
+      bonusPop: 1,
+      maxWorkers: 3
+    },
+    {
+      id: "river_tradepost",
+      label: "Establish River Trade Post",
+      description: "Build a jetty and huts for barge traffic.",
+      costGold: 260,
+      costPop: 2,
+      durationDays: 16,
+      bonusDen: 2,
+      bonusPop: 0,
+      maxWorkers: 3
+    }
+  ],
+  "Forest Edge": [
+    {
+      id: "logging_camp",
+      label: "Set Up Logging Camp",
+      description: "Organise woodcutters and timber hauling.",
+      costGold: 140,
+      costPop: 2,
+      durationDays: 9,
+      bonusDen: 2,
+      bonusPop: 0,
+      maxWorkers: 4
+    },
+    {
+      id: "hunting_grounds",
+      label: "Mark Hunting Grounds",
+      description: "Control the game and hides coming from the forest.",
+      costGold: 100,
+      costPop: 1,
+      durationDays: 6,
+      bonusDen: 1,
+      bonusPop: 1,
+      maxWorkers: 3
+    }
+  ],
+  "Grazing Commons": [
+    {
+      id: "herd_pasture",
+      label: "Organise Herd Pasture",
+      description: "Fence common land and tend larger herds.",
+      costGold: 130,
+      costPop: 2,
+      durationDays: 8,
+      bonusDen: 0,
+      bonusPop: 1,
+      maxWorkers: 4
+    },
+    {
+      id: "drive_road",
+      label: "Mark Drive Road",
+      description: "Arrange regular herd-drives for trade.",
+      costGold: 160,
+      costPop: 2,
+      durationDays: 11,
+      bonusDen: 1,
+      bonusPop: 0,
+      maxWorkers: 3
+    }
+  ],
+  "Marsh Flats": [
+    {
+      id: "reed_grounds",
+      label: "Exploit Reed Grounds",
+      description: "Harvest reeds, herbs and bog products.",
+      costGold: 80,
+      costPop: 1,
+      durationDays: 5,
+      bonusDen: 1,
+      bonusPop: 0,
+      maxWorkers: 2
+    },
+    {
+      id: "drainage",
+      label: "Begin Drainage Works",
+      description: "Lay ditches towards eventual dry fields.",
+      costGold: 220,
+      costPop: 3,
+      durationDays: 20,
+      bonusDen: 0,
+      bonusPop: 2,
+      maxWorkers: 4
+    }
+  ],
+  "Old Quarry": [
+    {
+      id: "stone_quarry",
+      label: "Reopen Stone Quarry",
+      description: "Restart steady stone cutting.",
+      costGold: 200,
+      costPop: 3,
+      durationDays: 15,
+      bonusDen: 2,
+      bonusPop: 0,
+      maxWorkers: 4
+    },
+    {
+      id: "clay_pits",
+      label: "Dig Clay Pits",
+      description: "Dig clay for bricks and pottery.",
+      costGold: 150,
+      costPop: 2,
+      durationDays: 10,
+      bonusDen: 1,
+      bonusPop: 0,
+      maxWorkers: 3
+    }
+  ],
+  "Orchard Lands": [
+    {
+      id: "intensive_orchards",
+      label: "Intensive Orchards",
+      description: "Replant with denser, better-yielding trees.",
+      costGold: 200,
+      costPop: 2,
+      durationDays: 18,
+      bonusDen: 1,
+      bonusPop: 1,
+      maxWorkers: 3
+    }
+  ],
+  "Timber Stand": [
+    {
+      id: "managed_forest",
+      label: "Manage Timber Stand",
+      description: "Thin and mark trees for steady lumber.",
+      costGold: 190,
+      costPop: 2,
+      durationDays: 14,
+      bonusDen: 2,
+      bonusPop: 0,
+      maxWorkers: 4
+    }
+  ],
+  "Streamford": [
+    {
+      id: "ford_market",
+      label: "Found Ford Market",
+      description: "Let traders pause and pay a little.",
+      costGold: 210,
+      costPop: 2,
+      durationDays: 14,
+      bonusDen: 2,
+      bonusPop: 0,
+      maxWorkers: 3
+    }
+  ],
+  "Outlying Stead": [
+    {
+      id: "family_stead",
+      label: "Build Up Farm Stead",
+      description: "Support more families and storage.",
+      costGold: 160,
+      costPop: 2,
+      durationDays: 12,
+      bonusDen: 0,
+      bonusPop: 1,
+      maxWorkers: 4
+    }
+  ],
+  "Palisaded Hamlet": [
+    {
+      id: "militia_focus",
+      label: "Militia Focus",
+      description: "Drill locals and strengthen defences.",
+      costGold: 220,
+      costPop: 2,
+      durationDays: 14,
+      bonusDen: 0,
+      bonusPop: 1,
+      maxWorkers: 3
+    },
+    {
+      id: "market_focus",
+      label: "Market Focus",
+      description: "Encourage stalls around the gate.",
+      costGold: 240,
+      costPop: 2,
+      durationDays: 14,
+      bonusDen: 2,
+      bonusPop: 0,
+      maxWorkers: 3
+    }
+  ],
+  "River Village": [
+    {
+      id: "fishing_quarter",
+      label: "Fishing Quarter",
+      description: "Boats, nets and riverside sheds.",
+      costGold: 230,
+      costPop: 2,
+      durationDays: 16,
+      bonusDen: 1,
+      bonusPop: 1,
+      maxWorkers: 4
+    }
+  ],
+  "Hill Village": [
+    {
+      id: "terraced_fields",
+      label: "Terraced Fields",
+      description: "Cut terraces into the slope.",
+      costGold: 210,
+      costPop: 2,
+      durationDays: 16,
+      bonusDen: 0,
+      bonusPop: 2,
+      maxWorkers: 4
+    }
+  ],
+  "Market Crossing": [
+    {
+      id: "toll_rights",
+      label: "Grant Toll Rights",
+      description: "Formalise market-tolls on the crossing.",
+      costGold: 260,
+      costPop: 2,
+      durationDays: 18,
+      bonusDen: 3,
+      bonusPop: 0,
+      maxWorkers: 3
+    }
+  ],
+  "Walled Village": [
+    {
+      id: "crafts_district",
+      label: "Support Crafts District",
+      description: "Give space to artisans and shops.",
+      costGold: 300,
+      costPop: 3,
+      durationDays: 20,
+      bonusDen: 3,
+      bonusPop: 1,
+      maxWorkers: 4
+    }
+  ],
+  "Council Field": [
+    {
+      id: "formal_council",
+      label: "Formalise Council",
+      description: "Regular assemblies, scribes and heralds.",
+      costGold: 220,
+      costPop: 2,
+      durationDays: 14,
+      bonusDen: 1,
+      bonusPop: 1,
+      maxWorkers: 2
+    }
+  ],
+  "Shrine Settlement": [
+    {
+      id: "pilgrim_hostel",
+      label: "Build Pilgrim Hostel",
+      description: "Shelter visitors and take small offerings.",
+      costGold: 240,
+      costPop: 2,
+      durationDays: 18,
+      bonusDen: 2,
+      bonusPop: 0,
+      maxWorkers: 3
+    }
+  ],
+  "Trade Road": [
+    {
+      id: "waystation",
+      label: "Establish Waystation",
+      description: "Stable, inn and storehouse on the road.",
+      costGold: 260,
+      costPop: 3,
+      durationDays: 18,
+      bonusDen: 3,
+      bonusPop: 0,
+      maxWorkers: 4
+    }
+  ],
+  "Border Fort": [
+    {
+      id: "permanent_garrison",
+      label: "Station Permanent Garrison",
+      description: "House and feed more professional troops.",
+      costGold: 320,
+      costPop: 3,
+      durationDays: 22,
+      bonusDen: 0,
+      bonusPop: 1,
+      maxWorkers: 3
+    }
+  ],
+  "Mineworks": [
+    {
+      id: "deep_workings",
+      label: "Expand Deep Workings",
+      description: "Push new shafts and galleries.",
+      costGold: 340,
+      costPop: 3,
+      durationDays: 24,
+      bonusDen: 4,
+      bonusPop: 0,
+      maxWorkers: 4
+    }
+  ],
+  "Sacred Grove": [
+    {
+      id: "ritual_enclosure",
+      label: "Raise Ritual Enclosure",
+      description: "Manage offerings and keep rites.",
+      costGold: 250,
+      costPop: 2,
+      durationDays: 18,
+      bonusDen: 1,
+      bonusPop: 1,
+      maxWorkers: 2
+    }
+  ],
+  "Growing Town": [
+    {
+      id: "stone_quarter",
+      label: "Lay Stone Quarter",
+      description: "Replace shacks with lasting streets.",
+      costGold: 380,
+      costPop: 4,
+      durationDays: 30,
+      bonusDen: 4,
+      bonusPop: 2,
+      maxWorkers: 5
+    }
+  ],
+  "Border Stronghold": [
+    {
+      id: "supply_depots",
+      label: "Organise Supply Depots",
+      description: "Secure grain, arms and fodder.",
+      costGold: 360,
+      costPop: 3,
+      durationDays: 26,
+      bonusDen: 2,
+      bonusPop: 1,
+      maxWorkers: 4
+    }
+  ],
+  "Regional Capital": [
+    {
+      id: "administrative_quarter",
+      label: "Grow Administrative Quarter",
+      description: "Clerks, offices and courts.",
+      costGold: 420,
+      costPop: 4,
+      durationDays: 32,
+      bonusDen: 4,
+      bonusPop: 2,
+      maxWorkers: 5
+    }
+  ],
+  "Great Market": [
+    {
+      id: "counting_houses",
+      label: "Encourage Counting Houses",
+      description: "Concentrate money-changing and contracts.",
+      costGold: 430,
+      costPop: 3,
+      durationDays: 32,
+      bonusDen: 5,
+      bonusPop: 0,
+      maxWorkers: 4
+    }
+  ],
+  "Subdued Seat": [
+    {
+      id: "governors_court",
+      label: "Seat Governor's Court",
+      description: "Formalise rule and provincial presence.",
+      costGold: 380,
+      costPop: 3,
+      durationDays: 30,
+      bonusDen: 2,
+      bonusPop: 2,
+      maxWorkers: 4
+    }
+  ]
+};
+
+// Helper: total workers used across all territories.
+function totalTerritoryWorkers(){
+  if(!Array.isArray(S.controlledRegions)) return 0;
+  let sum = 0;
+  for(const terr of S.controlledRegions){
+    if(!terr) continue;
+    sum += Number(terr.workersAssigned || 0);
+  }
+  return sum;
+}
+
+
+// --- Territory detail overlay state & helpers ---
+let territoryUIState = {
+  name: null,
+  indices: [],
+  idx: 0
+};
+
+function openTerritoryOverlay(name){
+  const overlay = document.getElementById("territoryOverlay");
+  const inner = document.getElementById("territoryCardInner");
+  if(!overlay || !inner) return;
+
+  const arr = Array.isArray(S.controlledRegions) ? S.controlledRegions : [];
+  const indices = [];
+  for(let i=0;i<arr.length;i++){
+    const terr = arr[i];
+    if(terr && terr.name === name){
+      // Ensure baseline fields exist for safety
+      if(typeof terr.trait === "undefined") terr.trait = null;
+      if(typeof terr.stage !== "string") terr.stage = "raw";
+      if(typeof terr.specialization === "undefined") terr.specialization = null;
+      if(typeof terr.project === "undefined") terr.project = null;
+      if(typeof terr.workersAssigned !== "number") terr.workersAssigned = 0;
+      if(typeof terr.maxWorkers !== "number") terr.maxWorkers = 0;
+      // Lazily roll a trait if missing
+      if(!terr.trait){
+        terr.trait = rollTerritoryTrait(terr.name);
+      }
+      indices.push(i);
+    }
+  }
+
+  if(!indices.length) return;
+
+  territoryUIState.name = name;
+  territoryUIState.indices = indices;
+  territoryUIState.idx = 0;
+
+  overlay.removeAttribute("hidden");
+  overlay.classList.add("visible");
+  renderTerritoryDetail();
+}
+
+function closeTerritoryOverlay(){
+  const overlay = document.getElementById("territoryOverlay");
+  if(overlay){
+    overlay.classList.remove("visible");
+    overlay.setAttribute("hidden", "hidden");
+  }
+}
+
+function stepTerritory(delta){
+  if(!territoryUIState.indices.length) return;
+  const n = territoryUIState.indices.length;
+  territoryUIState.idx = (territoryUIState.idx + delta + n) % n;
+  renderTerritoryDetail();
+}
+
+function currentTerritoryRef(){
+  const arr = Array.isArray(S.controlledRegions) ? S.controlledRegions : [];
+  if(!territoryUIState.indices.length) return null;
+  const idx = territoryUIState.indices[territoryUIState.idx] || 0;
+  const terr = arr[idx];
+  if(!terr) return null;
+  return { terr, idx };
+}
+
+
+function renderTerritoryDetail(){
+  const inner = document.getElementById("territoryCardInner");
+  if(!inner) return;
+  const ref = currentTerritoryRef();
+  if(!ref) return;
+  const terr = ref.terr;
+
+  // Ensure trait exists for display
+  if(!terr.trait){
+    terr.trait = rollTerritoryTrait(terr.name);
+  }
+
+  const icon = territoryIcon(terr.name);
+  const listCount = territoryUIState.indices.length;
+  const humanIdx = territoryUIState.idx + 1;
+
+  const eff = LAND_TYPE_EFFECTS[terr.name] || { den: 0, pop: 0 };
+  const baseDen = eff.den || 0;
+  const basePop = eff.pop || 0;
+
+  let bonusDen = 0;
+  let bonusPop = 0;
+  const specs = TERRITORY_SPECIALIZATIONS[terr.name];
+  if(specs && terr.stage === "mature" && terr.specialization){
+    const spec = specs.find(s => s.id === terr.specialization);
+    if(spec){
+      bonusDen = spec.bonusDen || 0;
+      bonusPop = spec.bonusPop || 0;
+    }
+  }
+
+  const totalDen = baseDen + bonusDen;
+  const totalPop = basePop + bonusPop;
+
+  const workersNow = terr.workersAssigned || 0;
+  const specForLimits = (specs || []).find(s => s.id === terr.specialization) || (specs && specs[0]);
+  const maxWorkers = terr.maxWorkers || (specForLimits ? specForLimits.maxWorkers || 0 : 0);
+
+  const stageLabel = (terr.stage === "developing") ? "Developing" :
+                     (terr.stage === "mature") ? "Mature" :
+                     "Raw";
+  const potential = terr.summary || "";
+
+  // --- Development section (compact) ---
+  let devSection = "";
+  const availableSpecs = TERRITORY_SPECIALIZATIONS[terr.name];
+  if(availableSpecs && (!terr.specialization || terr.stage === "raw")){
+    const optionsHtml = availableSpecs.map((s, idx) => {
+      const checked = (terr.specialization ? terr.specialization === s.id : idx === 0) ? "checked" : "";
+      return `
+      <label style="display:block;margin:2px 0;">
+        <input type="radio" name="territoryDevChoice" value="${s.id}" ${checked}>
+        <b>${s.label}</b><br>
+        <span style="font-size:.78rem;">
+          ${fmt(s.costGold)} denarii, ${s.costPop} pop • ${s.durationDays} days
+        </span>
+      </label>`;
+    }).join("");
+    devSection = `
+    <div class="offlineGroup">
+      <div class="offlineGroupTitle">Development</div>
+      ${optionsHtml}
+      <button id="territoryStartDevBtn" class="offlineOkBtn" style="margin-top:4px;">Start</button>
+    </div>`;
+  } else if(terr.stage === "developing" && terr.project){
+    const remainingMs = Math.max(0, (terr.project.endsAt || 0) - Date.now());
+    const remainingDays = remainingMs / (1000*60*60*24);
+    const remStr = remainingMs <= 0 ? "Finishing soon" : `${remainingDays.toFixed(1)} days left`;
+    devSection = `
+    <div class="offlineGroup">
+      <div class="offlineGroupTitle">Development</div>
+      <p style="font-size:.8rem;margin:2px 0 4px;">
+        ${terr.project.type}<br>
+        Workers: ${terr.workersAssigned || 0} • ${remStr}
+      </p>
+    </div>`;
+  } else if(terr.stage === "mature" && terr.specialization){
+    devSection = `
+    <div class="offlineGroup">
+      <div class="offlineGroupTitle">Development</div>
+      <p style="font-size:.8rem;margin:2px 0 4px;">
+        ${ (specForLimits && specForLimits.label) || terr.specialization }
+      </p>
+    </div>`;
+  }
+
+  const productionSummary = `
+    <div class="offlineGroup">
+      <div class="offlineGroupTitle">Output</div>
+      <p style="font-size:.8rem;margin:2px 0 4px;">
+        Denarii: +${fmt(baseDen)}${bonusDen ? " (+" + fmt(bonusDen) + ")" : ""}<br>
+        Cap: +${fmt(basePop)}${bonusPop ? " (+" + fmt(bonusPop) + ")" : ""}
+      </p>
+    </div>`;
+
+  const workersSection = `
+    <div class="offlineGroup">
+      <div class="offlineGroupTitle">Workers</div>
+      <p style="font-size:.8rem;margin:2px 0 4px;">
+        <button id="terrWorkerMinus" type="button" class="smallBtn" style="min-width:28px;margin:0 4px;">−</button>
+        <span id="terrWorkerCount">${workersNow}</span> / ${maxWorkers}
+        <button id="terrWorkerPlus" type="button" class="smallBtn" style="min-width:28px;margin:0 4px;">+</button>
+      </p>
+    </div>`;
+
+  inner.innerHTML = `
+    <div class="offlineTitle">
+      <div>
+        <div id="territoryTitle" class="offlineTitleText">[${icon} ${terr.name}] ${terr.id || ""}</div>
+        <div class="offlineSub">${terr.trait || ""}</div>
+      </div>
+      <div class="offlineSub">Territory ${humanIdx} of ${listCount} ${terr.name}</div>
+    </div>
+    <div class="offlineBody">
+      <div class="offlineGroup">
+        <div class="offlineGroupTitle">Status</div>
+        <p style="font-size:.8rem;margin:2px 0 4px;">
+          Stage: <b>${stageLabel}</b><br>
+          ${potential ? ("Note: " + potential) : ""}<br>
+          Workers: ${workersNow} / ${maxWorkers || "—"}
+        </p>
+      </div>
+
+      ${devSection}
+
+      ${workersSection}
+
+      ${productionSummary}
+    </div>
+    <div class="offlineOkRow" style="justify-content:space-between;">
+      <button id="territoryPrevBtn" class="offlineOkBtn" type="button">◀ Prev</button>
+      <div style="flex:1;"></div>
+      <button id="territoryCloseBtn" class="offlineOkBtn" type="button" style="margin-right:8px;">Close</button>
+      <button id="territoryNextBtn" class="offlineOkBtn" type="button">Next ▶</button>
+    </div>
+  `;
+// Wire buttons
+  const prevBtn = document.getElementById("territoryPrevBtn");
+  const nextBtn = document.getElementById("territoryNextBtn");
+  const closeBtn = document.getElementById("territoryCloseBtn");
+  const startBtn = document.getElementById("territoryStartDevBtn");
+  const minusBtn = document.getElementById("terrWorkerMinus");
+  const plusBtn = document.getElementById("terrWorkerPlus");
+
+  if(prevBtn) prevBtn.onclick = () => stepTerritory(-1);
+  if(nextBtn) nextBtn.onclick = () => stepTerritory(1);
+  if(closeBtn) closeBtn.onclick = () => closeTerritoryOverlay();
+  if(startBtn) startBtn.onclick = () => startTerritoryDevelopment();
+  if(minusBtn) minusBtn.onclick = () => adjustTerritoryWorkers(-1);
+  if(plusBtn) plusBtn.onclick = () => adjustTerritoryWorkers(1);
+}
+
+function startTerritoryDevelopment(){
+  const ref = currentTerritoryRef();
+  if(!ref) return;
+  const terr = ref.terr;
+
+  if(terr.stage === "developing"){
+    if(typeof toast === "function") toast("This territory is already being developed.");
+    return;
+  }
+
+  const specs = TERRITORY_SPECIALIZATIONS[terr.name];
+  if(!specs || !specs.length){
+    if(typeof toast === "function") toast("No development options for this territory type yet.");
+    return;
+  }
+
+  const radios = document.querySelectorAll('input[name="territoryDevChoice"]');
+  let chosenId = null;
+  radios.forEach(r => { if(r.checked) chosenId = r.value; });
+  if(!chosenId) chosenId = specs[0].id;
+
+  const spec = specs.find(s => s.id === chosenId) || specs[0];
+  if(!spec) return;
+
+  const gold = Number(S.gold || 0);
+  if(gold < spec.costGold){
+    if(typeof toast === "function") toast("Not enough denarii for this project.");
+    return;
+  }
+
+  // Free civilian workers = total population - milites - workers already assigned elsewhere.
+  const totalPop = Number(S.population || 0);
+  const milites = Number(S.populationUsed || 0);
+  const civils = Math.max(0, totalPop - milites);
+  const totalWorkersElsewhere = totalTerritoryWorkers() - (terr.workersAssigned || 0);
+  const freeWorkers = Math.max(0, civils - totalWorkersElsewhere);
+
+  if(freeWorkers < spec.costPop){
+    if(typeof toast === "function") toast("Not enough free population to assign workers.");
+    return;
+  }
+
+  // Pay and start project
+  S.gold = gold - spec.costGold;
+
+  const now = Date.now();
+  terr.stage = "developing";
+  terr.specialization = spec.id;
+  terr.project = {
+    type: spec.label,
+    endsAt: now + (spec.durationDays * 24 * 60 * 60 * 1000),
+    cost: { gold: spec.costGold, pop: spec.costPop }
+  };
+  terr.workersAssigned = spec.costPop;
+  terr.maxWorkers = spec.maxWorkers || spec.costPop;
+
+  if(typeof scheduleSave === "function") scheduleSave();
+  if(typeof toast === "function") toast("Development started on this territory.");
+  render();
+  renderTerritoryDetail();
+}
+
+function adjustTerritoryWorkers(delta){
+  const ref = currentTerritoryRef();
+  if(!ref) return;
+  const terr = ref.terr;
+
+  const specs = TERRITORY_SPECIALIZATIONS[terr.name];
+  const specForLimits = (specs || []).find(s => s.id === terr.specialization) || (specs && specs[0]);
+  const maxWorkers = terr.maxWorkers || (specForLimits ? specForLimits.maxWorkers || 0 : 0);
+
+  let workers = terr.workersAssigned || 0;
+  if(delta > 0){
+    if(workers >= maxWorkers) return;
+
+    const totalPop = Number(S.population || 0);
+    const milites = Number(S.populationUsed || 0);
+    const civils = Math.max(0, totalPop - milites);
+    const totalWorkersElsewhere = totalTerritoryWorkers() - workers;
+    const freeWorkers = Math.max(0, civils - totalWorkersElsewhere);
+    if(freeWorkers <= 0){
+      if(typeof toast === "function") toast("No free population to assign.");
+      return;
+    }
+    workers += 1;
+  }else if(delta < 0){
+    if(workers <= 0) return;
+    workers -= 1;
+  }
+
+  terr.workersAssigned = workers;
+  if(typeof scheduleSave === "function") scheduleSave();
+  renderTerritoryDetail();
+}
+
+
+// === Territory Systemm (named lands instead of abstract plots) ===
   function territoryCount(){
     return Array.isArray(S.controlledRegions) ? S.controlledRegions.length : 0;
   }
@@ -3380,7 +4397,14 @@ function captureTerritory(battleTier){
       id: `${tmpl.id}#${index}`,
       name: tmpl.name,
       tier: tmpl.tier,
-      summary: tmpl.summary
+      summary: tmpl.summary,
+      // New per-tile state
+      trait: rollTerritoryTrait(tmpl.name),
+      stage: "raw",
+      specialization: null,
+      project: null,
+      workersAssigned: 0,
+      maxWorkers: 0
     };
 
     S.controlledRegions.push(terr);
@@ -5082,6 +6106,7 @@ function statsRows(){
 handleRankUps();
     expireCashoutIfNeeded();
     expireStreakIfNeeded();
+    updateTerritoryProjects();
 
     $("#gold").textContent = fmt(S.gold);
     $("#renown").textContent = fmt(S.renown);
@@ -5390,6 +6415,10 @@ handleRankUps();
           </div>
         `;
         listEl.appendChild(btn);
+        // Open per-tile detail overlay for this territory type.
+        btn.addEventListener("click", () => {
+          openTerritoryOverlay(name);
+        });
       });
     }
 // Stats
@@ -7297,7 +8326,6 @@ function startTacticalBattle(slot, defenceFlag){
   }
 
   // (handlers attached in startTacticalBattle)
-})();
 
   // Land tier unlock popup helpers
   function showLandTierUnlockPopup(tier, names){
