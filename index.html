@@ -1270,6 +1270,41 @@ header{
     </section>
   </div>
 
+  <div id="gloryOverlay" class="offlineOverlay" hidden>
+    <section class="offlineCard" role="dialog" aria-modal="true" aria-labelledby="gloryTitle">
+      <div class="offlineTitle">
+        <div>
+          <div id="gloryTitle" class="offlineTitleText">Castrum Victoriae</div>
+          <div class="offlineSub">War trophies from your victories.</div>
+        </div>
+        <div class="offlineSub">Glory <b id="gloryOverlayNow">0</b></div>
+      </div>
+      <div id="gloryBody" class="offlineBody">
+        <p>Spend glory to recruit special forces that permanently strengthen your legion.</p>
+        <div class="row2">
+          <button class="smallBtn" id="btnBuyAuxilia">
+            <div class="t">Auxilia Spearmen</div>
+            <div class="d">Cost 40 glory • +18 strength • low upkeep</div>
+          </button>
+          <button class="smallBtn" id="btnBuyEquites">
+            <div class="t">Equites (Cavalry)</div>
+            <div class="d">Cost 70 glory • +32 strength • moderate upkeep</div>
+          </button>
+        </div>
+        <div class="row2" style="margin-top:8px;">
+          <button class="smallBtn" id="btnBuyVeterans">
+            <div class="t">Veteran Cohort</div>
+            <div class="d">Cost 120 glory • +60 strength • reduces battle losses slightly</div>
+          </button>
+        </div>
+      </div>
+      <div class="offlineOkRow">
+        <button id="gloryCloseBtn" class="offlineOkBtn">Close</button>
+      </div>
+    </section>
+  </div>
+
+
   <header>
     <div class="wrap">
       <div class="top">
@@ -1370,7 +1405,7 @@ header{
 
     <!-- LEGION -->
     <section class="card view" data-view="legion" hidden>
-      <div class="sectionTitle"><span>⚔️</span><span class="milites-label"><img id="militesIcon" class="milites-icon" alt=""><span>Milites <b id="warriors">0</b></span></span></div>
+      <div class="sectionTitle"><span>⚔️</span><span class="milites-label"><img id="militesIcon" class="milites-icon" alt=""><span>Milites <b id="warriors">0</b></span></span><span>Glory <b id="gloryNow">0</b></span></div>
       <div class="cardBody">
         <button class="bigBtn" id="btnRecruit">
           <div class="bigLeft">
@@ -1404,7 +1439,14 @@ header{
           <div class="hint">Renown gained from winning battles.</div>
         </div>
 
-        <div class="meta">
+        
+        
+        <button class="smallBtn" id="btnOpenCastrum" style="margin-top:12px;">
+          <div class="t">Castrum Victoriae</div>
+          <div class="d">Spend glory from victories to recruit special forces.</div>
+        </button>
+
+<div class="meta">
           <div>Strength: <b id="legionStr">0</b></div>
           <div>Upkeep: <b id="legionUpkeep">0</b>/s</div>
           <div>Land: <b id="landLegion">0</b></div>
@@ -1595,6 +1637,15 @@ header{
     // legion
     warriors: 0,    legion: 0,  // derived strength (kept for compatibility)
     battlesWon: 0,
+
+    // special forces recruited with glory
+    auxilia: 0,
+    equites: 0,
+    veterans: 0,
+
+    // new war prestige currency
+    glory: 0,
+    lifetimeGlory: 0,
 
     // upkeep tracking
     unpaidUpkeepSeconds: 0,
@@ -2475,15 +2526,29 @@ function decreeMult(){
   }
 
     function recalcLegionStrength(){
-    // Strength derived from warriors only (simple + readable)
+    // Strength derived from warriors + special forces.
     const per = 6;
+
+    const warriors = S.warriors || 0;
+    const aux    = S.auxilia || 0;
+    const equites = S.equites || 0;
+    const veterans = S.veterans || 0;
+
+    // Base legion from milites.
+    let strength = warriors * per;
+
+    // Special forces add flat strength chunks.
+    strength += aux * 18;
+    strength += equites * 32;
+    strength += veterans * 60;
+
     // Land allocation (Military) further boosts legion strength.
-    S.legion = Math.round(S.warriors * per * landAllocLegionMult());
+    S.legion = Math.round(strength * landAllocLegionMult());
   }
 
 
-  
-  // --- Battles  ---
+
+ // --- Battles  ---
   const BATTLE_SETS = [
     [
       { label:"Break Up Farm Brawl", enemyMin:8, enemyMax:14 },
@@ -3212,9 +3277,21 @@ function captureTerritory(battleTier){
   if(arch && arch.label) b.label = arch.label;
 
   // --- YOUR TROOPS ---
-  const yourTroops = Math.max(0, S.warriors || 0);
+  const warriors = Math.max(0, S.warriors || 0);
+  const aux     = S.auxilia  || 0;
+  const equites = S.equites  || 0;
+  const veterans = S.veterans || 0;
+
+  // Special forces count as multiple trained milites in raw power.
   const baseWarriorStrength = 6;
-  let yourPower = yourTroops * baseWarriorStrength;
+  const virtualFromAux     = aux * 3;   // each Auxilia ≈ 3 milites
+  const virtualFromEquites = equites * 5; // each Equites ≈ 5 milites
+  const virtualFromVets    = veterans * 10; // each Veteran ≈ 10 milites
+
+  const yourTroops = warriors;
+  const effectiveTroops = warriors + virtualFromAux + virtualFromEquites + virtualFromVets;
+
+  let yourPower = effectiveTroops * baseWarriorStrength;
 
   const crowns = S.crowns || 0;
   const crownMult = 1 + Math.min(crowns * 0.045, 0.7);
@@ -3385,7 +3462,7 @@ function captureTerritory(battleTier){
   let lossFrac = (yourHPmax - Math.max(0, yourHP)) / yourHPmax;
   lossFrac = clamp(lossFrac, 0, win ? 0.65 : 0.90);
 
-  // Base losses from HP damage
+  // Base losses from HP damage, applied to your core milites.
   let losses = Math.round(yourTroops * lossFrac);
 
   // Strength comparison for casualty tuning
@@ -3424,6 +3501,19 @@ function captureTerritory(battleTier){
 
     if (losses < minLosses) losses = minLosses;
     if (losses <= 0) losses = 1;
+  }
+
+
+  // Protective effect from Auxilia & Veterans: better lines, fewer losses.
+  {
+    const aux     = S.auxilia  || 0;
+    const veterans = S.veterans || 0;
+    let lossMult = 1;
+    lossMult -= aux * 0.01;
+    lossMult -= veterans * 0.02;
+    lossMult = clamp(lossMult, 0.6, 1);
+    losses = Math.round(losses * lossMult);
+    if (losses < 1) losses = 1;
   }
 
   losses = Math.min(yourTroops, Math.max(0, losses));
@@ -4835,6 +4925,9 @@ function statsRows(){
       ["Multipliers", `Land x${landMult().toFixed(2)} • Crown x${crownMult().toFixed(2)}`],
       ["Lifetime denarii", S.lifetimeGold],
       ["Lifetime renown", S.lifetimeRenown],
+      ["Glory", S.glory || 0],
+      ["Total glory earned", S.lifetimeGlory || 0],
+
     ];
     return rows;
   }
@@ -4959,6 +5052,13 @@ function statsRows(){
     $("#legionStr").textContent = fmt(S.legion);
     $("#landLegion").textContent = fmt(S.land);
     $("#landHud").textContent = fmt(S.land);
+
+    // Glory HUD (battle-only currency)
+    const gNow = S.glory || 0;
+    const gloryNowEl = $("#gloryNow");
+    if(gloryNowEl) gloryNowEl.textContent = fmt(gNow);
+    const gloryOverlayEl = $("#gloryOverlayNow");
+    if(gloryOverlayEl) gloryOverlayEl.textContent = fmt(gNow);
 
     const up = warriorUpkeepPerSec();
     const upEl = $("#legionUpkeep");
@@ -5583,6 +5683,7 @@ function showBattleReport(rep){
   const denChange = rep.denDelta || 0;
   const landChange = rep.landDelta || 0;
   const renChange = rep.renDelta || 0;
+  const gloryChange = rep.gloryDelta || 0;
   const slotsChange = rep.landSlots || 0; // kept for mechanics, not shown in UI
 
   title.textContent = rep.win ? "Battle Victory!" : "Battle Defeat";
@@ -5627,6 +5728,11 @@ function showBattleReport(rep){
   if(renChange !== 0){
     const r = renChange;
     lines.push(`${r > 0 ? "+" : "−"}${fmt(Math.abs(r))} Renown`);
+  }
+
+  if(gloryChange !== 0){
+    const g = gloryChange;
+    lines.push(`${g > 0 ? "+" : "−"}${fmt(Math.abs(g))} Glory`);
   }
 
   {
@@ -6105,6 +6211,7 @@ function doBattle(slot, opts){
   const startGold = S.gold;
   const startLand = S.land||0;
   const startRenown = S.renown||0;
+  const startGlory = S.glory || 0;
 
   // Soft warning: under-strength force vs enemy numbers / odds (no hard gate)
   if (!isDefence && sim && typeof sim.enemies === "number") {
@@ -6201,7 +6308,15 @@ function doBattle(slot, opts){
       S.renown += renGain;
       S.lifetimeRenown += renGain;
 
-      bumpObjective("winBattle", 1);
+      // Glory: trophies of war for defensive stands.
+      let gloryGain = Math.max(1, Math.round(enemies / 18) + tier);
+      // Losses and land allocation (Military) make defence more renowned.
+      gloryGain += Math.round(losses / 80);
+      gloryGain = Math.max(1, Math.round(gloryGain * landAllocLegionMult()));
+      S.glory = (S.glory || 0) + gloryGain;
+      S.lifetimeGlory = (S.lifetimeGlory || 0) + gloryGain;
+
+bumpObjective("winBattle", 1);
       maybeBurst("battle");
 
       toast("Village defended!");
@@ -6300,6 +6415,18 @@ function doBattle(slot, opts){
       renGain = Math.round(renGain * landAllocRenownMult());
       S.renown += renGain;
       S.lifetimeRenown += renGain;
+
+      // Glory: trophies from major victories.
+      // Scales with enemies destroyed, land seized and battle tier.
+      let gloryGain = Math.max(1,
+        Math.round(loot / 120) +
+        Math.round(landGain * 4) +
+        Math.round(enemies / 20) +
+        tier * 2
+      );
+      gloryGain = Math.max(1, Math.round(gloryGain * landAllocLegionMult()));
+      S.glory = (S.glory || 0) + gloryGain;
+      S.lifetimeGlory = (S.lifetimeGlory || 0) + gloryGain;
 
       bumpObjective("winBattle", 1);
       const objLandGain = landGain > 0 ? landGain : (sim.win ? 1 : 0);
@@ -6425,6 +6552,7 @@ function doBattle(slot, opts){
 
     landDelta: Math.round((S.land||0) - startLand),
     renDelta: Math.round((S.renown||0) - startRenown),
+    gloryDelta: Math.round((S.glory||0) - startGlory),
     landSlots: sim.win ? landSlotsGain : 0,
     territoryNames: sim.win ? (capturedNames || []) : [],
     note: sim.win
@@ -6449,6 +6577,81 @@ $("#btnBattleLevy").addEventListener("click", ()=> startTacticalBattle(1));
 $("#btnBattleVillageRaid").addEventListener("click", ()=> startTacticalBattle(2));
 $("#btnBattleSiege").addEventListener("click", ()=> startTacticalBattle(3));
 
+
+
+// Castrum Victoriae (Glory shop)
+
+  const gloryOverlay = $("#gloryOverlay");
+  const btnOpenCastrum = $("#btnOpenCastrum");
+  const btnGloryClose = $("#gloryCloseBtn");
+
+  if(btnOpenCastrum && gloryOverlay){
+    btnOpenCastrum.addEventListener("click", ()=>{
+      const gloryNow = S.glory || 0;
+      const el = $("#gloryOverlayNow");
+      if(el) el.textContent = fmt(gloryNow);
+      gloryOverlay.removeAttribute("hidden");
+      gloryOverlay.classList.add("visible");
+    });
+  }
+
+  if(btnGloryClose && gloryOverlay){
+    btnGloryClose.addEventListener("click", ()=>{
+      gloryOverlay.classList.remove("visible");
+      gloryOverlay.setAttribute("hidden", "hidden");
+    });
+  }
+
+  const gloryCost = (kind)=>{
+    if(kind === "aux") return 40;
+    if(kind === "equites") return 70;
+    if(kind === "vets") return 120;
+    return 0;
+  };
+  const addSpecialForces = (kind, count=1)=>{
+    if(kind === "aux")      S.auxilia = (S.auxilia || 0) + count;
+    else if(kind === "equites") S.equites = (S.equites || 0) + count;
+    else if(kind === "vets")    S.veterans = (S.veterans || 0) + count;
+  };
+
+  $("#btnBuyAuxilia").addEventListener("click", ()=>{
+    const cost = gloryCost("aux");
+    if((S.glory || 0) < cost){
+      toast("Not enough glory");
+      return;
+    }
+    S.glory -= cost;
+    addSpecialForces("aux", 1);
+    toast("Auxilia spearmen join your banners.");
+    logLine("Auxilia spearmen recruited at Castrum Victoriae.", "good");
+    render();
+  });
+
+  $("#btnBuyEquites").addEventListener("click", ()=>{
+    const cost = gloryCost("equites");
+    if((S.glory || 0) < cost){
+      toast("Not enough glory");
+      return;
+    }
+    S.glory -= cost;
+    addSpecialForces("equites", 1);
+    toast("Equites ride under your standard.");
+    logLine("Equites (cavalry) recruited at Castrum Victoriae.", "good");
+    render();
+  });
+
+  $("#btnBuyVeterans").addEventListener("click", ()=>{
+    const cost = gloryCost("vets");
+    if((S.glory || 0) < cost){
+      toast("Not enough glory");
+      return;
+    }
+    S.glory -= cost;
+    addSpecialForces("vets", 1);
+    toast("A hardened veteran cohort swears loyalty to you.");
+    logLine("Veteran cohort recruited at Castrum Victoriae.", "good");
+    render();
+  });
 
 // Skirmish: optional combat later (tiny screen footprint)
 
