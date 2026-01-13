@@ -1212,7 +1212,51 @@ header{
   }
 }
 
-</style>
+
+    .unitCard{
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;
+      text-align:left;
+      gap:2px;
+    }
+    .unitHeader{
+      display:flex;
+      justify-content:space-between;
+      width:100%;
+      font-size:0.9rem;
+      font-weight:600;
+    }
+    .unitRole{
+      font-size:0.75rem;
+      opacity:0.8;
+    }
+    .unitStats{
+      display:flex;
+      gap:8px;
+      font-size:0.8rem;
+      margin-top:2px;
+    }
+    .unitMeta{
+      font-size:0.75rem;
+      opacity:0.9;
+      margin-top:2px;
+    }
+    
+    .unitHeaderRow{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      width:100%;
+    }
+    
+    .unitImg{
+      width:28px;
+      height:28px;
+      margin-left:6px;
+      object-fit:contain;
+    }
+    </style>
 </head>
 <body>
   <div id="introOverlay" class="introOverlay">
@@ -1280,21 +1324,57 @@ header{
         <div class="offlineSub">Glory <b id="gloryOverlayNow">0</b></div>
       </div>
       <div id="gloryBody" class="offlineBody">
-        <p>Spend glory to recruit special forces that permanently strengthen your legion.</p>
+        <p>Spend glory to recruit special forces with unique battlefield roles.</p>
         <div class="row2">
-          <button class="smallBtn" id="btnBuyAuxilia">
-            <div class="t">Auxilia Spearmen</div>
-            <div class="d">Cost 40 glory • +18 strength • low upkeep</div>
+          <button class="smallBtn unitCard" id="btnBuyAuxilia">
+            <div class="unitHeader">
+              <span class="unitName">Auxilia Spearmen</span>
+              <span class="unitRole">Defensive infantry</span>
+            </div>
+            <div class="unitStats">
+              <span class="stat">⚔ 6</span>
+              <span class="stat">🛡 8</span>
+              <span class="stat">❤ 20</span>
+            </div>
+            <div class="unitMeta">
+              <span class="cost">Cost: 40 glory</span>
+              <span class="upkeep">• Upkeep: 1.3× milite</span>
+              <span class="owned">• Owned: <b id="ownedAux">0</b></span>
+            </div>
           </button>
-          <button class="smallBtn" id="btnBuyEquites">
-            <div class="t">Equites (Cavalry)</div>
-            <div class="d">Cost 70 glory • +32 strength • moderate upkeep</div>
+          <button class="smallBtn unitCard" id="btnBuyEquites">
+            <div class="unitHeader">
+              <span class="unitName">Equites (Cavalry)</span>
+              <span class="unitRole">Shock cavalry</span>
+            </div>
+            <div class="unitStats">
+              <span class="stat">⚔ 13</span>
+              <span class="stat">🛡 4</span>
+              <span class="stat">❤ 18</span>
+            </div>
+            <div class="unitMeta">
+              <span class="cost">Cost: 70 glory</span>
+              <span class="upkeep">• Upkeep: 1.8× milite</span>
+              <span class="owned">• Owned: <b id="ownedEquites">0</b></span>
+            </div>
           </button>
         </div>
         <div class="row2" style="margin-top:8px;">
-          <button class="smallBtn" id="btnBuyVeterans">
-            <div class="t">Veteran Cohort</div>
-            <div class="d">Cost 120 glory • +60 strength • reduces battle losses slightly</div>
+          <button class="smallBtn unitCard" id="btnBuyVeterans">
+            <div class="unitHeader">
+              <span class="unitName">Veteran Cohort</span>
+              <span class="unitRole">Elite heavy infantry</span>
+            </div>
+            <div class="unitStats">
+              <span class="stat">⚔ 9</span>
+              <span class="stat">🛡 10</span>
+              <span class="stat">❤ 24</span>
+            </div>
+            <div class="unitMeta">
+              <span class="cost">Cost: 120 glory</span>
+              <span class="upkeep">• Upkeep: 2.1× milite</span>
+              <span class="owned">• Owned: <b id="ownedVets">0</b></span>
+            </div>
           </button>
         </div>
       </div>
@@ -1405,16 +1485,25 @@ header{
 
     <!-- LEGION -->
     <section class="card view" data-view="legion" hidden>
-      <div class="sectionTitle"><span>⚔️</span><span class="milites-label"><img id="militesIcon" class="milites-icon" alt=""><span>Milites <b id="warriors">0</b></span></span><span>Glory <b id="gloryNow">0</b></span></div>
+      <div class="sectionTitle"><span>⚔️</span><span class="milites-label"></span><span>Glory <b id="gloryNow">0</b></span></div>
       <div class="cardBody">
-        <button class="bigBtn" id="btnRecruit">
-          <div class="bigLeft">
-            <div class="bigName">Enlist Milites</div>
-            <div class="bigDesc">Equip and pay local milites.</div>
+        <button class="bigBtn unitCard" id="btnRecruit">
+          <div class="unitHeaderRow">
+            <div class="unitHeader">
+              <span class="unitName">Milites</span>
+              <span class="unitRole">Line Infantry</span>
+            </div>
+            <img src="img/milites.png" class="unitImg" alt="Milite">
           </div>
-          <div class="bigRight">
-            <div class="gain" id="recruitCost">Cost 0</div>
-            <div class="hint" id="recruitGain">+6 strength</div>
+          <div class="unitStats">
+            <span class="stat">⚔ 7</span>
+            <span class="stat">🛡 5</span>
+            <span class="stat">❤ 16</span>
+          </div>
+          <div class="unitMeta">
+            <span class="cost" id="recruitCost">Cost 0</span>
+            <span class="upkeep">• Upkeep: 1×</span>
+            <span class="owned">• Owned: <b id="ownedMilites">0</b></span>
           </div>
         </button>
 
@@ -1447,7 +1536,6 @@ header{
         </button>
 
 <div class="meta">
-          <div>Strength: <b id="legionStr">0</b></div>
           <div>Upkeep: <b id="legionUpkeep">0</b>/s</div>
           <div>Land: <b id="landLegion">0</b></div>
         </div>
@@ -1626,7 +1714,6 @@ header{
     created: Date.now(),
     gold: 18,
     renown: 0,
-    power: 6,
 
     // village economy
     tribute: 1,
@@ -1635,7 +1722,7 @@ header{
     hutCount: 0,
 
     // legion
-    warriors: 0,    legion: 0,  // derived strength (kept for compatibility)
+    warriors: 0,
     battlesWon: 0,
 
     // special forces recruited with glory
@@ -2309,13 +2396,28 @@ function decreeMult(){
     return 1 + Math.min(bonus, 0.75);   // cap at +75% strength
   }
   function warriorUpkeepPerSec(){
-    const w = S.warriors || 0;
-    if(w <= 0) return 0;
+    const w   = S.warriors || 0;
+    const aux = S.auxilia  || 0;
+    const eq  = S.equites  || 0;
+    const vet = S.veterans || 0;
 
-    // Base upkeep per warrior per second.
-    // Slightly higher, so mid‑sized armies noticeably bite into income,
-    // but still something you can sustain with a healthy village.
-    let per = 0.028;
+    const totalUnits = w + aux + eq + vet;
+    if(totalUnits <= 0) return 0;
+
+    // Base upkeep per milite per second (heavier than before).
+    let perMil = 0.04;
+
+    // Special forces count as heavier to maintain.
+    const weightMil = 1.0;
+    const weightAux = 1.3; // better equipped infantry
+    const weightEq  = 1.8; // horses, gear, logistics
+    const weightVet = 2.1; // elite pay + gear
+
+    let effectiveCount =
+      (w   * weightMil) +
+      (aux * weightAux) +
+      (eq  * weightEq)  +
+      (vet * weightVet);
 
     // Agriculture + villas + land (Agriculture) soften upkeep.
     const foodRelief =
@@ -2333,14 +2435,14 @@ function decreeMult(){
     let mult = foodRelief * milRelief;
 
     // Very large armies are disproportionately expensive to keep in the field.
-    if(w > 60){
-      mult *= 1 + Math.log10(w - 50) * 0.35;
+    if(effectiveCount > 60){
+      mult *= 1 + Math.log10(effectiveCount - 50) * 0.35;
     }
 
     // Never let upkeep vanish completely.
     mult = Math.max(0.45, mult);
 
-    let upkeep = w * per * mult;
+    let upkeep = effectiveCount * perMil * mult;
 
     // If your economy is tiny but you somehow have a big army,
     // scale upkeep down a bit so it doesn't instantly implode new runs.
@@ -2526,29 +2628,40 @@ function decreeMult(){
   }
 
     function recalcLegionStrength(){
-    // Strength derived from warriors + special forces.
-    const per = 6;
-
-    const warriors = S.warriors || 0;
-    const aux    = S.auxilia || 0;
-    const equites = S.equites || 0;
+    // Aggregate legion stats from unit types (milites + special forces).
+    const warriors = Math.max(0, S.warriors || 0);
+    const aux      = S.auxilia  || 0;
+    const equites  = S.equites  || 0;
     const veterans = S.veterans || 0;
 
-    // Base legion from milites.
-    let strength = warriors * per;
+    // Base per-unit stats (can be tuned later).
+    const MIL = { atk: 7,  def: 5,  hp: 16 };
+    const AUX = { atk: 6,  def: 8,  hp: 20 };
+    const EQ  = { atk: 13, def: 4,  hp: 18 };
+    const VET = { atk: 9,  def: 10, hp: 24 };
 
-    // Special forces add flat strength chunks.
-    strength += aux * 18;
-    strength += equites * 32;
-    strength += veterans * 60;
+    let atk = warriors * MIL.atk + aux * AUX.atk + equites * EQ.atk + veterans * VET.atk;
+    let def = warriors * MIL.def + aux * AUX.def + equites * EQ.def + veterans * VET.def;
+    let hp  = warriors * MIL.hp  + aux * AUX.hp  + equites * EQ.hp  + veterans * VET.hp;
 
-    // Land allocation (Military) further boosts legion strength.
-    S.legion = Math.round(strength * landAllocLegionMult());
+    // Clamp a bit so tiny legions still have some footprint.
+    atk = Math.max(0, atk);
+    def = Math.max(0, def);
+    hp  = Math.max(0, hp);
+
+    return {
+      atk,
+      def,
+      hp,
+      warriors,
+      aux,
+      equites,
+      veterans
+    };
   }
 
 
-
- // --- Battles  ---
+// --- Battles  ---
   const BATTLE_SETS = [
     [
       { label:"Break Up Farm Brawl", enemyMin:8, enemyMax:14 },
@@ -3286,29 +3399,25 @@ function captureTerritory(battleTier){
 
   // --- YOUR TROOPS ---
   const warriors = Math.max(0, S.warriors || 0);
-  const aux     = S.auxilia  || 0;
-  const equites = S.equites  || 0;
+  const aux      = S.auxilia  || 0;
+  const equites  = S.equites  || 0;
   const veterans = S.veterans || 0;
 
-  // Special forces count as multiple trained milites in raw power.
-  const baseWarriorStrength = 6;
-  const virtualFromAux     = aux * 3;   // each Auxilia ≈ 3 milites
-  const virtualFromEquites = equites * 5; // each Equites ≈ 5 milites
-  const virtualFromVets    = veterans * 10; // each Veteran ≈ 10 milites
+  const yourTroops = warriors; // core milites that can die
 
-  const yourTroops = warriors;
-  const effectiveTroops = warriors + virtualFromAux + virtualFromEquites + virtualFromVets;
+  // Base per-unit stats (can tweak later)
+  const MIL = { atk: 7,  def: 5,  hp: 16 };
+  const AUX = { atk: 6,  def: 8,  hp: 20 };
+  const EQ  = { atk: 13, def: 4,  hp: 18 };
+  const VET = { atk: 9,  def: 10, hp: 24 };
 
-  let yourPower = effectiveTroops * baseWarriorStrength;
+  let baseAtk = warriors * MIL.atk + aux * AUX.atk + equites * EQ.atk + veterans * VET.atk;
+  let baseDef = warriors * MIL.def + aux * AUX.def + equites * EQ.def + veterans * VET.def;
+  let baseHP  = warriors * MIL.hp  + aux * AUX.hp  + equites * EQ.hp  + veterans * VET.hp;
 
-  const crowns = S.crowns || 0;
-  const crownMult = 1 + Math.min(crowns * 0.045, 0.7);
-
-  const decrees = S.decrees || 0;
-  const decreeMult = 1 + Math.min(decrees * 0.03, 0.5);
-
+  // Global multipliers from crowns, decrees, land, faith, veterancy, morale
   const land = S.land || 0;
-  const landMult = 1 + Math.min(land * 0.012, 0.45);
+  const landBattleMult = 1 + Math.min(land * 0.012, 0.45);
 
   const faith = S.faith || 0;
   let faithMult = 1 + Math.min(faith / 18000, 0.25);
@@ -3318,9 +3427,9 @@ function captureTerritory(battleTier){
     }
   }catch(e){}
 
-  yourPower *= crownMult * decreeMult * landMult * faithMult;
+  const cm = crownMult();
+  const dm = decreeMult();
 
-  // Hidden veterancy + morale
   const legionXp = S.legionXp || 0;
   const expLevel = 1 + Math.min(legionXp / 6000, 0.30); // up to +30%
 
@@ -3328,18 +3437,29 @@ function captureTerritory(battleTier){
   legionMorale = clamp(legionMorale, 0.4, 2.0);
   const moraleMult = 0.85 + legionMorale * 0.30; // ~0.97–1.45
 
-  yourPower *= expLevel * moraleMult;
+  const globalMult = cm * dm * landBattleMult * faithMult * expLevel * moraleMult;
 
-  // --- ENEMY POWER ---
-  const baseEnemyStrength = 6;
-  let enemyPower = enemyCount * baseEnemyStrength;
+  let yourATK = Math.max(0, baseAtk * globalMult);
+  let yourDEF = Math.max(0, baseDef * globalMult);
+  let yourHPmax = Math.max(20, baseHP * globalMult);
+  let yourHP = yourHPmax;
+  let yourArmor = yourDEF * 0.25;
+
+  // --- ENEMY STATS ---
+  // Generic enemy per-head stats scaled by tier/slot & learning.
+  const ENEMY = { atk: 4.5, def: 3.5, hp: 9.5 };
+
+  let enemyATK = enemyCount * ENEMY.atk;
+  let enemyDEF = enemyCount * ENEMY.def;
+  let enemyHPmax = Math.max(20, enemyCount * ENEMY.hp);
+  let enemyHP = enemyHPmax;
 
   const tierMults = [0.9, 1.0, 1.2, 1.4, 1.7, 2.0];
   const slotMults = [0.9, 1.0, 1.15, 1.3];
   const tierMult = tierMults[tier - 1] || 1.0;
   const slotMult = slotMults[slot] || 1.0;
 
-  enemyPower *= tierMult * slotMult;
+  let enemyScale = tierMult * slotMult;
 
   // --- Treasure caravans: sometimes enemies are richer (and tougher) ---
   let treasureType = "normal";
@@ -3372,31 +3492,18 @@ function captureTerritory(battleTier){
   const learnDivBase = [1000, 260, 190, 140];
   const learnDiv = learnDivBase[Math.min(slot, learnDivBase.length - 1)] || 250;
   const learn = 1 + Math.min(wins / learnDiv, 0.18);
-  enemyPower *= learn * treasurePowerMult;
+  enemyScale *= learn * treasurePowerMult;
 
-  // --- CONVERT POWER → HIDDEN STATS (HP / ATK / DEF / Armor) ---
-  const hpPerPower   = 14;
-  const atkPerPower  = 0.14;
-  const defPerPower  = 0.10;
-  const armPerPower  = 0.04;
+  enemyATK   *= enemyScale;
+  enemyDEF   *= enemyScale;
+  enemyHPmax *= enemyScale;
+  enemyHP     = enemyHPmax;
+  let enemyArmor = enemyDEF * 0.25;
 
-  let yourHPmax  = Math.max(20, yourPower * hpPerPower);
-  let enemyHPmax = Math.max(20, enemyPower * hpPerPower);
-
-  let yourHP  = yourHPmax;
-  let enemyHP = enemyHPmax;
-
-  let yourATK = yourPower * atkPerPower;
-  let enemyATK = enemyPower * atkPerPower;
-
-  let yourDEF = yourPower * defPerPower;
-  let enemyDEF = enemyPower * defPerPower;
-
-  const yourArmor  = 1 + yourPower  * armPerPower * 0.10;
-  const enemyArmor = 1 + enemyPower * armPerPower * (0.08 + tier * 0.04);
-
-  // --- BATTLE LOOP: FAST TICK DAMAGE + SIMPLE ROUTING ---
-  const TICK_SEC = 0.35;
+  // Composite "power" ratings used only for win chance & casualty heuristics.
+  const yourPower  = yourATK + yourDEF * 0.8 + yourHPmax * 0.08;
+  const enemyPower = enemyATK + enemyDEF * 0.8 + enemyHPmax * 0.08;
+const TICK_SEC = 0.35;
   const MAX_TIME = 18; // seconds
   const maxTicks = Math.floor(MAX_TIME / TICK_SEC);
 
@@ -4908,6 +5015,7 @@ function canAccess(view){
     overlay.classList.add("visible");
   }
 function statsRows(){
+    const leg = recalcLegionStrength();
     const rows = [
       ["Gold", S.gold],
       ["Renown", S.renown],
@@ -4919,10 +5027,14 @@ function statsRows(){
       ["Farms", S.farmCount],
       ["Villas", S.villaCount],
       ["Milites", S.warriors],
-      ["Legion strength", S.legion],
+      ["Auxilia", S.auxilia || 0],
+      ["Equites", S.equites || 0],
+      ["Veteran cohorts", S.veterans || 0],
+      ["Legion attack", Math.round(leg.atk)],
+      ["Legion defence", Math.round(leg.def)],
+      ["Legion HP", Math.round(leg.hp)],
       ["Raids won", S.battlesWon],
       ["Territories", territoryCount()],
-      
       ["Milites (pop used)", S.populationUsed],
       ["Population Cap", populationCap()],
       ["Faith", S.faith],
@@ -4935,10 +5047,10 @@ function statsRows(){
       ["Lifetime renown", S.lifetimeRenown],
       ["Glory", S.glory || 0],
       ["Total glory earned", S.lifetimeGlory || 0],
-
     ];
     return rows;
   }
+
 
   // Update the Milites header icon based on rank. For the first few
   // ranks we show the basic milites sprite; higher ranks can later use
@@ -4967,7 +5079,7 @@ function statsRows(){
   }
 
   function render(){
-    handleRankUps();
+handleRankUps();
     expireCashoutIfNeeded();
     expireStreakIfNeeded();
 
@@ -5055,11 +5167,13 @@ function statsRows(){
     updateTitleProgress();
 
     // Legion
-    recalcLegionStrength();
-    $("#warriors").textContent = fmt(S.warriors);
-    $("#legionStr").textContent = fmt(S.legion);
-    $("#landLegion").textContent = fmt(S.land);
-    $("#landHud").textContent = fmt(S.land);
+    const legStats = recalcLegionStrength();
+    const wEl = $("#warriors");
+    if(wEl) wEl.textContent = fmt(S.warriors);
+    const ownedMil = $("#ownedMilites");
+    if(ownedMil) ownedMil.textContent = fmt(S.warriors);
+    $("#landLegion").textContent = fmt(S.land || 0);
+    $("#landHud").textContent = fmt(S.land || 0);
 
     // Glory HUD (battle-only currency)
     const gNow = S.glory || 0;
@@ -5067,6 +5181,12 @@ function statsRows(){
     if(gloryNowEl) gloryNowEl.textContent = fmt(gNow);
     const gloryOverlayEl = $("#gloryOverlayNow");
     if(gloryOverlayEl) gloryOverlayEl.textContent = fmt(gNow);
+    const ownedAuxEl = $("#ownedAux");
+    if(ownedAuxEl) ownedAuxEl.textContent = fmt(S.auxilia || 0);
+    const ownedEqEl = $("#ownedEquites");
+    if(ownedEqEl) ownedEqEl.textContent = fmt(S.equites || 0);
+    const ownedVetEl = $("#ownedVets");
+    if(ownedVetEl) ownedVetEl.textContent = fmt(S.veterans || 0);
 
     const up = warriorUpkeepPerSec();
     const upEl = $("#legionUpkeep");
@@ -5074,8 +5194,10 @@ function statsRows(){
       upEl.textContent = up.toFixed(2);
     }
 
-    $("#recruitCost").textContent = `Cost ${fmt(recruitCost())}`;
-    $("#recruitGain").textContent = `+${fmt(recruitStrengthGain())} strength`;
+    const rcEl = $("#recruitCost");
+    if(rcEl) rcEl.textContent = `Cost ${fmt(recruitCost())}`;
+    const rgEl = $("#recruitGain");
+    if(rgEl) rgEl.textContent = `+1 milites`;
 
     // Update Milites header icon depending on current rank.
     updateMilitesIcon();
@@ -5295,7 +5417,6 @@ function statsRows(){
           : "Unlock tabs by earning renown. Prestige later for crowns.");
     save(true);
   }
-
   // ---- Actions ----
   $("#btnTribute").addEventListener("click", (e)=>{
     applyStreak();
@@ -5344,7 +5465,6 @@ function statsRows(){
       }
     }
 
-    S.power += 1 + (crit ? 1 : 0);
 
     // Streak taps occasionally attract a new settler directly (population dopamine).
     if(hasVillageCapacity()){
@@ -5379,9 +5499,6 @@ function statsRows(){
     } else if(S.streak % 7 === 0){
       logLine(`Tribute collected. (+${fmt(gain)} denarii)`, "good");
     }
-
-    // gentle soft cap
-    S.power = clamp(S.power, 0, 99999);
     
     // Cash Out: bank some value as you tap; becomes claimable every few taps.
     S.tapsSinceCashout += 1;
@@ -6491,7 +6608,6 @@ bumpObjective("winBattle", 1);
     // You lose some denarii and power, proportional to fight size.
     const lost = Math.round((enemies * (3 + tier*1.1)) * 0.4);
     S.gold = Math.max(0, (S.gold||0) - lost);
-    S.power = Math.max(0, S.power - (3 + Math.floor(tier/2)));
 
     toast(isDefence ? "Defence lost" : "Defeat");
 
@@ -6598,6 +6714,12 @@ $("#btnBattleSiege").addEventListener("click", ()=> startTacticalBattle(3));
       const gloryNow = S.glory || 0;
       const el = $("#gloryOverlayNow");
       if(el) el.textContent = fmt(gloryNow);
+      const ownedAuxEl = $("#ownedAux");
+      if(ownedAuxEl) ownedAuxEl.textContent = fmt(S.auxilia || 0);
+      const ownedEqEl = $("#ownedEquites");
+      if(ownedEqEl) ownedEqEl.textContent = fmt(S.equites || 0);
+      const ownedVetEl = $("#ownedVets");
+      if(ownedVetEl) ownedVetEl.textContent = fmt(S.veterans || 0);
       gloryOverlay.removeAttribute("hidden");
       gloryOverlay.classList.add("visible");
     });
