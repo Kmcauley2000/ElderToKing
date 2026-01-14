@@ -6726,7 +6726,10 @@ handleRankUps();
   // (Population is filled slowly up to the cap by "settlers".)
   const pop = S.population || 0;
   const warriors = S.warriors || 0;
-  const civilians = Math.max(0, pop - warriors);
+  const labourers = (typeof totalTypeWorkers === "function") ? totalTypeWorkers() : 0;
+
+  // Population is: warriors + labourers + free civilians.
+  const civilians = Math.max(0, pop - warriors - labourers);
 
   if(civilians < 1){
     toast("No free settlers — build housing and wait for more to arrive");
