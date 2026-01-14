@@ -6512,16 +6512,27 @@ handleRankUps();
               ${info.cap ? " &#x1F465; +" + fmt(info.cap) + " Cap" : ""}
             </div>
             <div class="territoryWorkersRow">
+              <button
+                type="button"
+                class="tinyBtn terrWorkerBtn"
+                data-type="${name}"
+                data-delta="-1"
+              >
+                −
+              </button>
               <div class="territoryWorkersMeta">
-                Workers assigned: <b>${fmt(workers)}</b> / ${fmt(maxWorkers)}
+                <div class="territoryWorkersValue">
+                  <b>${fmt(workers)}</b> / ${fmt(maxWorkers)}
+                </div>
                 <span class="territoryWorkersHint">(each worker boosts income)</span>
               </div>
               <button
                 type="button"
-                class="tinyBtn terrAssignBtn"
+                class="tinyBtn terrWorkerBtn"
                 data-type="${name}"
+                data-delta="1"
               >
-                Assign worker
+                +
               </button>
             </div>
           </div>
@@ -6529,12 +6540,13 @@ handleRankUps();
         listEl.appendChild(card);
       });
 
-      // Wire up worker-assign buttons after all cards are in the DOM
-      $$(".terrAssignBtn").forEach(btn=>{
+      // Wire up worker +/- buttons after all cards are in the DOM
+      $$(".terrWorkerBtn").forEach(btn=>{
         btn.addEventListener("click", (e)=>{
           const tName = btn.getAttribute("data-type");
-          if(tName){
-            adjustTypeWorkers(tName, +1);
+          const delta = Number(btn.getAttribute("data-delta") || "0");
+          if(tName && delta){
+            adjustTypeWorkers(tName, delta);
           }
         });
       });
