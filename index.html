@@ -1544,6 +1544,27 @@ header{
             <span class="owned">• Owned: <b id="ownedMilites">0</b></span>
           </div>
         </button>
+        <button class="bigBtn unitCard" id="btnRecruitCavalry">
+          <div class="unitHeaderRow">
+            <div class="unitHeader">
+              <span class="unitName">Cavalry</span>
+              <span class="unitRole">Shock cavalry</span>
+            </div>
+            <img src="ElderToKing/Sprites/Cavalry.png" class="unitImg" alt="Cavalry">
+          </div>
+          <div class="unitStats">
+            <span class="stat">⚔ 11</span>
+            <span class="stat">🛡 4</span>
+            <span class="stat">❤ 20</span>
+          </div>
+          <div class="unitMeta">
+            <span class="cost" id="recruitCavCost">Cost 0</span>
+            <span class="upkeep">• Upkeep: 1.5×</span>
+            <span class="owned">• Owned: <b id="ownedCavalry">0</b></span>
+          </div>
+        </button>
+
+
 
         
         <div class="row2 battleRow">
@@ -1760,6 +1781,7 @@ header{
 
     // legion
     warriors: 0,
+    cavalry: 0,
     battlesWon: 0,
 
     // special forces recruited with glory
@@ -1926,7 +1948,7 @@ header{
   if(typeof S.populationUsed !== "number") S.populationUsed = 0;
   // Ensure milites never exceed population
   if((S.warriors||0) > (S.population||0)) S.warriors = S.population;
-  S.populationUsed = S.warriors;
+  S.populationUsed = (S.warriors||0) + (S.cavalry||0);
 
   // If localStorage is empty/evicted, try IndexedDB recovery (especially on iPhone).
   recoverSaveFromIDB();
@@ -2452,11 +2474,12 @@ function decreeMult(){
   }
   function warriorUpkeepPerSec(){
     const w   = S.warriors || 0;
+    const cav = S.cavalry  || 0;
     const aux = S.auxilia  || 0;
     const eq  = S.equites  || 0;
     const vet = S.veterans || 0;
 
-    const totalUnits = w + aux + eq + vet;
+    const totalUnits = w + cav + aux + eq + vet;
     if(totalUnits <= 0) return 0;
 
     // Base upkeep per milite per second (heavier than before).
@@ -2464,12 +2487,14 @@ function decreeMult(){
 
     // Special forces count as heavier to maintain.
     const weightMil = 1.0;
+    const weightCav = 1.5; // mounted, better paid
     const weightAux = 1.3; // better equipped infantry
-    const weightEq  = 1.8; // horses, gear, logistics
+    const weightEq  = 1.8; // elite cavalry
     const weightVet = 2.1; // elite pay + gear
 
     let effectiveCount =
       (w   * weightMil) +
+      (cav * weightCav) +
       (aux * weightAux) +
       (eq  * weightEq)  +
       (vet * weightVet);
@@ -2679,26 +2704,32 @@ function decreeMult(){
     return 220;
   }
 
+  function cavalryRecruitCost(){
+    return 900;
+  }
+
   function recruitStrengthGain(){
     return 6;
   }
 
     function recalcLegionStrength(){
-    // Aggregate legion stats from unit types (milites + special forces).
+    // Aggregate legion stats from unit types (milites + cavalry + special forces).
     const warriors = Math.max(0, S.warriors || 0);
+    const cav      = Math.max(0, S.cavalry  || 0);
     const aux      = S.auxilia  || 0;
     const equites  = S.equites  || 0;
     const veterans = S.veterans || 0;
 
     // Base per-unit stats (can be tuned later).
     const MIL = { atk: 7,  def: 5,  hp: 16 };
+    const CAV = { atk: 11, def: 4,  hp: 20 };
     const AUX = { atk: 6,  def: 8,  hp: 20 };
     const EQ  = { atk: 13, def: 4,  hp: 18 };
     const VET = { atk: 9,  def: 10, hp: 24 };
 
-    let atk = warriors * MIL.atk + aux * AUX.atk + equites * EQ.atk + veterans * VET.atk;
-    let def = warriors * MIL.def + aux * AUX.def + equites * EQ.def + veterans * VET.def;
-    let hp  = warriors * MIL.hp  + aux * AUX.hp  + equites * EQ.hp  + veterans * VET.hp;
+    let atk = warriors * MIL.atk + cav * CAV.atk + aux * AUX.atk + equites * EQ.atk + veterans * VET.atk;
+    let def = warriors * MIL.def + cav * CAV.def + aux * AUX.def + equites * EQ.def + veterans * VET.def;
+    let hp  = warriors * MIL.hp  + cav * CAV.hp  + aux * AUX.hp  + equites * EQ.hp  + veterans * VET.hp;
 
     // Clamp a bit so tiny legions still have some footprint.
     atk = Math.max(0, atk);
@@ -2710,12 +2741,12 @@ function decreeMult(){
       def,
       hp,
       warriors,
+      cav,
       aux,
       equites,
       veterans
     };
   }
-
 
 // --- Battles  ---
   const BATTLE_SETS = [
@@ -2906,8 +2937,7 @@ function decreeMult(){
       { label:"Final Divine Showdown", enemyMin:4620, enemyMax:8400 }
     ], // Divine King
   ];
-
-  function battleTierFromTitleIdx(idx){
+function battleTierFromTitleIdx(idx){
     if(idx <= 4) return 1;
     if(idx <= 9) return 2;
     if(idx <= 15) return 3;
@@ -6145,6 +6175,7 @@ function statsRows(){
       ["Farms", S.farmCount],
       ["Villas", S.villaCount],
       ["Milites", S.warriors],
+      ["Cavalry", S.cavalry || 0],
       ["Auxilia", S.auxilia || 0],
       ["Equites", S.equites || 0],
       ["Veteran cohorts", S.veterans || 0],
@@ -6153,7 +6184,7 @@ function statsRows(){
       ["Legion HP", Math.round(leg.hp)],
       ["Raids won", S.battlesWon],
       ["Territories", territoryCount()],
-      ["Milites (pop used)", S.populationUsed],
+      ["Frontline (pop used)", S.populationUsed],
       ["Population Cap", populationCap()],
       ["Faith", S.faith],
       ["Crowns (prestige)", S.crowns],
@@ -6247,15 +6278,17 @@ handleRankUps();
     // Population display (village capacity)
     const cap = populationCap();
     const totalPop = (S.population||0);
-    const warriors = (S.populationUsed||0); // milites using population
+    const warriors = (S.warriors||0); // line infantry
+    const cavalry  = (S.cavalry||0);  // mounted troops using population
     const labourers = (typeof totalTypeWorkers === "function") ? totalTypeWorkers() : 0;
-    const civilians = Math.max(0, totalPop - warriors);
+    const frontlineUsed = warriors + cavalry;
+    const civilians = Math.max(0, totalPop - frontlineUsed);
     const freePop = Math.max(0, civilians - labourers);
     const pu = $("#popUsed"); const pc = $("#popCap");
     const mr = (typeof migrationPerSec === "function") ? migrationPerSec() : 0;
     $("#migRate") && ($("#migRate").textContent = (Math.round(mr*100)/100).toFixed(2));
     if(pu && pc){
-      pu.textContent = `${fmt(totalPop)} (Free: ${fmt(freePop)}, Warriors: ${fmt(warriors)}, Labourers: ${fmt(labourers)})`;
+      pu.textContent = `${fmt(totalPop)} (Free: ${fmt(freePop)}, Warriors: ${fmt(warriors)}, Cavalry: ${fmt(cavalry)}, Labourers: ${fmt(labourers)})`;
       pc.textContent = fmt(cap);
     }
 
@@ -6298,6 +6331,9 @@ handleRankUps();
     if(wEl) wEl.textContent = fmt(S.warriors);
     const ownedMil = $("#ownedMilites");
     if(ownedMil) ownedMil.textContent = fmt(S.warriors);
+
+    const ownedCav = $("#ownedCavalry");
+    if(ownedCav) ownedCav.textContent = fmt(S.cavalry || 0);
     $("#landLegion").textContent = fmt(S.land || 0);
     $("#landHud").textContent = fmt(S.land || 0);
 
@@ -6322,6 +6358,10 @@ handleRankUps();
 
     const rcEl = $("#recruitCost");
     if(rcEl) rcEl.textContent = `Cost ${fmt(recruitCost())}`;
+
+    const rcCavEl = $("#recruitCavCost");
+    if(rcCavEl) rcCavEl.textContent = `Cost ${fmt(cavalryRecruitCost())}`;
+
     const rgEl = $("#recruitGain");
     if(rgEl) rgEl.textContent = `+1 milites`;
 
@@ -6726,10 +6766,11 @@ handleRankUps();
   // (Population is filled slowly up to the cap by "settlers".)
   const pop = S.population || 0;
   const warriors = S.warriors || 0;
+  const cavalry = S.cavalry || 0;
   const labourers = (typeof totalTypeWorkers === "function") ? totalTypeWorkers() : 0;
 
-  // Population is: warriors + labourers + free civilians.
-  const civilians = Math.max(0, pop - warriors - labourers);
+  // Population is: warriors + cavalry + labourers + free civilians.
+  const civilians = Math.max(0, pop - warriors - cavalry - labourers);
 
   if(civilians < 1){
     toast("No free settlers — build housing and wait for more to arrive");
@@ -6739,7 +6780,7 @@ handleRankUps();
   // Pay the cost and convert 1 civilian into a milites.
   S.gold -= c;
   S.warriors = warriors + 1;
-  S.populationUsed = S.warriors; // keep pop-used in sync with milites
+  S.populationUsed = (S.warriors||0) + (S.cavalry||0); // keep pop-used in sync with milites
 
   recalcLegionStrength();
 
@@ -6760,6 +6801,46 @@ handleRankUps();
 
   render();
 });
+
+  $("#btnRecruitCavalry").addEventListener("click", (e)=>{
+    const c = cavalryRecruitCost();
+    if(S.gold < c){
+      toast("Not enough denarii");
+      return;
+    }
+
+    // Same free population rule: must have an unassigned settler.
+    const pop = S.population || 0;
+    const warriors = S.warriors || 0;
+    const cavalry = S.cavalry || 0;
+    const labourers = (typeof totalTypeWorkers === "function") ? totalTypeWorkers() : 0;
+
+    const civilians = Math.max(0, pop - warriors - cavalry - labourers);
+    if(civilians < 1){
+      toast("No free settlers — build housing and wait for more to arrive");
+      return;
+    }
+
+    // Pay cost and convert 1 civilian into a cavalry unit.
+    S.gold -= c;
+    S.cavalry = cavalry + 1;
+    S.populationUsed = (S.warriors||0) + (S.cavalry||0);
+
+    recalcLegionStrength();
+    bumpObjective("recruit", 1);
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const goldness = clamp(0.45 + (S.cavalry || 0) * 0.018, 0.45, 0.92);
+    sparkAt(
+      rect.left + rect.width * 0.6,
+      rect.top  + rect.height* 0.4,
+      1,
+      (S.tribute || 0) * (goldness)
+    );
+
+    toast("New cavalry unit recruited.");
+    render();
+  });
 // ---- Defensive/local skirmish popups ----
 
 // We piggyback off taps: occasionally, your lands are tested.
@@ -7406,7 +7487,7 @@ function showBattleSimulation(rep, tier){
   }
   S.warriors = warriors;
   S.population = population;
-  S.populationUsed = S.warriors;
+  S.populationUsed = (S.warriors||0) + (S.cavalry||0);
 
   // Use the new battleSim to decide how bloody the intro feels,
   // but always treat it as a hard-won victory in the story.
@@ -7460,7 +7541,7 @@ function showBattleSimulation(rep, tier){
   // with only the scars and spoils to show for it.
   S.warriors = prevWarriors;
   S.population = prevPopulation;
-  S.populationUsed = S.warriors;
+  S.populationUsed = (S.warriors||0) + (S.cavalry||0);
 
   const introLines = [
     "Battle Victory!",
@@ -7555,7 +7636,7 @@ function doBattle(slot, opts){
     // Safety clamp (shouldn't happen, but protects old saves)
     S.warriors = S.population;
   }
-  S.populationUsed = S.warriors;
+  S.populationUsed = (S.warriors||0) + (S.cavalry||0);
 
   recalcLegionStrength();
 
@@ -8219,7 +8300,7 @@ $("#btnExport").addEventListener("click", async ()=>{
 
           // They leave the population as well (either gone or dead).
           S.population = Math.max(0, (S.population || 0) - lose);
-          S.populationUsed = S.warriors;
+          S.populationUsed = (S.warriors||0) + (S.cavalry||0);
 
           recalcLegionStrength();
 
@@ -8271,7 +8352,7 @@ $("#btnExport").addEventListener("click", async ()=>{
 
     // Keep pop-used synced with milites, and clamp old saves
     if((S.population||0) < (S.warriors||0)) S.warriors = S.population;
-    S.populationUsed = S.warriors;
+    S.populationUsed = (S.warriors||0) + (S.cavalry||0);
 
 
     render();
