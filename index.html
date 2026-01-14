@@ -3396,7 +3396,7 @@ function adjustTypeWorkers(name, delta){
   if(tiles <= 0){
     return;
   }
-  const maxWorkers = tiles; // more tiles, more people can work this land
+  const maxWorkers = tiles * 5; // 5 labourers per tile
 
   let workers = S.territoryWorkers[name] || 0;
 
@@ -6496,8 +6496,10 @@ handleRankUps();
       Object.entries(grouped).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([name,info])=>{
         const workers = (S.territoryWorkers && S.territoryWorkers[name]) || 0;
         const tiles = info.count;
-        const maxWorkers = tiles; // more tiles = more workers can work it
+        const maxWorkers = tiles * 5; // 5 labourers per tile
 
+
+        const workerYield = workers * 0.4; // each worker adds +0.4 denarii/s
         const card = document.createElement("div");
         card.className = "smallBtn territoryCard";
         card.innerHTML = `
@@ -6510,6 +6512,7 @@ handleRankUps();
               These yield:
               ${info.den ? " &#x1F4B0; +" + fmt(info.den) + " Denarii" : ""}
               ${info.cap ? " &#x1F465; +" + fmt(info.cap) + " Cap" : ""}
+              ${workers ? (" &#x23F1; +" + fmt(workerYield) + " Denarii/s from labourers") : ""}
             </div>
             <div class="territoryWorkersRow">
               <button
