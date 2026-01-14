@@ -1,4 +1,5 @@
 
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -460,6 +461,33 @@ body::after{
 .territoryCard{
       text-align:left;
       align-items:flex-start;
+    }
+
+    .territoryWorkersRow{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      margin-top:6px;
+      font-family:var(--mono);
+      font-size:.72rem;
+    }
+    .territoryWorkersMeta{
+      flex:1;
+      line-height:1.2;
+    }
+    .territoryWorkersHint{
+      display:block;
+      font-size:.68rem;
+      color:var(--muted);
+    }
+    .tinyBtn{
+      border-radius:999px;
+      border:1px solid rgba(158,104,54,.7);
+      padding:2px 8px;
+      background:rgba(255,255,255,0.85);
+      font-family:var(--mono);
+      font-size:.78rem;
+      min-width:30px;
     }
     .territoryCard .t{
       font-size:.9rem;
@@ -1757,6 +1785,7 @@ header{
 
     // NEW: named territories captured from battles
     controlledRegions: [],
+    territoryWorkers: {},
 // village capacity
     population: 0,          // total settlers (includes milites)
     populationUsed: 0,      // milites using population (kept for compatibility)
@@ -2497,7 +2526,8 @@ function decreeMult(){
       farm *= Math.max(0.60, 1 - (S.farmCount - softCap) * 0.04);
     }
     const villa = S.villaCount * 3.0;
-    const base = farm + villa;
+    const landWork = landWorkersIncome();
+    const base = farm + villa + landWork;
     const prosper = (Date.now() < (S.prosperUntil||0)) ? 1.5 : 1.0;
     // Land allocation (Agriculture) further boosts income.
     return base * landMult() * landAllocIncomeMult() * decreeMult() * crownMult() * prosper;
@@ -3332,6 +3362,70 @@ function landBasePopCap(){
   }
   return sum;
 }
+
+
+function totalTypeWorkers(){
+  if(!S.territoryWorkers) return 0;
+  let sum = 0;
+  for(const k in S.territoryWorkers){
+    if(!Object.prototype.hasOwnProperty.call(S.territoryWorkers, k)) continue;
+    sum += S.territoryWorkers[k] || 0;
+  }
+  return sum;
+}
+
+// Simple per-worker land income; each worker is worth +0.4 denarii/s.
+function landWorkersIncome(){
+  if(!S.territoryWorkers) return 0;
+  let sum = 0;
+  for(const k in S.territoryWorkers){
+    if(!Object.prototype.hasOwnProperty.call(S.territoryWorkers, k)) continue;
+    const w = S.territoryWorkers[k] || 0;
+    sum += w * 0.4;
+  }
+  return sum;
+}
+
+function adjustTypeWorkers(name, delta){
+  if(!name || !delta) return;
+  if(!Array.isArray(S.controlledRegions)) return;
+
+  if(!S.territoryWorkers) S.territoryWorkers = {};
+  const arr = S.controlledRegions.filter(t => t && t.name === name);
+  const tiles = arr.length;
+  if(tiles <= 0){
+    return;
+  }
+  const maxWorkers = tiles; // more tiles, more people can work this land
+
+  let workers = S.territoryWorkers[name] || 0;
+
+  if(delta > 0){
+    if(workers >= maxWorkers){
+      if(typeof toast === "function") toast("This land can't use more workers yet.");
+      return;
+    }
+    const totalPop = Number(S.population || 0);
+    const milites = Number(S.populationUsed || 0);
+    const civils = Math.max(0, totalPop - milites);
+    const elsewhere = totalTypeWorkers() - workers;
+    const free = Math.max(0, civils - elsewhere);
+    if(free <= 0){
+      if(typeof toast === "function") toast("No free population to assign.");
+      return;
+    }
+    workers += 1;
+  }else if(delta < 0){
+    if(workers <= 0) return;
+    workers -= 1;
+  }
+
+  S.territoryWorkers[name] = workers;
+  if(typeof scheduleSave === "function") scheduleSave();
+  render();
+}
+
+
 
 function updateTerritoryProjects(){
   if(!Array.isArray(S.controlledRegions)) return;
@@ -6345,7 +6439,7 @@ handleRankUps();
     if($("#landTotal")) $("#landTotal").textContent = fmt(S.land||0);
 
     // Land output summary
-    const landDen = landBaseIncome();
+    const landDen = landBaseIncome() + landWorkersIncome();
     const landPop = landBasePopCap();
     if($("#landOutputDen")) $("#landOutputDen").textContent = `+${fmt(landDen)} Denarii / tick`;
     if($("#landOutputPop")) $("#landOutputPop").textContent = `+${fmt(landPop)} Cap`;
@@ -6361,7 +6455,8 @@ handleRankUps();
 
     const arr = Array.isArray(S.controlledRegions) ? S.controlledRegions : [];
 
-    // Compact land summary line, tied to the cards below
+    
+// Compact land summary line, tied to the cards below
     if(summaryEl){
       if(!arr.length){
         summaryEl.style.display = "none";
@@ -6379,7 +6474,7 @@ handleRankUps();
         emptyEl.style.display = arr.length ? "none" : "block";
       }
 
-      // Group territories by type so each card shows Owned: X
+      // Group territories by type so each card shows Tiles: X
       const grouped = {};
       for(const terr of arr){
         if(!grouped[terr.name]){
@@ -6397,30 +6492,54 @@ handleRankUps();
         if(eff.pop) g.cap += eff.pop;
       }
 
-      // Render one card per land type
+      // Render one simple card per land type
       Object.entries(grouped).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([name,info])=>{
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "smallBtn territoryCard";
+        const workers = (S.territoryWorkers && S.territoryWorkers[name]) || 0;
+        const tiles = info.count;
+        const maxWorkers = tiles; // more tiles = more workers can work it
 
-        btn.innerHTML = `
+        const card = document.createElement("div");
+        card.className = "smallBtn territoryCard";
+        card.innerHTML = `
           <div class="territoryCardHeader">
             <div class="t">${name}</div>
-            <div class="territoryOwnedTag">Owned: ${fmt(info.count)}</div>
           </div>
           <div class="d" style="text-align:left;">
-            ${info.den ? "&#x1F4B0; +" + fmt(info.den) + " Denarii (Income)<br>" : ""}
-            ${info.cap ? "&#x1F465; +" + fmt(info.cap) + " Cap (Population)<br>" : ""}
-            <span class="territoryFlavor">${info.summary || "Claimed territory."}</span>
+            <div>Tiles: <b>${fmt(tiles)}</b></div>
+            <div class="territoryYieldLine">
+              These yield:
+              ${info.den ? " &#x1F4B0; +" + fmt(info.den) + " Denarii" : ""}
+              ${info.cap ? " &#x1F465; +" + fmt(info.cap) + " Cap" : ""}
+            </div>
+            <div class="territoryWorkersRow">
+              <div class="territoryWorkersMeta">
+                Workers assigned: <b>${fmt(workers)}</b> / ${fmt(maxWorkers)}
+                <span class="territoryWorkersHint">(each worker boosts income)</span>
+              </div>
+              <button
+                type="button"
+                class="tinyBtn terrAssignBtn"
+                data-type="${name}"
+              >
+                Assign worker
+              </button>
+            </div>
           </div>
         `;
-        listEl.appendChild(btn);
-        // Open per-tile detail overlay for this territory type.
-        btn.addEventListener("click", () => {
-          openTerritoryOverlay(name);
+        listEl.appendChild(card);
+      });
+
+      // Wire up worker-assign buttons after all cards are in the DOM
+      $$(".terrAssignBtn").forEach(btn=>{
+        btn.addEventListener("click", (e)=>{
+          const tName = btn.getAttribute("data-type");
+          if(tName){
+            adjustTypeWorkers(tName, +1);
+          }
         });
       });
     }
+
 // Stats
     const body = $("#statsTable");
     if(body){
