@@ -6246,11 +6246,18 @@ handleRankUps();
 
     // Population display (village capacity)
     const cap = populationCap();
-    const used = (S.population||0);
+    const totalPop = (S.population||0);
+    const warriors = (S.populationUsed||0); // milites using population
+    const labourers = (typeof totalTypeWorkers === "function") ? totalTypeWorkers() : 0;
+    const civilians = Math.max(0, totalPop - warriors);
+    const freePop = Math.max(0, civilians - labourers);
     const pu = $("#popUsed"); const pc = $("#popCap");
     const mr = (typeof migrationPerSec === "function") ? migrationPerSec() : 0;
     $("#migRate") && ($("#migRate").textContent = (Math.round(mr*100)/100).toFixed(2));
-    if(pu && pc){ pu.textContent = fmt(used); pc.textContent = fmt(cap); }
+    if(pu && pc){
+      pu.textContent = `${fmt(totalPop)} (Free: ${fmt(freePop)}, Warriors: ${fmt(warriors)}, Labourers: ${fmt(labourers)})`;
+      pc.textContent = fmt(cap);
+    }
 
 
     // Village
@@ -6500,6 +6507,7 @@ handleRankUps();
 
 
         const workerYield = workers * 0.4; // each worker adds +0.4 denarii/s
+        const totalDen = info.den + workerYield;
         const card = document.createElement("div");
         card.className = "smallBtn territoryCard";
         card.innerHTML = `
@@ -6510,9 +6518,9 @@ handleRankUps();
             <div>Tiles: <b>${fmt(tiles)}</b></div>
             <div class="territoryYieldLine">
               These yield:
-              ${info.den ? " &#x1F4B0; +" + fmt(info.den) + " Denarii" : ""}
+              ${ (totalDen > 0) ? " &#x1F4B0; +" + fmt(totalDen) + " Denarii" : "" }
               ${info.cap ? " &#x1F465; +" + fmt(info.cap) + " Cap" : ""}
-              ${workers ? (" &#x23F1; +" + fmt(workerYield) + " Denarii/s from labourers") : ""}
+              ${workers ? (" (includes +" + fmt(workerYield) + " from labourers)") : ""}
             </div>
             <div class="territoryWorkersRow">
               <button
