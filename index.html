@@ -1284,7 +1284,15 @@ header{
       margin-left:6px;
       object-fit:contain;
     }
-    </style>
+    
+    .tacLossIcon{
+      width:18px;
+      height:18px;
+      image-rendering:pixelated;
+      vertical-align:middle;
+      margin-right:2px;
+    }
+</style>
 </head>
 <body>
   <div id="introOverlay" class="introOverlay">
@@ -4547,21 +4555,23 @@ function captureTerritory(battleTier){
 
   // --- YOUR TROOPS ---
   const warriors = Math.max(0, S.warriors || 0);
+  const cav      = Math.max(0, S.cavalry  || 0);
   const aux      = S.auxilia  || 0;
   const equites  = S.equites  || 0;
   const veterans = S.veterans || 0;
 
-  const yourTroops = warriors; // core milites that can die
+  const yourTroops = warriors + cav; // frontline that can take casualties (milites + cavalry)
 
   // Base per-unit stats (can tweak later)
   const MIL = { atk: 7,  def: 5,  hp: 16 };
+  const CAV = { atk: 11, def: 4,  hp: 20 };
   const AUX = { atk: 6,  def: 8,  hp: 20 };
   const EQ  = { atk: 13, def: 4,  hp: 18 };
   const VET = { atk: 9,  def: 10, hp: 24 };
 
-  let baseAtk = warriors * MIL.atk + aux * AUX.atk + equites * EQ.atk + veterans * VET.atk;
-  let baseDef = warriors * MIL.def + aux * AUX.def + equites * EQ.def + veterans * VET.def;
-  let baseHP  = warriors * MIL.hp  + aux * AUX.hp  + equites * EQ.hp  + veterans * VET.hp;
+  let baseAtk = warriors * MIL.atk + cav * CAV.atk + aux * AUX.atk + equites * EQ.atk + veterans * VET.atk;
+  let baseDef = warriors * MIL.def + cav * CAV.def + aux * AUX.def + equites * EQ.def + veterans * VET.def;
+  let baseHP  = warriors * MIL.hp  + cav * CAV.hp  + aux * AUX.hp  + equites * EQ.hp  + veterans * VET.hp;
 
   // Global multipliers from crowns, decrees, land, faith, veterancy, morale
   const land = S.land || 0;
@@ -5261,6 +5271,9 @@ function objText(o){
 
   if(o.type==="gainLand")
     return `Gain ${o.target} land (${left} left)`;
+
+  if(o.type==="recruit")
+    return `Recruit ${o.target} troops (${left} left)`;
 
   if(o.type==="offerFaith")
     return `Make ${o.target} temple offering${o.target>1?"s":""} (${left} left)`;
@@ -6453,8 +6466,14 @@ handleRankUps();
     }
     const cd = 0; // battle cooldown disabled
 
-    // Battles: only requirement is "do you have any milites?"
-    const hasTroops = (S.warriors || 0) > 0;
+    // Battles: requirement is "do you have any troops at all?"
+    const totalTroops =
+      (S.warriors || 0) +
+      (S.cavalry  || 0) +
+      (S.auxilia  || 0) +
+      (S.equites  || 0) +
+      (S.veterans || 0);
+    const hasTroops = totalTroops > 0;
 
     $("#btnBattleBandits1").disabled    = !hasTroops;
     $("#btnBattleLevy").disabled        = !hasTroops;
@@ -7571,10 +7590,15 @@ function doBattle(slot, opts){
   const b = currentBattleSet()[slot];
   if(!b){ toast("No battle available"); return; }
 
-  // Minimal requirement: you need at least *some* milites for offensive campaigns.
-  const w = (S.warriors || 0);
-  if (!isDefence && w <= 0) {
-    toast("You have no milites to muster.");
+  // Minimal requirement: you need at least *some* troops for offensive campaigns.
+  const w   = (S.warriors || 0);
+  const cav = (S.cavalry  || 0);
+  const aux = (S.auxilia  || 0);
+  const eq  = (S.equites  || 0);
+  const vet = (S.veterans || 0);
+  const totalTroops = w + cav + aux + eq + vet;
+  if (!isDefence && totalTroops <= 0) {
+    toast("You have no troops to muster.");
     return;
   }
 
@@ -8364,16 +8388,23 @@ $("#btnExport").addEventListener("click", async ()=>{
   render();
   maybeShowIntro();
   
-  /*
-   * Tactical battle system
+    /*
+   * Tactical battle system — JRPG turns + attrition
    *
-   * When the player chooses to lead a battle manually, we open a simple
-   * turn-based overlay.  Each round the player selects an action
-   * (Assault, Defend, Heal) and the game computes casualties based on
-   * relative troop strength and the chosen stance.  At the end of the
-   * fight, doBattle() is invoked with override flags to apply the
-   * casualties and rewards without showing the old cinematic simulation.
+   * Each click = 1 "round" of a mass battle.
+   * - Bars show total troops (all arms) on each side.
+   * - Both sides take casualties each round.
+   * - Bigger / better side wins faster and loses proportionally less.
+   * - Morale + rout mean the last few enemies don't become immortals.
+   *
+   * Internally:
+   * - We use your whole legion size to drive the attrition math
+   *   (Milites + Cavalry + Auxilia + Equites + Veterans).
+   * - At the end we map that total loss back to your *milites* only and
+   *   pass an overrideLoss into doBattle(), so the rest of your economy
+   *   and rewards logic stays intact.
    */
+
   let currentTactical = null;
 
   function tacBarIndex(current, max){
@@ -8383,6 +8414,7 @@ $("#btnExport").addEventListener("click", async ()=>{
     const idx = Math.round(curved * 10);
     return Math.max(0, Math.min(10, idx));
   }
+
   function tacBarSprite(side, idx){
     const base = "Sprites/player and enemy bars/";
     if(side === "player"){
@@ -8403,21 +8435,23 @@ $("#btnExport").addEventListener("click", async ()=>{
     const enemyImg = document.getElementById('tacEnemyBarImg');
     const yourCnt  = document.getElementById('tacYourBarCount');
     const enemyCnt = document.getElementById('tacEnemyBarCount');
+
     if(yourImg && enemyImg){
       const idxY = tacBarIndex(s.currentPlayer, s.initPlayer);
-      const idxE = tacBarIndex(s.currentEnemy, s.sim.enemies);
+      const idxE = tacBarIndex(s.currentEnemy, s.initEnemy);
       yourImg.src  = tacBarSprite('player', idxY);
       enemyImg.src = tacBarSprite('enemy', idxE);
       if(yourCnt)  yourCnt.textContent  = `${fmt(s.currentPlayer)} / ${fmt(s.initPlayer)}`;
-      if(enemyCnt) enemyCnt.textContent = `${fmt(s.currentEnemy)} / ${fmt(s.sim.enemies)}`;
+      if(enemyCnt) enemyCnt.textContent = `${fmt(s.currentEnemy)} / ${fmt(s.initEnemy)}`;
     }
+
     const eventsEl = document.getElementById('tacEvents');
     if(eventsEl){
       eventsEl.innerHTML = '';
       const start = Math.max(0, s.events.length - 6);
       s.events.slice(start).forEach(line=>{
         const div = document.createElement('div');
-        div.textContent = line;
+        div.innerHTML = line;
         eventsEl.appendChild(div);
       });
     }
@@ -8426,114 +8460,555 @@ $("#btnExport").addEventListener("click", async ()=>{
   function finishTacticalBattle(didWin){
     const s = currentTactical;
     if(!s) return;
-    // Close overlay
+
     const overlay = document.getElementById('tacticalOverlay');
     if(overlay) overlay.style.display = 'none';
-    // Determine losses relative to start
-    const losses = s.initPlayer - Math.max(0, s.currentPlayer);
-    // Call into main battle function with override values and suppress simulation
-    doBattle(s.slot, { overrideLoss: losses, overrideWin: didWin, suppressSim: true, defence: s.defence });
+
+    // Map total troop losses → milites-only losses for the main battle system.
+    const totalLost   = Math.max(0, s.initPlayer - Math.max(0, s.currentPlayer));
+    const initMilites = Math.max(0, s.initMilites || 0);
+
+    let militeLoss = 0;
+    if(s.initPlayer > 0 && initMilites > 0){
+      const lossFrac = totalLost / s.initPlayer;
+      militeLoss = Math.round(initMilites * lossFrac);
+      if(militeLoss > initMilites) militeLoss = initMilites;
+    }
+
+    // Call into main battle function with override casualty count.
+    doBattle(s.slot, {
+      overrideLoss: militeLoss,
+      overrideWin: didWin,
+      suppressSim: true,
+      defence: s.defence
+    });
+
     currentTactical = null;
   }
+
+  // Internal helper: compute a simple "quality" score for your legion.
+  function tacticalQualityForPlayer(){
+    const mil = Number(S.warriors || 0);
+    const cav = Number(S.cavalry  || 0);
+    const aux = Number(S.auxilia  || 0);
+    const eq  = Number(S.equites  || 0);
+    const vet = Number(S.veterans || 0);
+
+    const total = Math.max(1, mil + cav + aux + eq + vet);
+
+    // Frontline heavies and veterans push quality up.
+    const weighted =
+      mil * 1.00 +
+      cav * 1.25 +
+      aux * 1.10 +
+      eq  * 1.35 +
+      vet * 1.30;
+
+    let q = weighted / total;
+
+    // Fold in hidden progression a bit so late-game armies feel tougher.
+    const legionXp = S.legionXp || 0;
+    const xpMult   = 1 + Math.min(legionXp / 8000, 0.20); // up to +20%
+    q *= xpMult;
+
+    return Math.max(0.6, Math.min(1.8, q));
+  }
+
+  // Enemy quality by slot: bandits < levy < raid < siege.
+  function tacticalQualityForEnemy(slot){
+    switch(slot){
+      case 0: return 0.90; // bandits / raiders
+      case 1: return 1.00; // levy / local forces
+      case 2: return 1.08; // serious raid
+      case 3: return 1.18; // siege / elite
+      default: return 1.0;
+    }
+  }
+
+  
+  // Helper: sum all troops in a named pool object.
+  function tacticalSumPool(pool){
+    let total = 0;
+    for(const k in pool){
+      if(Object.prototype.hasOwnProperty.call(pool, k)){
+        total += pool[k] || 0;
+      }
+    }
+    return total;
+  }
+
+  // Helper: split a totalLoss across the pool based on exposure weights.
+  // pool: { key -> count }, exposure: { key -> weight }
+  function tacticalSplitLosses(totalLoss, pool, exposure){
+    totalLoss = Math.max(0, Math.floor(totalLoss));
+    const keys = Object.keys(pool || {});
+    const losses = {};
+    if(totalLoss <= 0 || !keys.length){
+      return { losses: losses, remaining: Object.assign({}, pool) };
+    }
+
+    const weights = {};
+    let weightSum = 0;
+    for(const k of keys){
+      const count = pool[k] || 0;
+      if(count <= 0) continue;
+      const w = count * (exposure && exposure[k] ? exposure[k] : 1);
+      if(w > 0){
+        weights[k] = w;
+        weightSum += w;
+      }
+    }
+    if(weightSum <= 0){
+      return { losses: losses, remaining: Object.assign({}, pool) };
+    }
+
+    let used = 0;
+    for(const k of keys){
+      if(!weights[k]){ losses[k] = 0; continue; }
+      const share = weights[k] / weightSum;
+      const base = Math.floor(totalLoss * share);
+      const capBase = Math.min(base, pool[k]);
+      losses[k] = capBase;
+      used += capBase;
+    }
+
+    let remainingLoss = totalLoss - used;
+    // Distribute any leftover one by one, respecting remaining counts.
+    let guard = 0;
+    while(remainingLoss > 0 && guard < 200){
+      let any = false;
+      for(const k of keys){
+        const count = pool[k] || 0;
+        const already = losses[k] || 0;
+        if(count > already && remainingLoss > 0){
+          losses[k] = already + 1;
+          remainingLoss -= 1;
+          any = true;
+          if(remainingLoss <= 0) break;
+        }
+      }
+      if(!any) break;
+      guard++;
+    }
+
+    const newPool = {};
+    for(const k of keys){
+      const count = pool[k] || 0;
+      const lost = losses[k] || 0;
+      newPool[k] = Math.max(0, count - lost);
+    }
+
+    return { losses: losses, remaining: newPool };
+  }
+
+  // Helper: enemy composition for tactical view only.
+  function tacticalBuildEnemyPools(slot, total){
+    total = Math.max(0, Math.floor(total));
+    if(total <= 0){
+      return {
+        pool: { "Enemy": 0 },
+        exposure: { "Enemy": 1.0 }
+      };
+    }
+
+    let types;
+    switch(slot){
+      case 0: // bandits / raiders
+        types = [
+          { key: "Bandits",    share: 0.7, exp: 1.0 },
+          { key: "Skirmishers",share: 0.3, exp: 0.9 }
+        ];
+        break;
+      case 1: // levy
+        types = [
+          { key: "Levies",     share: 0.65, exp: 1.0 },
+          { key: "Town Militia",share: 0.35, exp: 0.95 }
+        ];
+        break;
+      case 2: // raid
+        types = [
+          { key: "Raiders",    share: 0.6,  exp: 1.05 },
+          { key: "Horsemen",   share: 0.4,  exp: 1.1 }
+        ];
+        break;
+      case 3: // siege / elite
+      default:
+        types = [
+          { key: "Infantry",   share: 0.6,  exp: 1.0 },
+          { key: "Archers",    share: 0.25, exp: 0.9 },
+          { key: "Guard",      share: 0.15, exp: 1.15 }
+        ];
+        break;
+    }
+
+    const pool = {};
+    const exposure = {};
+    let assigned = 0;
+
+    for(let i=0;i<types.length;i++){
+      const t = types[i];
+      const base = (i === types.length - 1)
+        ? (total - assigned)
+        : Math.floor(total * t.share);
+      const count = Math.max(0, base);
+      pool[t.key] = count;
+      exposure[t.key] = t.exp;
+      assigned += count;
+    }
+
+    return { pool, exposure };
+  }
+
 
   function tacAction(action){
     const s = currentTactical;
     if(!s || s.finished) return;
+
     s.round = (s.round || 0) + 1;
-    let factorPlayer = 1;
-    let factorEnemy  = 1;
-    if(action === 'attack'){
-      factorPlayer = 1.3;
-      factorEnemy  = 1.25;
-    }else if(action === 'defend'){
-      factorPlayer = 0.7;
-      factorEnemy  = 0.5;
-    }else if(action === 'heal'){
-      factorPlayer = 0.5;
-      factorEnemy  = 0.6;
+
+    // Recalculate headcounts from pools.
+    const pPool = s.playerPools || {};
+    const ePool = s.enemyPools  || {};
+
+    let yourTroops  = Math.max(0, tacticalSumPool(pPool));
+    let enemyTroops = Math.max(0, tacticalSumPool(ePool));
+
+    if(yourTroops <= 0 || enemyTroops <= 0){
+      return;
     }
-    const baseP = Math.max(1, Math.floor(s.currentPlayer * 0.08));
-    const baseE = Math.max(1, Math.floor(s.currentEnemy * 0.08));
-    const ratio = s.currentPlayer / Math.max(1, s.currentEnemy);
-    const ratioAdj = Math.max(0.5, Math.min(2.0, ratio));
-    let dmgToE = Math.round(baseP * factorPlayer * ratioAdj * (0.8 + Math.random()*0.4));
-    let dmgToP = Math.round(baseE * factorEnemy * (1/ratioAdj) * (0.8 + Math.random()*0.4));
-    if(dmgToE > s.currentEnemy) dmgToE = s.currentEnemy;
-    if(dmgToP > s.currentPlayer) dmgToP = s.currentPlayer;
-    // Apply damages
-    s.currentEnemy = Math.max(0, s.currentEnemy - dmgToE);
-    s.currentPlayer = Math.max(0, s.currentPlayer - dmgToP);
-    // Heal if applicable
-    let healMsg = '';
+
+    // --- Stance multipliers (your choice) ---
+    // Attack  = hit harder, take a bit more
+    // Defend  = hit less, take less
+    // Rally   = steady line + morale boost, lighter casualties
+    let atkYou = 1.0, defYou = 1.0;
+    let stanceLabel = "Orders";
+
+    if(action === 'attack'){
+      atkYou = 1.30;
+      defYou = 0.95;
+      stanceLabel = "Assault";
+    }else if(action === 'defend'){
+      atkYou = 0.75;
+      defYou = 1.35;
+      stanceLabel = "Hold Line";
+    }else if(action === 'heal'){ // treated as Rally
+      atkYou = 0.60;
+      defYou = 1.05;
+      stanceLabel = "Rally";
+      s.moraleYou = Math.min(1.6, s.moraleYou + 0.18);
+    }
+
+    // Enemy posture: presses advantage if it outnumbers you, more cautious if not.
+    const ratio = enemyTroops / Math.max(1, yourTroops);
+    let atkEn = 1.0, defEn = 1.0;
+    if(ratio > 1.25){
+      atkEn = 1.15;
+    }else if(ratio < 0.8){
+      defEn = 1.15;
+    }
+
+    const qYou = s.qualityYou;
+    const qEn  = s.qualityEnemy;
+    const mYou = s.moraleYou;
+    const mEn  = s.moraleEnemy;
+
+    // Effective attack / defence with diminishing returns on size.
+    const effAtkYou = Math.pow(yourTroops, 0.80) * qYou * mYou * atkYou;
+    const effDefYou = Math.max(1, Math.pow(yourTroops, 0.50) * qYou * mYou * defYou);
+
+    const effAtkEn = Math.pow(enemyTroops, 0.80) * qEn * mEn * atkEn;
+    const effDefEn = Math.max(1, Math.pow(enemyTroops, 0.50) * qEn * mEn * defEn);
+
+    // Base kill fraction knob — how "fast" battles chew through troops.
+    const BASE_RATE = 0.17; // 17% max per round at extreme advantage
+
+    // Fraction of the enemy killed this round.
+    let fracKillEnemy = BASE_RATE * (effAtkYou / (effAtkYou + effDefEn));
+    let fracKillYou   = BASE_RATE * (effAtkEn  / (effAtkEn  + effDefYou));
+
+    // --- Rout / collapse pressure ---
+    const fracYou = yourTroops  / Math.max(1, s.initPlayer);
+    const fracEn  = enemyTroops / Math.max(1, s.initEnemy);
+
+    const collapseYou =
+      Math.max(0, 0.55 - fracYou) * 1.4 +       // badly outnumbered / worn down
+      Math.max(0, 1.0  - mYou)    * 0.7;        // poor morale
+
+    const collapseEn =
+      Math.max(0, 0.55 - fracEn) * 1.4 +
+      Math.max(0, 1.0  - mEn)    * 0.7;
+
+    const cfYou = 1 + Math.max(0, Math.min(collapseYou, 1.6));
+    const cfEn  = 1 + Math.max(0, Math.min(collapseEn,  1.6));
+
+    // Side closer to collapse takes more and deals less.
+    fracKillEnemy *= (cfEn / cfYou);
+    fracKillYou   *= (cfYou / cfEn);
+
+    // --- Randomness scaling with battle size ---
+    const scale = Math.max(yourTroops, enemyTroops);
+    const noiseBase = 0.12;
+    const noiseBig  = Math.min(scale / 160, 0.15); // extra noise for huge fights
+    const sigma     = noiseBase + noiseBig;
+
+    function noisy(f){
+      const r = (Math.random()*2 - 1) * sigma; // [-sigma, +sigma]
+      return f * (1 + r);
+    }
+
+    fracKillEnemy = noisy(fracKillEnemy);
+    fracKillYou   = noisy(fracKillYou);
+
+    // Clamp kill fractions
+    fracKillEnemy = Math.max(0.01, Math.min(0.65, fracKillEnemy));
+    fracKillYou   = Math.max(0.0,  Math.min(0.80, fracKillYou));
+
+    // Convert fractions → integer casualties
+    let dmgToE = Math.floor(enemyTroops * fracKillEnemy);
+    let dmgToP = Math.floor(yourTroops  * fracKillYou);
+
+    if(dmgToE < 1 && enemyTroops > 0) dmgToE = 1;
+    if(dmgToP < 0) dmgToP = 0;
+    if(dmgToE > enemyTroops) dmgToE = enemyTroops;
+    if(dmgToP > yourTroops)  dmgToP = yourTroops;
+
+    // --- Distribute casualties across troop types ---
+    const playerExposure = s.playerExposure || {
+      mil: 1.0,
+      cav: 1.15,
+      aux: 0.95,
+      eq:  1.1,
+      vet: 0.8
+    };
+    const enemyExposure = s.enemyExposure || {};
+
+    const splitP = tacticalSplitLosses(dmgToP, pPool, playerExposure);
+    const splitE = tacticalSplitLosses(dmgToE, ePool, enemyExposure);
+
+    s.playerPools = splitP.remaining;
+    s.enemyPools  = splitE.remaining;
+
+    // Recalculate for UI & morale after applying losses.
+    yourTroops  = Math.max(0, tacticalSumPool(s.playerPools));
+    enemyTroops = Math.max(0, tacticalSumPool(s.enemyPools));
+
+    s.currentPlayer = yourTroops;
+    s.currentEnemy  = enemyTroops;
+
+    // --- Morale update ---
+    const lossFracYou = (dmgToP) / Math.max(1, yourTroops + dmgToP);
+    const lossFracEn  = (dmgToE) / Math.max(1, enemyTroops + dmgToE);
+
+    // Losing more (fractionally) hurts morale, inflicting more helps.
+    s.moraleYou += -lossFracYou * 0.55 + (lossFracEn - lossFracYou) * 0.40;
+    s.moraleEnemy += -lossFracEn * 0.55 + (lossFracYou - lossFracEn) * 0.30;
+
+    // Gentle pull back toward neutral in between swings.
+    s.moraleYou   += (1 - s.moraleYou) * 0.05;
+    s.moraleEnemy += (1 - s.moraleEnemy) * 0.05;
+
+    s.moraleYou   = Math.max(0.5, Math.min(1.6, s.moraleYou));
+    s.moraleEnemy = Math.max(0.5, Math.min(1.6, s.moraleEnemy));
+
+    // --- Build per-type log message ---
+    function describePlayerLosses(losses){
+      const parts = [];
+      const map = {
+        mil: { label: "Milites",  icon: "Sprites/Milites.png" },
+        cav: { label: "Cavalry",  icon: "Sprites/Cavalry.png" },
+        aux: { label: "Auxilia",  icon: null },
+        eq:  { label: "Equites",  icon: null },
+        vet: { label: "Veterans", icon: null }
+      };
+      for(const k in map){
+        const n = losses[k] || 0;
+        if(n > 0){
+          const info = map[k];
+          const iconHtml = info.icon
+            ? `<img src="${info.icon}" class="tacLossIcon" alt="${info.label}">`
+            : "";
+          parts.push(`${iconHtml}${fmt(n)} ${info.label}`);
+        }
+      }
+      return parts.length ? parts.join(', ') : "no losses";
+    }
+
+    function describeEnemyLosses(losses){
+      const parts = [];
+      for(const k in losses){
+        if(!Object.prototype.hasOwnProperty.call(losses, k)) continue;
+        const n = losses[k] || 0;
+        if(n > 0){
+          // For now enemies share the bandit sprite; can be expanded per-type later.
+          const iconHtml = `<img src="Sprites/Bandits.png" class="tacLossIcon" alt="${k}">`;
+          parts.push(`${iconHtml}${fmt(n)} ${k}`);
+        }
+      }
+      return parts.length ? parts.join(', ') : "no losses";
+    }
+
+    const playerLossText = describePlayerLosses(splitP.losses);
+    const enemyLossText  = describeEnemyLosses(splitE.losses);
+
+    let extraMsg = "";
     if(action === 'heal'){
-      const healable = s.initPlayer - s.currentPlayer;
-      let healAmount = Math.min(healable, Math.max(1, Math.floor(s.initPlayer * 0.06)));
-      const cost = healAmount * 10;
-      if(healAmount > 0 && (S.gold||0) >= cost){
-        S.gold -= cost;
-        s.currentPlayer += healAmount;
-        healMsg = ` Healed ${fmt(healAmount)} milites at cost ${fmt(cost)}d.`;
-      }else if(healAmount > 0){
-        healMsg = ' (Not enough denarii to heal)';
+      extraMsg = " Your centurions rally the line.";
+    }else if(action === 'defend'){
+      extraMsg = " Shields lock and javelins thin the charge.";
+    }else if(action === 'attack'){
+      extraMsg = " You drive the men forward.";
+    }
+
+    // Build a nicer, more readable combat log line with emojis and cleaner phrasing.
+    const youPart   = (playerLossText === "no losses")
+      ? "you took no losses"
+      : `you lost ${playerLossText}`;
+    const enemyPart = (enemyLossText === "no losses")
+      ? "enemy took no losses"
+      : `enemy lost ${enemyLossText}`;
+
+    // Pick an icon based on who took the worse of it this round.
+    const youCasual  = splitP.total;
+    const enCasual   = splitE.total;
+    let icon = "⚔️";
+    if(youCasual === 0 && enCasual === 0){
+      icon = "⏸️";
+    }else if(youCasual === 0 && enCasual > 0){
+      icon = "✅";
+    }else if(enCasual === 0 && youCasual > 0){
+      icon = "💥";
+    }else{
+      const youFrac = youCasual / Math.max(1, s.initPlayer);
+      const enFrac  = enCasual  / Math.max(1, s.initEnemy);
+      if(enFrac > youFrac * 1.5){
+        icon = "🩸";
       }
     }
-    let actLabel;
-    if(action === 'attack') actLabel = 'Assault';
-    else if(action === 'defend') actLabel = 'Defend';
-    else if(action === 'heal') actLabel = 'Heal';
-    else actLabel = action;
-    const msg = `${actLabel}: you lost ${fmt(dmgToP)} milites, enemy lost ${fmt(dmgToE)}.${healMsg}`;
+
+    const msg = `${icon} ${stanceLabel} R${s.round}: ${youPart}; ${enemyPart}.${extraMsg}`;
     s.events.push(msg);
-    // Check for battle end
-    if(s.currentEnemy <= 0){
-      s.events.push('Enemy routed!');
+
+    // --- Rout / end conditions ---
+    const youShattered   = (yourTroops <= 0) ||
+      (yourTroops > 0 && fracYou < 0.25 && s.moraleYou <= 0.62);
+
+    const enemyShattered = (enemyTroops <= 0) ||
+      (enemyTroops > 0 && fracEn < 0.25 && s.moraleEnemy <= 0.62);
+
+    if(enemyShattered && !youShattered){
+      s.events.push('Enemy collapses and routs!');
       s.finished = true;
       finishTacticalBattle(true);
       return;
     }
-    if(s.currentPlayer <= 0){
-      s.events.push('Your force was wiped out.');
+    if(youShattered && !enemyShattered){
+      s.events.push('Your line breaks and the men scatter.');
       s.finished = true;
       finishTacticalBattle(false);
       return;
     }
+    if(enemyShattered && youShattered){
+      // Extremely bloody mutual collapse: lean on starting win chance.
+      s.events.push('Both sides break — the field is a ruin.');
+      s.finished = true;
+      const sim = s.sim;
+      const winP = sim && typeof sim.winP === "number" ? sim.winP : 0.5;
+      finishTacticalBattle(Math.random() < winP);
+      return;
+    }
+
     updateTacticalUI();
   }
 
-function startTacticalBattle(slot, defenceFlag){
-    const initTroops = S.warriors || 0;
-    if(initTroops <= 0){
-      toast('You have no milites to muster.');
+
+  function startTacticalBattle(slot, defenceFlag){
+    // Use *all* troop types as the visible pool for this battle.
+    const mil = Number(S.warriors || 0);
+    const cav = Number(S.cavalry  || 0);
+    const aux = Number(S.auxilia  || 0);
+    const eq  = Number(S.equites  || 0);
+    const vet = Number(S.veterans || 0);
+
+    const totalTroops = mil + cav + aux + eq + vet;
+
+    if(totalTroops <= 0){
+      toast('You have no troops to muster.');
       return;
     }
+
     const sim = battleSim(slot);
-    // Setup battle state
+
+    const enemies = (sim && typeof sim.enemies === 'number')
+      ? sim.enemies
+      : Math.max(4, Math.round(totalTroops * 1.1));
+
+    const overlay = document.getElementById('tacticalOverlay');
+    if(overlay) overlay.style.display = 'flex';
+
+    // Initial morale from hidden legionMorale, clamped.
+    let legionMorale = typeof S.legionMorale === "number" ? S.legionMorale : 1;
+    legionMorale = clamp(legionMorale, 0.6, 1.4);
+
+    // Build enemy composition just for tactical view.
+    const enemyBuilt = tacticalBuildEnemyPools(slot, enemies);
+
     currentTactical = {
       slot: slot,
       sim: sim,
-      initPlayer: initTroops,
-      currentPlayer: initTroops,
-      currentEnemy: sim && typeof sim.enemies === 'number' ? sim.enemies : 0,
+      // total headcount pools (for percentages / bars)
+      initPlayer: totalTroops,
+      currentPlayer: totalTroops,
+      initEnemy: enemies,
+      currentEnemy: enemies,
+      // keep track of milites for mapping casualties at the end
+      initMilites: mil,
       events: [],
       finished: false,
       round: 0,
-      defence: !!defenceFlag
+      defence: !!defenceFlag,
+      // quality + morale for attrition math
+      qualityYou: tacticalQualityForPlayer(),
+      qualityEnemy: tacticalQualityForEnemy(slot),
+      moraleYou: legionMorale,
+      moraleEnemy: 1.0,
+      // Detailed pools for per-type losses
+      playerPools: {
+        mil: mil,
+        cav: cav,
+        aux: aux,
+        eq:  eq,
+        vet: vet
+      },
+      playerExposure: {
+        mil: 1.0,
+        cav: 1.15,
+        aux: 0.95,
+        eq:  1.1,
+        vet: 0.8
+      },
+      enemyPools: enemyBuilt.pool,
+      enemyExposure: enemyBuilt.exposure
     };
-    const overlay = document.getElementById('tacticalOverlay');
-    if(overlay) overlay.style.display = 'flex';
-    // Attach handlers on first open (or re-bind).  Doing this here ensures
-    // elements exist in the DOM because the overlay markup appears after the
-    // main script.
-    const btnA = document.getElementById('tacBtnAttack');
-    const btnD = document.getElementById('tacBtnDefend');
-    const btnH = document.getElementById('tacBtnHeal');
+
+    const titleEl = document.getElementById("tacticalTitle");
+    if(titleEl){
+      const label = sim && sim.label ? sim.label : "Engagement";
+      titleEl.textContent = label;
+    }
+
+    // Wire buttons each time we open to be safe.
+    const btnA    = document.getElementById('tacBtnAttack');
+    const btnD    = document.getElementById('tacBtnDefend');
+    const btnH    = document.getElementById('tacBtnHeal');
     const btnAuto = document.getElementById('tacBtnAuto');
-    const btnClose = document.getElementById('tacCloseBtn');
-    if(btnA)    btnA.onclick = ()=> tacAction('attack');
-    if(btnD)    btnD.onclick = ()=> tacAction('defend');
-    if(btnH)    btnH.onclick = ()=> tacAction('heal');
+    const btnClose= document.getElementById('tacCloseBtn');
+
+    if(btnA)    btnA.onclick    = ()=> tacAction('attack');
+    if(btnD)    btnD.onclick    = ()=> tacAction('defend');
+    if(btnH)    btnH.onclick    = ()=> tacAction('heal'); // Rally
     if(btnAuto) btnAuto.onclick = ()=>{
-      // Auto-resolve using the default simulation; hide overlay and call doBattle normally
+      // Auto-resolve using existing simulation; hide overlay and call doBattle normally.
       if(overlay) overlay.style.display = 'none';
       if(currentTactical){
         const autoSlot = currentTactical.slot;
@@ -8543,17 +9018,16 @@ function startTacticalBattle(slot, defenceFlag){
     };
     if(btnClose) btnClose.onclick = ()=>{
       if(currentTactical){
-        currentTactical.events.push('Retreat!');
+        currentTactical.events.push('You call the retreat.');
         currentTactical.finished = true;
         finishTacticalBattle(false);
       }
     };
+
     updateTacticalUI();
   }
 
-  // (handlers attached in startTacticalBattle)
-
-  // Land tier unlock popup helpers
+// Land tier unlock popup helpers
   function showLandTierUnlockPopup(tier, names){
     const overlay = document.getElementById('landTierOverlay');
     const listEl  = document.getElementById('landTierList');
