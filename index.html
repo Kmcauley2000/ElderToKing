@@ -7155,7 +7155,7 @@ function showBattleReport(rep){
     const txt = bits.length ? bits.join(', ') : "no losses";
     lines.push(`Troop losses: ${txt}`);
   } else {
-    lines.push(`Milites lost: ${fmt(rep.losses || 0)}`);
+    lines.push(`Troops lost: ${fmt(rep.losses || 0)}`);
   }
 
   body.innerHTML = `
@@ -7508,57 +7508,56 @@ function showBattleSimulation(rep, tier){
   if(S.introBattleDone) return;
   S.introBattleDone = 1;
 
-  // Ensure a small starting force (these are now YOUR warriors, not a visiting warband)
-  let warriors   = S.warriors   || 0;
+  // Remember pre-intro forces so the visiting warband can leave afterwards
+  const prevWarriors = S.warriors || 0;
+  const prevPopulation = S.population || 0;
+
+  // Ensure a small visiting warband so the battle feels real
+  let warriors = S.warriors || 0;
   let population = S.population || 0;
   if(warriors < 12){
     const add = 12 - warriors;
-    warriors   += add;
+    warriors += add;
     population += add;
   }
-  S.warriors   = warriors;
+  S.warriors = warriors;
   S.population = population;
   S.populationUsed = (S.warriors||0) + (S.cavalry||0);
 
-  // Use the core battleSim to drive casualties, but always treat this as a hard-won victory.
+  // Use the new battleSim to decide how bloody the intro feels,
+  // but always treat it as a hard-won victory in the story.
   const beforeWarriors = S.warriors || 0;
-  const introSlot = 0; // first battle slot (bandits / raiders tier)
+  const introSlot = 0; // first battle tier (usually bandits)
   const sim = battleSim(introSlot);
 
-  // Derive casualties from the sim, then clamp to a "narrow but real" win band.
-  let simLosses = sim && typeof sim.losses === "number"
-    ? sim.losses
-    : Math.round(beforeWarriors * 0.35);
-
+  // Derive casualties from the sim, but clamp to a "narrow win" band.
+  let simLosses = sim && typeof sim.losses === "number" ? sim.losses : Math.round(beforeWarriors * 0.35);
   const minLoss = Math.max(1, Math.round(beforeWarriors * 0.22));
   const maxLoss = Math.max(minLoss, Math.round(beforeWarriors * 0.55));
-  const losses  = clamp(simLosses, minLoss, maxLoss);
+  const losses = clamp(simLosses, minLoss, maxLoss);
 
   const afterWarriorsIntro = Math.max(0, beforeWarriors - losses);
 
-  // Apply actual casualties to your state.
-  S.warriors   = afterWarriorsIntro;
-  S.population = Math.max(0, (S.population || 0) - losses);
-  S.populationUsed = (S.warriors||0) + (S.cavalry||0);
-
-  // Enemy numbers from the sim, or a fallback if needed.
+  // Enemy numbers from the sim, or a fallback
   const enemies = sim && typeof sim.enemies === "number"
     ? sim.enemies
     : beforeWarriors + rnd(4, 10);
 
-  // Modest early reward so the opener feels impactful but not game-breaking.
+  // Modest early reward so the opener feels impactful
   const denGain = 16;
-  const landGain = 0; // Tutorial battle: no land granted.
+  const landGain = 0; // Tutorial battle: no land granted
   const renGain = 4;
 
   S.gold += denGain;
   S.lifetimeGold += denGain;
+  // Do NOT grant land for the intro battle – rewards are denarii + renown only.
   S.renown = (S.renown || 0) + renGain;
   S.lifetimeRenown = (S.lifetimeRenown || 0) + renGain;
 
   const rep = {
     label: "First Defence of the Village",
     enemies,
+    // Show whatever odds the sim estimated, but the story always counts this as a win.
     winP: sim && typeof sim.winP === "number" ? sim.winP : 0.56,
     win: true,
     beforeWarriors,
@@ -7573,16 +7572,22 @@ function showBattleSimulation(rep, tier){
     isIntro: true
   };
 
+  // The visiting warband that saved you marches on; you're left as you were before,
+  // with only the scars and spoils to show for it.
+  S.warriors = prevWarriors;
+  S.population = prevPopulation;
+  S.populationUsed = (S.warriors||0) + (S.cavalry||0);
+
   const introLines = [
     "Battle Victory!",
     "Captured: (tutorial – no new land)",
     `+${fmt(renGain)} Renown`,
     `+${fmt(denGain)} Denarii`,
-    `Milites lost: ${fmt(losses)}`
+    `Troops lost: ${fmt(losses)}`
   ];
 
   logLine(introLines.join("\n"), "good");
-  logLine("The village stands, but your ranks are thinner.", "warn");
+  logLine("The warband that saved your village marches on, leaving you to build your own legion.", "warn");
   toast("The village stands. Barely.");
   showBattleSimulation(rep, 1);
   render();
@@ -7590,7 +7595,6 @@ function showBattleSimulation(rep, tier){
 }
 
 window.startIntroBattle = startIntroBattle;
-
 
 // --- Battle execution (rank-based) ---
 // Optional second arg opts: { defence: true } for pop-up defence battles
@@ -7634,6 +7638,9 @@ function doBattle(slot, opts){
   const startRenown = S.renown||0;
   const startGlory = S.glory || 0;
 
+  // NEW: we’ll fill this with per-type losses (even for auto battles)
+  let lossDetail = null;
+
   // Soft warning: under-strength force vs enemy numbers / odds (no hard gate)
   if (!isDefence && sim && typeof sim.enemies === "number") {
     const enemies = sim.enemies;
@@ -7642,14 +7649,16 @@ function doBattle(slot, opts){
     // “Recommended” force: ~40% of enemy count
     const recommended = Math.max(1, Math.round(enemies * 0.4));
 
-    if (beforeWarriors > 0 && beforeWarriors < recommended && winP < 0.75) {
-      toast("Very risky with so few milites — expect heavy losses.");
+    if (beforeWarriors > 0 && beforeWarriors < recommended && winP < 0.85) {
+      // Soft warning only; behaviour and outcomes handled elsewhere.
     }
   }
 
   // Apply casualties
-  let losses;
+  let losses = 0;
+
   if (lossDetailOverride && typeof lossDetailOverride === "object") {
+    // Tactical mode: trust the detailed breakdown supplied.
     const dMil = Math.max(0, Math.min(beforeWarriors, Math.floor(lossDetailOverride.mil || 0)));
     const dCav = Math.max(0, Math.min(beforeCav,      Math.floor(lossDetailOverride.cav || 0)));
     const dAux = Math.max(0, Math.min(beforeAux,      Math.floor(lossDetailOverride.aux || 0)));
@@ -7663,9 +7672,66 @@ function doBattle(slot, opts){
     S.veterans = Math.max(0, beforeVet      - dVet);
 
     losses = dMil + dCav + dAux + dEq + dVet;
+    lossDetail = { mil:dMil, cav:dCav, aux:dAux, eq:dEq, vet:dVet };
+
   } else {
-    losses = Math.min(beforeWarriors, sim.losses);
-    S.warriors = Math.max(0, beforeWarriors - losses);
+    // Auto-resolve: take the sim.losses total and distribute it across all troop types.
+    const allBefore = beforeWarriors + beforeCav + beforeAux + beforeEq + beforeVet;
+    const rawLosses = Math.max(0, Math.floor(sim.losses || 0));
+    const totalLosses = Math.min(allBefore, rawLosses);
+
+    if (totalLosses > 0) {
+      const pool = {
+        mil: beforeWarriors,
+        cav: beforeCav,
+        aux: beforeAux,
+        eq:  beforeEq,
+        vet: beforeVet
+      };
+
+      // Frontline + cavalry take more of the hammering; vets & aux a bit less.
+      const exposure = {
+        mil: 1.0,
+        cav: 1.15,
+        aux: 0.95,
+        eq:  1.10,
+        vet: 0.80
+      };
+
+      let split;
+      if (typeof tacticalSplitLosses === "function") {
+        split = tacticalSplitLosses(totalLosses, pool, exposure);
+      } else {
+        // Fallback: old behaviour – kill milites first.
+        const dMil = Math.min(beforeWarriors, totalLosses);
+        split = {
+          losses: { mil:dMil, cav:0, aux:0, eq:0, vet:0 },
+          remaining: {
+            mil: beforeWarriors - dMil,
+            cav: beforeCav,
+            aux: beforeAux,
+            eq:  beforeEq,
+            vet: beforeVet
+          }
+        };
+      }
+
+      const ld = split.losses || {};
+      const dMil = Math.max(0, Math.floor(ld.mil || 0));
+      const dCav = Math.max(0, Math.floor(ld.cav || 0));
+      const dAux = Math.max(0, Math.floor(ld.aux || 0));
+      const dEq  = Math.max(0, Math.floor(ld.eq  || 0));
+      const dVet = Math.max(0, Math.floor(ld.vet || 0));
+
+      S.warriors = Math.max(0, beforeWarriors - dMil);
+      S.cavalry  = Math.max(0, beforeCav      - dCav);
+      S.auxilia  = Math.max(0, beforeAux      - dAux);
+      S.equites  = Math.max(0, beforeEq       - dEq);
+      S.veterans = Math.max(0, beforeVet      - dVet);
+
+      losses = dMil + dCav + dAux + dEq + dVet;
+      lossDetail = { mil:dMil, cav:dCav, aux:dAux, eq:dEq, vet:dVet };
+    }
   }
 
   // Deaths remove population permanently.
@@ -7677,16 +7743,7 @@ function doBattle(slot, opts){
     // That last milite is lost.
     S.warriors = 0;
     losses += 1;
-
-    // More people drift away or are lost around the defeat.
-    const popBefore = (S.population||0);
-    const extraPopLoss = Math.min(popBefore, 1 + Math.round(popBefore * 0.05));
-    S.population = Math.max(0, popBefore - extraPopLoss);
-
-    // A portion of your denarii is stripped away in the chaos.
-    const goldBefore = (S.gold||0);
-    const extraGoldLoss = Math.round(goldBefore * 0.1);
-    S.gold = Math.max(0, goldBefore - extraGoldLoss);
+    S.population = Math.max(0, (S.population||0) - 1);
   }
 
   // Keep pop-used in sync with milites
@@ -7697,6 +7754,7 @@ function doBattle(slot, opts){
   S.populationUsed = (S.warriors||0) + (S.cavalry||0);
 
   recalcLegionStrength();
+
 
   // Loot / penalties
   let loot = 0;
@@ -7931,13 +7989,13 @@ bumpObjective("winBattle", 1);
     else                       lossTag = "Crushing loss";
 
     logLine(
-      `☠ ${b.label} — ${lossTag}. -${fmt(lost)}d • -${fmt(losses)} milites`,
+      `☠ ${b.label} — ${lossTag}. -${fmt(lost)}d • -${fmt(losses)} troops`,
       "bad"
     );
   }
 
   // --- Legion morale & veterancy (hidden) ---
-  const baseBefore = beforeWarriors || 0;
+  const baseBefore = totalTroops || 0;
   const lossFracForMorale = baseBefore > 0 ? losses / baseBefore : 0;
   const fightSize = sim.enemies || 0;
 
@@ -7967,7 +8025,7 @@ bumpObjective("winBattle", 1);
   // Soft flavour log so battles feel like they change the warband
   if(fightSize > 0 && xpGain > 0){
     if(sim.win){
-      logLine("Your milites return more seasoned from the fighting.", "good");
+      logLine("Your troops return more seasoned from the fighting.", "good");
     }else{
       logLine("Survivors carry hard lessons back to the village.", "warn");
     }
@@ -7982,7 +8040,7 @@ bumpObjective("winBattle", 1);
     beforeWarriors,
     afterWarriors: S.warriors||0,
     losses,
-    lossDetail: lossDetailOverride || null,
+    lossDetail: lossDetail || lossDetailOverride || null,
     denDelta: Math.round(S.gold - startGold),
     loot: loot || 0,
     treasureType: (sim && sim.treasureType) ? sim.treasureType : "normal",
@@ -8550,6 +8608,17 @@ $("#btnExport").addEventListener("click", async ()=>{
 
     let q = weighted / total;
 
+    // Shock cavalry bonus: if a good chunk of your line is cavalry,
+    // your overall offensive/defensive quality improves.
+    if (total > 0){
+      const cavShare = cav / total;
+      if(cavShare > 0.18){
+        // Up to +20% when cavalry are a large share of the force.
+        const cavBoost = Math.min(0.20, cavShare * 0.55);
+        q *= (1 + cavBoost);
+      }
+    }
+
     // Fold in hidden progression a bit so late-game armies feel tougher.
     const legionXp = S.legionXp || 0;
     const xpMult   = 1 + Math.min(legionXp / 8000, 0.20); // up to +20%
@@ -8765,11 +8834,19 @@ $("#btnExport").addEventListener("click", async ()=>{
     const effDefEn = Math.max(1, Math.pow(enemyTroops, 0.50) * qEn * mEn * defEn);
 
     // Base kill fraction knob — how "fast" battles chew through troops.
-    const BASE_RATE = 0.17; // 17% max per round at extreme advantage
+    // Slightly higher now so equal-sized fights feel bloodier and resolve faster.
+    const BASE_RATE = 0.22;
 
-    // Fraction of the enemy killed this round.
+    // Fraction of the enemy killed this round (before advantage / collapse tweaks).
     let fracKillEnemy = BASE_RATE * (effAtkYou / (effAtkYou + effDefEn));
     let fracKillYou   = BASE_RATE * (effAtkEn  / (effAtkEn  + effDefYou));
+
+    // Force-ratio advantage: bigger forces chew faster and take proportionally fewer losses.
+    // At 1:1, advFactor = 1. At 2:1 it's ~1.27, at 5:1 it's ~1.75.
+    const forceRatio = yourTroops / Math.max(1, enemyTroops);
+    const advFactor = Math.max(0.65, Math.min(1.8, Math.pow(forceRatio, 0.35)));
+    fracKillEnemy *= advFactor;
+    fracKillYou   /= advFactor;
 
     // --- Rout / collapse pressure ---
     const fracYou = yourTroops  / Math.max(1, s.initPlayer);
@@ -8786,9 +8863,16 @@ $("#btnExport").addEventListener("click", async ()=>{
     const cfYou = 1 + Math.max(0, Math.min(collapseYou, 1.6));
     const cfEn  = 1 + Math.max(0, Math.min(collapseEn,  1.6));
 
-    // Side closer to collapse takes more and deals less.
-    fracKillEnemy *= (cfEn / cfYou);
-    fracKillYou   *= (cfYou / cfEn);
+    // Side closer to collapse takes more and deals less,
+    // but we soften the effect so damage never completely vanishes.
+    const rawEnemyMult = (cfEn / cfYou);
+    const rawYouMult   = (cfYou / cfEn);
+
+    const enemyMult = Math.max(0.4, Math.min(1.8, rawEnemyMult));
+    const youMult   = Math.max(0.4, Math.min(1.8, rawYouMult));
+
+    fracKillEnemy *= enemyMult;
+    fracKillYou   *= youMult;
 
     // --- Randomness scaling with battle size ---
     const scale = Math.max(yourTroops, enemyTroops);
