@@ -7140,7 +7140,23 @@ function showBattleReport(rep){
     lines.push(denLabel);
   }
 
-  lines.push(`Milites lost: ${fmt(rep.losses || 0)}`);
+  if (rep.lossDetail && typeof rep.lossDetail === "object") {
+    const ld = rep.lossDetail;
+    const bits = [];
+    function add(label, key){
+      const n = ld[key] || 0;
+      if(n > 0) bits.push(`${fmt(n)} ${label}`);
+    }
+    add("Milites",  "mil");
+    add("Cavalry",  "cav");
+    add("Auxilia",  "aux");
+    add("Equites",  "eq");
+    add("Veterans", "vet");
+    const txt = bits.length ? bits.join(', ') : "no losses";
+    lines.push(`Troop losses: ${txt}`);
+  } else {
+    lines.push(`Milites lost: ${fmt(rep.losses || 0)}`);
+  }
 
   body.innerHTML = `
     <div class="battleSummaryBlock">
@@ -7605,6 +7621,7 @@ function doBattle(slot, opts){
   const sim = battleSim(slot);
 
   // Allow tactical mode to override win/loss and casualty counts.
+  const lossDetailOverride = opts && opts.overrideLossDetail ? opts.overrideLossDetail : null;
   if (opts && typeof opts.overrideLoss === 'number') {
     sim.losses = opts.overrideLoss;
   }
@@ -7612,6 +7629,10 @@ function doBattle(slot, opts){
     sim.win = opts.overrideWin;
   }
   const beforeWarriors = S.warriors||0;
+  const beforeCav      = S.cavalry || 0;
+  const beforeAux      = S.auxilia || 0;
+  const beforeEq       = S.equites || 0;
+  const beforeVet      = S.veterans|| 0;
   const startGold = S.gold;
   const startLand = S.land||0;
   const startRenown = S.renown||0;
@@ -7631,8 +7652,25 @@ function doBattle(slot, opts){
   }
 
   // Apply casualties
-  let losses = Math.min(beforeWarriors, sim.losses);
-  S.warriors = Math.max(0, beforeWarriors - losses);
+  let losses;
+  if (lossDetailOverride && typeof lossDetailOverride === "object") {
+    const dMil = Math.max(0, Math.min(beforeWarriors, Math.floor(lossDetailOverride.mil || 0)));
+    const dCav = Math.max(0, Math.min(beforeCav,      Math.floor(lossDetailOverride.cav || 0)));
+    const dAux = Math.max(0, Math.min(beforeAux,      Math.floor(lossDetailOverride.aux || 0)));
+    const dEq  = Math.max(0, Math.min(beforeEq,       Math.floor(lossDetailOverride.eq  || 0)));
+    const dVet = Math.max(0, Math.min(beforeVet,      Math.floor(lossDetailOverride.vet || 0)));
+
+    S.warriors = Math.max(0, beforeWarriors - dMil);
+    S.cavalry  = Math.max(0, beforeCav      - dCav);
+    S.auxilia  = Math.max(0, beforeAux      - dAux);
+    S.equites  = Math.max(0, beforeEq       - dEq);
+    S.veterans = Math.max(0, beforeVet      - dVet);
+
+    losses = dMil + dCav + dAux + dEq + dVet;
+  } else {
+    losses = Math.min(beforeWarriors, sim.losses);
+    S.warriors = Math.max(0, beforeWarriors - losses);
+  }
 
   // Deaths remove population permanently.
   S.population = Math.max(0, (S.population||0) - losses);
@@ -7948,6 +7986,7 @@ bumpObjective("winBattle", 1);
     beforeWarriors,
     afterWarriors: S.warriors||0,
     losses,
+    lossDetail: lossDetailOverride || null,
     denDelta: Math.round(S.gold - startGold),
     loot: loot || 0,
     treasureType: (sim && sim.treasureType) ? sim.treasureType : "normal",
@@ -8464,20 +8503,29 @@ $("#btnExport").addEventListener("click", async ()=>{
     const overlay = document.getElementById('tacticalOverlay');
     if(overlay) overlay.style.display = 'none';
 
-    // Map total troop losses → milites-only losses for the main battle system.
-    const totalLost   = Math.max(0, s.initPlayer - Math.max(0, s.currentPlayer));
-    const initMilites = Math.max(0, s.initMilites || 0);
+    // Work out exact per‑type losses from starting vs remaining pools.
+    const initPools = s.initPlayerPools || {};
+    const endPools  = s.playerPools || {};
+    function norm(v){ return Math.max(0, Math.floor(v || 0)); }
 
-    let militeLoss = 0;
-    if(s.initPlayer > 0 && initMilites > 0){
-      const lossFrac = totalLost / s.initPlayer;
-      militeLoss = Math.round(initMilites * lossFrac);
-      if(militeLoss > initMilites) militeLoss = initMilites;
-    }
+    const detail = {
+      mil: Math.max(0, norm(initPools.mil) - norm(endPools.mil)),
+      cav: Math.max(0, norm(initPools.cav) - norm(endPools.cav)),
+      aux: Math.max(0, norm(initPools.aux) - norm(endPools.aux)),
+      eq:  Math.max(0, norm(initPools.eq)  - norm(endPools.eq)),
+      vet: Math.max(0, norm(initPools.vet) - norm(endPools.vet))
+    };
 
-    // Call into main battle function with override casualty count.
+    const totalLostAll =
+      detail.mil + detail.cav + detail.aux + detail.eq + detail.vet;
+
+    // For backward compatibility, still pass a milites-only overrideLoss,
+    // but also send the full breakdown in overrideLossDetail.
+    const militeLoss = detail.mil;
+
     doBattle(s.slot, {
       overrideLoss: militeLoss,
+      overrideLossDetail: detail,
       overrideWin: didWin,
       suppressSim: true,
       defence: s.defence
@@ -8961,8 +9009,15 @@ $("#btnExport").addEventListener("click", async ()=>{
       currentPlayer: totalTroops,
       initEnemy: enemies,
       currentEnemy: enemies,
-      // keep track of milites for mapping casualties at the end
+      // keep track of starting pools so we can compute exact per‑type losses
       initMilites: mil,
+      initPlayerPools: {
+        mil: mil,
+        cav: cav,
+        aux: aux,
+        eq:  eq,
+        vet: vet
+      },
       events: [],
       finished: false,
       round: 0,
