@@ -7508,56 +7508,57 @@ function showBattleSimulation(rep, tier){
   if(S.introBattleDone) return;
   S.introBattleDone = 1;
 
-  // Remember pre-intro forces so the visiting warband can leave afterwards
-  const prevWarriors = S.warriors || 0;
-  const prevPopulation = S.population || 0;
-
-  // Ensure a small visiting warband so the battle feels real
-  let warriors = S.warriors || 0;
+  // Ensure a small starting force (these are now YOUR warriors, not a visiting warband)
+  let warriors   = S.warriors   || 0;
   let population = S.population || 0;
   if(warriors < 12){
     const add = 12 - warriors;
-    warriors += add;
+    warriors   += add;
     population += add;
   }
-  S.warriors = warriors;
+  S.warriors   = warriors;
   S.population = population;
   S.populationUsed = (S.warriors||0) + (S.cavalry||0);
 
-  // Use the new battleSim to decide how bloody the intro feels,
-  // but always treat it as a hard-won victory in the story.
+  // Use the core battleSim to drive casualties, but always treat this as a hard-won victory.
   const beforeWarriors = S.warriors || 0;
-  const introSlot = 0; // first battle tier (usually bandits)
+  const introSlot = 0; // first battle slot (bandits / raiders tier)
   const sim = battleSim(introSlot);
 
-  // Derive casualties from the sim, but clamp to a "narrow win" band.
-  let simLosses = sim && typeof sim.losses === "number" ? sim.losses : Math.round(beforeWarriors * 0.35);
+  // Derive casualties from the sim, then clamp to a "narrow but real" win band.
+  let simLosses = sim && typeof sim.losses === "number"
+    ? sim.losses
+    : Math.round(beforeWarriors * 0.35);
+
   const minLoss = Math.max(1, Math.round(beforeWarriors * 0.22));
   const maxLoss = Math.max(minLoss, Math.round(beforeWarriors * 0.55));
-  const losses = clamp(simLosses, minLoss, maxLoss);
+  const losses  = clamp(simLosses, minLoss, maxLoss);
 
   const afterWarriorsIntro = Math.max(0, beforeWarriors - losses);
 
-  // Enemy numbers from the sim, or a fallback
+  // Apply actual casualties to your state.
+  S.warriors   = afterWarriorsIntro;
+  S.population = Math.max(0, (S.population || 0) - losses);
+  S.populationUsed = (S.warriors||0) + (S.cavalry||0);
+
+  // Enemy numbers from the sim, or a fallback if needed.
   const enemies = sim && typeof sim.enemies === "number"
     ? sim.enemies
     : beforeWarriors + rnd(4, 10);
 
-  // Modest early reward so the opener feels impactful
+  // Modest early reward so the opener feels impactful but not game-breaking.
   const denGain = 16;
-  const landGain = 0; // Tutorial battle: no land granted
+  const landGain = 0; // Tutorial battle: no land granted.
   const renGain = 4;
 
   S.gold += denGain;
   S.lifetimeGold += denGain;
-  // Do NOT grant land for the intro battle – rewards are denarii + renown only.
   S.renown = (S.renown || 0) + renGain;
   S.lifetimeRenown = (S.lifetimeRenown || 0) + renGain;
 
   const rep = {
     label: "First Defence of the Village",
     enemies,
-    // Show whatever odds the sim estimated, but the story always counts this as a win.
     winP: sim && typeof sim.winP === "number" ? sim.winP : 0.56,
     win: true,
     beforeWarriors,
@@ -7572,12 +7573,6 @@ function showBattleSimulation(rep, tier){
     isIntro: true
   };
 
-  // The visiting warband that saved you marches on; you're left as you were before,
-  // with only the scars and spoils to show for it.
-  S.warriors = prevWarriors;
-  S.population = prevPopulation;
-  S.populationUsed = (S.warriors||0) + (S.cavalry||0);
-
   const introLines = [
     "Battle Victory!",
     "Captured: (tutorial – no new land)",
@@ -7587,7 +7582,7 @@ function showBattleSimulation(rep, tier){
   ];
 
   logLine(introLines.join("\n"), "good");
-  logLine("The warband that saved your village marches on, leaving you to build your own legion.", "warn");
+  logLine("The village stands, but your ranks are thinner.", "warn");
   toast("The village stands. Barely.");
   showBattleSimulation(rep, 1);
   render();
@@ -7595,6 +7590,7 @@ function showBattleSimulation(rep, tier){
 }
 
 window.startIntroBattle = startIntroBattle;
+
 
 // --- Battle execution (rank-based) ---
 // Optional second arg opts: { defence: true } for pop-up defence battles
