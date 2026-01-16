@@ -846,6 +846,45 @@ body::after{
       transform:translateY(1px) scale(.985);
     }
 
+    .buildCard{
+      min-height:110px;
+      padding:20px 20px;
+      min-height:80px;
+      padding:16px 16px;
+      align-items:flex-start;
+    }
+    .buildCard .t{
+      font-size:.9rem;
+    }
+    .buildCard .d{
+      font-size:.78rem;
+    }
+    .buildCard .metaRow{
+      margin-top:4px;
+      font-size:.75rem;
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      opacity:.9;
+    }
+
+    .constructionTabs{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+    }
+    .constructionTab{
+      font-size:.75rem;
+      padding:4px 8px;
+    }
+    .constructionTab.active{
+      outline:2px solid var(--accent);
+      outline-offset:1px;
+    }
+    .constructionTabPanel{
+      margin-top:4px;
+    }
+
 /* Intro overlay */
     .introOverlay{
       position:fixed;
@@ -1355,7 +1394,7 @@ header{
   </div>
 
   <div id="offlineOverlay" class="offlineOverlay" hidden>
-    <section class="offlineCard" role="dialog" aria-modal="true" aria-labelledby="offlineTitle">
+    <section class="offlineCard" style="width:600px;max-width:95vw;" role="dialog" aria-modal="true" aria-labelledby="offlineTitle">
       <div class="offlineTitle">
         <div>
           <div id="offlineTitle" class="offlineTitleText">Welcome back</div>
@@ -1449,6 +1488,73 @@ header{
     </section>
   </div>
 
+  <div id="constructionOverlay" class="offlineOverlay" hidden>
+    <section class="offlineCard" role="dialog" aria-modal="true" aria-labelledby="constructionTitle">
+      <div class="offlineTitle">
+        <div>
+          <div id="constructionTitle" class="offlineTitleText">Construction</div>
+          <div class="offlineSub">Spend denarii to expand and improve your settlement.</div>
+        </div>
+        <div style="font-size:1.6rem;line-height:1;">🏗️</div>
+      </div>
+      <div class="offlineBody">
+        <p style="margin:0 0 4px;font-size:.8rem;">
+          Choose what to build next. Costs and effects scale as your realm grows.
+        </p>
+        <div class="constructionTabPanels" style="margin-top:4px;">
+          <div id="constructionTab-economy" class="constructionTabPanel">
+            <div id="buildMenu">
+              <div class="row3">
+                <button class="smallBtn buildCard" id="btnHut" style="display:none;">
+                  <div class="t">Build Huts</div>
+                  <div class="d" id="hutDesc">Cheap shelter. Attracts settlers.</div>
+                  <div class="metaRow">
+                    <span>Cost: <span id="hutCostPreview">?</span> denarii</span>
+                    <span>+<span id="hutIncomePreview">?</span> cap</span>
+                  </div>
+                </button>
+                <button class="smallBtn buildCard" id="btnFarm">
+                  <div class="t">Build Farm</div>
+                  <div class="d" id="farmDesc">Passive income. Small but forever.</div>
+                  <div class="metaRow">
+                    <span>Cost: <span id="farmCostPreview">?</span> denarii</span>
+                    <span>+<span id="farmIncomePreview">?</span> gold/s</span>
+                  </div>
+                </button>
+                <button class="smallBtn buildCard" id="btnVilla">
+                  <div class="t">Build Villa</div>
+                  <div class="d" id="villaDesc">Bigger income. Costs more.</div>
+                  <div class="metaRow">
+                    <span>Cost: <span id="villaCostPreview">?</span> denarii</span>
+                    <span>+<span id="villaIncomePreview">?</span> gold/s</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div id="constructionTab-war" class="constructionTabPanel" hidden>
+            <p style="margin:0 0 4px;font-size:.8rem;">
+              War buildings will go here later — barracks, walls and more.
+            </p>
+          </div>
+          <div id="constructionTab-other" class="constructionTabPanel" hidden>
+            <p style="margin:0 0 4px;font-size:.8rem;">
+              Other special projects will unlock here as your realm grows.
+            </p>
+          </div>
+        <div class="constructionTabs" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">
+          <button class="smallBtn constructionTab active" data-tab="economy">Economy</button>
+          <button class="smallBtn constructionTab" data-tab="war">War</button>
+          <button class="smallBtn constructionTab" data-tab="other">Other</button>
+        </div>
+        </div>
+      </div>
+      <div class="offlineOkRow">
+        <button id="constructionCloseBtn" class="offlineOkBtn">Close</button>
+      </div>
+    </section>
+  </div>
+
 
 
 
@@ -1523,20 +1629,10 @@ header{
         </button>
 
 
-        <div class="row3">
-          <button class="smallBtn" id="btnHut" style="display:none;">
-            <div class="t">Build Huts</div>
-            <div class="d" id="hutDesc">Cheap shelter. Attracts settlers.</div>
-          </button>
-          <button class="smallBtn" id="btnFarm">
-            <div class="t">Build Farm</div>
-            <div class="d" id="farmDesc">Passive income. Small but forever.</div>
-          </button>
-          <button class="smallBtn" id="btnVilla">
-            <div class="t">Build Villa</div>
-            <div class="d" id="villaDesc">Bigger income. Costs more.</div>
-          </button>
-        </div>
+        <button class="smallBtn" id="btnConstruction" style="margin-top:10px;">
+          <div class="t">Construction</div>
+          <div class="d">Build farms, villas, and more as you grow.</div>
+        </button>
 
         <div class="villagePopBlock">
           <div>Population: <b id="popUsed">0</b></div>
@@ -4672,7 +4768,7 @@ function adjustTerritoryWorkers(delta){
 // If you are changing how much land is worth, how many workers it uses,
 // or the flavour/variety of captured regions, start in this system.
 // ============================================================================
-function pickTerritoryTemplate(tier){
+function pickTerritoryTemplate(tier, kind, label){
     // Use a cumulative pool: all land types from tier 1 up to the current tier.
     const t = clamp(tier || 1, 1, 6);
     const pool = [];
@@ -4685,7 +4781,111 @@ function pickTerritoryTemplate(tier){
     if(!pool.length){
       return { id:"wilds", name:"Unmarked Land", tier:t, summary:"Rough country slowly being tamed." };
     }
-    return pool[rnd(0, pool.length - 1)];
+
+    // Bias territory type toward the battlefield flavour (farmland, river, hills, etc.)
+    const lbl = (label || "").toLowerCase();
+    const kd  = (kind  || "").toLowerCase();
+
+    function weightForTemplate(tmpl){
+      let w = 1;
+      const name = (tmpl && tmpl.name ? String(tmpl.name) : "").toLowerCase();
+
+      if(lbl){
+        const isFarmlandLabel = /farmland|farm|fields?|grazing|pasture/.test(lbl);
+        const isRiverLabel    = /river|ford|stream|marsh/.test(lbl);
+        const isHillLabel     = /hill|ridge/.test(lbl);
+        const isBorderLabel   = /border|march/.test(lbl);
+
+        if(isFarmlandLabel){
+          // Strongly favour open-field food lands for farmland/field contracts.
+          if(
+            name.includes("farmland") ||
+            name.includes("field") ||
+            name.includes("grazing") ||
+            name.includes("pasture") ||
+            name.includes("orchard")
+          ){
+            w += 7;
+          }
+        }
+
+        if(isRiverLabel){
+          // Strongly favour river / wetland holdings.
+          if(
+            name.includes("river") ||
+            name.includes("ford") ||
+            name.includes("marsh") ||
+            tmpl.id === "riverlands" ||
+            tmpl.id === "streamford"
+          ){
+            w += 7;
+          }
+        }
+
+        if(isHillLabel){
+          // Hills / ridges like quarries, hillfort-adjacent spots, etc.
+          if(
+            name.includes("hill") ||
+            name.includes("ridge") ||
+            name.includes("quarry") ||
+            name.includes("palisaded")
+          ){
+            w += 4;
+          }
+        }
+
+        if(isBorderLabel){
+          // Border / march fighting nudges toward outlying steads & marches.
+          if(
+            name.includes("march") ||
+            name.includes("border") ||
+            name.includes("stead") ||
+            name.includes("outlying")
+          ){
+            w += 2;
+          }
+        }
+      }
+
+      // Kind-based gentle nudges (field vs siege)
+      if(kd === "field"){
+        if(
+          name.includes("farmland") ||
+          name.includes("field") ||
+          name.includes("grazing") ||
+          name.includes("pasture") ||
+          name.includes("orchard")
+        ){
+          w += 2;
+        }
+      }else if(kd === "siege"){
+        if(
+          name.includes("hamlet") ||
+          name.includes("village") ||
+          name.includes("town") ||
+          name.includes("citadel") ||
+          name.includes("keep") ||
+          name.includes("holdfast")
+        ){
+          w += 2;
+        }
+      }
+
+      return w;
+    }
+
+    // Build weighted pool so matching terrain types are much more likely.
+    const weighted = [];
+    for(const tmpl of pool){
+      const w = weightForTemplate(tmpl);
+      for(let i=0;i<w;i++){
+        weighted.push(tmpl);
+      }
+    }
+    if(!weighted.length){
+      return pool[rnd(0, pool.length - 1)];
+    }
+    return sample(weighted);
   }
 
   
@@ -4705,7 +4905,7 @@ function titleTier(){
     return 6;
   }
 
-function captureTerritory(battleTier){
+function captureTerritory(battleTier, kind, label){
     if(!Array.isArray(S.controlledRegions)) S.controlledRegions = [];
 
     // IMPORTANT: Your title limits *what kind* of land you can realistically claim.
@@ -4713,16 +4913,21 @@ function captureTerritory(battleTier){
     // even if they win larger fights. Higher titles unlock settlement/holdings names.
     const tier = clamp(Math.min((battleTier||1), titleTier()), 1, 6);
 
-    const tmpl = pickTerritoryTemplate(tier);
+    const tmpl = pickTerritoryTemplate(tier, kind, label) || {
+      id: "wilds",
+      name: "Unmarked Land",
+      tier,
+      summary: "Rough country slowly being tamed."
+    };
     const index = S.controlledRegions.length + 1;
 
     const terr = {
-      id: `${tmpl.id}#${index}`,
-      name: tmpl.name,
-      tier: tmpl.tier,
-      summary: tmpl.summary,
+      id: `${tmpl.id || "wilds"}#${index}`,
+      name: tmpl.name || "Unmarked Land",
+      tier: typeof tmpl.tier === "number" ? tmpl.tier : tier,
+      summary: tmpl.summary || "Rough country slowly being tamed.",
       // New per-tile state
-      trait: rollTerritoryTrait(tmpl.name),
+      trait: rollTerritoryTrait(tmpl.name || "Unmarked Land"),
       stage: "raw",
       specialization: null,
       project: null,
@@ -7007,9 +7212,7 @@ handleRankUps();
     bankCashout(gain + Math.round(jackpotGain*0.08));
     
 
-    // Chance for a defensive/local skirmish popup (does not break streak)
-    maybeSpawnDefenceFromTap();
-    
+
     render();
 
   });
@@ -7222,7 +7425,34 @@ function maybeSpawnDefenceFromTap(){
 
 
 
-function openDefencePopup(slot, battle){
+
+function maybeSpawnDefenceFromCashout(){
+  // 30% chance on cashout, only after intro battle and if you actually have troops.
+  if(typeof window !== "undefined" && window.defenceOverlayOpen) return;
+  if(typeof S !== "object" || !S) return;
+  if(!S.introBattleDone) return;
+
+  const totalTroops =
+    (S.warriors||0) +
+    (S.archers||0) +
+    (S.cavalry||0) +
+    (S.auxilia||0) +
+    (S.equites||0) +
+    (S.veterans||0);
+
+  if(totalTroops <= 0) return;
+
+  if(Math.random() > 0.30) return;
+
+  if(typeof currentBattleSet !== "function") return;
+  const slot = 0; // use the lowest slot as a local-border defence template
+  const set = currentBattleSet();
+  if(!set || !set.length) return;
+  const b = set[slot];
+  if(!b) return;
+
+  openDefencePopup(slot, b);
+}function openDefencePopup(slot, battle){
   if(window.defenceOverlayOpen) return;
   window.defenceOverlayOpen = true;
 
@@ -7468,11 +7698,22 @@ function showBattleReport(rep){
     lines.push(`${g > 0 ? "+" : "−"}${fmt(Math.abs(g))} Glory`);
   }
 
-  {
+  
+  if(denChange !== 0){
     const d = denChange;
     const denLabel = `${d >= 0 ? "+" : "−"}${fmt(Math.abs(d))} Denarii`;
-    lines.push(denLabel);
+
+    // Avoid duplicating the loot line: if we've already shown "Loot taken"
+    // and the net denarii change is effectively the same amount, skip this.
+    const showedLoot = rep && rep.win && typeof rep.loot === "number" && rep.loot > 0;
+    const sameLoot =
+      showedLoot && Math.round(rep.loot) === Math.round(denChange);
+
+    if(!sameLoot){
+      lines.push(denLabel);
+    }
   }
+
 
   if (rep.lossDetail && typeof rep.lossDetail === "object") {
     const ld = rep.lossDetail;
@@ -8230,7 +8471,7 @@ bumpObjective("winBattle", 1);
         // capture named territories (1 per land gained)
         const newTerritories = [];
         for(let i=0;i<landGain;i++){
-          const t = captureTerritory(tier);
+          const t = captureTerritory(tier, kind, b && b.label);
           if(t) newTerritories.push(t);
         }
         capturedNames = newTerritories.map(t=>t.name);
@@ -8577,6 +8818,9 @@ $("#btnBattleSiege").addEventListener("click", ()=> startTacticalBattle(3));
     const rect = e.currentTarget.getBoundingClientRect();
     sparkAt(rect.left + rect.width*0.55, rect.top + rect.height*0.55);
 
+    // Chance for a defensive/local skirmish popup on cashout (does not break streak)
+    maybeSpawnDefenceFromCashout();
+
     // Cashout burst chance
     maybeBurst("cashout");
 
@@ -8586,6 +8830,82 @@ $("#btnBattleSiege").addEventListener("click", ()=> startTacticalBattle(3));
 
     render();
   });
+
+const constructionOverlay = $("#constructionOverlay");
+const btnConstruction = $("#btnConstruction");
+const btnConstructionClose = $("#constructionCloseBtn");
+
+if(btnConstruction && constructionOverlay){
+  btnConstruction.addEventListener("click", ()=>{
+    constructionOverlay.removeAttribute("hidden");
+    constructionOverlay.classList.add("visible");
+    if(typeof setConstructionTab === "function"){
+      setConstructionTab("economy");
+    }
+    if(typeof updateConstructionPreviews === "function"){
+      updateConstructionPreviews();
+    }
+  });
+}
+
+if(btnConstructionClose && constructionOverlay){
+  btnConstructionClose.addEventListener("click", ()=>{
+    constructionOverlay.classList.remove("visible");
+    constructionOverlay.setAttribute("hidden","hidden");
+  });
+}
+
+const constructionTabButtons = $$(".constructionTab", constructionOverlay);
+const constructionTabPanels = $$(".constructionTabPanel", constructionOverlay);
+
+function setConstructionTab(name){
+  constructionTabButtons.forEach(btn=>{
+    const isActive = btn.dataset.tab === name;
+    btn.classList.toggle("active", isActive);
+  });
+  constructionTabPanels.forEach(panel=>{
+    const isActive = panel.id === "constructionTab-" + name;
+    if(isActive){
+      panel.removeAttribute("hidden");
+    }else{
+      panel.setAttribute("hidden","hidden");
+    }
+  });
+}
+
+if(constructionTabButtons.length){
+  constructionTabButtons.forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      setConstructionTab(btn.dataset.tab);
+    });
+  });
+}
+
+
+
+function updateConstructionPreviews(){
+  const hutCostEl = $("#hutCostPreview");
+  const farmCostEl = $("#farmCostPreview");
+  const villaCostEl = $("#villaCostPreview");
+  if(typeof costHut === "function" && hutCostEl){
+    hutCostEl.textContent = costHut();
+  }
+  if(typeof costFarm === "function" && farmCostEl){
+    farmCostEl.textContent = costFarm();
+  }
+  if(typeof costVilla === "function" && villaCostEl){
+    villaCostEl.textContent = costVilla();
+  }
+
+  const farmIncEl = $("#farmIncomePreview");
+  const villaIncEl = $("#villaIncomePreview");
+  if(farmIncEl){
+    farmIncEl.textContent = "0.75";
+  }
+  if(villaIncEl){
+    villaIncEl.textContent = "3.0";
+  }
+}
 
 $("#btnExport").addEventListener("click", async ()=>{
     try{
@@ -8820,7 +9140,7 @@ $("#btnExport").addEventListener("click", async ()=>{
     S.populationUsed = (S.warriors||0) + (S.archers||0) + (S.cavalry||0);
 
 
-    render();
+    render({ skipBattles: true });
   }, 650);
 
   // First paint
