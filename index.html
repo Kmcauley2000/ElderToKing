@@ -524,6 +524,16 @@ body::after{
     }
     .table td:first-child{border-radius:14px 0 0 14px;color:var(--muted);width:46%;}
     .table td:last-child{border-radius:0 14px 14px 0;text-align:right;}
+
+    .table .statHeaderRow{
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      font-size:.7rem;
+      color:var(--muted);
+      text-align:left;
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,226,181,0.06));
+    }
     .danger{border-color: rgba(255,107,107,.35) !important;}
     /* Milites icon label */
     .milites-label{
@@ -2009,6 +2019,9 @@ header{
     archers: 0,
     cavalry: 0,
     battlesWon: 0,
+    battlesFought: 0,
+    enemiesKilled: 0,
+    biggestBattleKill: 0,
 
     // special forces recruited with glory
     auxilia: 0,
@@ -5218,12 +5231,22 @@ const TICK_SEC = 0.35;
   const moraleBias = (legionMorale - 1) * 0.18;
   winP = clamp(winP + moraleBias, 0.04, 0.96);
 
+  // Estimate enemy casualties from HP damage, scaled back to headcount.
+  const enemyHPLost = Math.max(0, enemyHPmax - Math.max(0, enemyHP));
+  const enemyPerHeadHP = ENEMY.hp * enemyScale;
+  let enemyKills = 0;
+  if (enemyPerHeadHP > 0) {
+    enemyKills = Math.floor(enemyHPLost / enemyPerHeadHP);
+  }
+  enemyKills = clamp(enemyKills, 0, enemyCount);
+
   return {
     label: b.label,
     enemies: enemyCount,
     winP,
     win,
     losses,
+    enemyKills,
     tier,
     treasureType,
     treasureLootMult
@@ -6642,39 +6665,76 @@ function applyOfflineProgress(){
   }
 function statsRows(){
     const leg = recalcLegionStrength();
-    const rows = [
-      ["Gold", S.gold],
-      ["Renown", S.renown],
-      ["Income / sec", incomePerSec().toFixed(1)],
-      ["Tap base (tribute)", S.tribute],
-      ["Rank tap bonus", rankTributeBonus(titleInfo().idx)],
-      ["Streak", "x"+S.streak],
-      ["Crit chance", Math.round(critChance()*100)+"%"],
-      ["Farms", S.farmCount],
-      ["Villas", S.villaCount],
-      ["Milites", S.warriors],
-      ["Cavalry", S.cavalry || 0],
-      ["Auxilia", S.auxilia || 0],
-      ["Equites", S.equites || 0],
-      ["Veteran cohorts", S.veterans || 0],
-      ["Legion attack", Math.round(leg.atk)],
-      ["Legion defence", Math.round(leg.def)],
-      ["Legion HP", Math.round(leg.hp)],
-      ["Raids won", S.battlesWon],
-      ["Territories", territoryCount()],
-      ["Frontline (pop used)", S.populationUsed],
-      ["Population Cap", populationCap()],
-      ["Faith", S.faith],
-      ["Crowns (prestige)", S.crowns],
-      ["Ascensions", S.ascends || 0],
-      ["Best streak (all time)", S.bestStreak || 0],
-      ["Biggest cashout", S.biggestCashout || 0],
-      ["Multipliers", `Land x${landMult().toFixed(2)} • Crown x${crownMult().toFixed(2)}`],
-      ["Lifetime denarii", S.lifetimeGold],
-      ["Lifetime renown", S.lifetimeRenown],
-      ["Glory", S.glory || 0],
-      ["Total glory earned", S.lifetimeGlory || 0],
-    ];
+
+    const battlesWon = Number(S.battlesWon || 0);
+    const battlesFought = Number(S.battlesFought || battlesWon || 0);
+    const battlesLost = Math.max(0, battlesFought - battlesWon);
+    const enemiesKilled = Number(S.enemiesKilled || 0);
+    const biggestBattleKill = Number(S.biggestBattleKill || 0);
+    const winRate = battlesFought > 0
+      ? (battlesWon / battlesFought * 100).toFixed(1) + "%"
+      : "—";
+
+    const rows = [];
+
+    // Economy & prestige
+    rows.push({ type: "header", label: "Economy & Prestige" });
+    rows.push({ k: "Gold", v: S.gold });
+    rows.push({ k: "Renown", v: S.renown });
+    rows.push({ k: "Income / sec", v: incomePerSec().toFixed(1) });
+    rows.push({ k: "Tap base (tribute)", v: S.tribute });
+    rows.push({ k: "Rank tap bonus", v: rankTributeBonus(titleInfo().idx) });
+    rows.push({ k: "Streak", v: "x" + (S.streak || 1) });
+    rows.push({ k: "Crit chance", v: Math.round(critChance() * 100) + "%" });
+    rows.push({ k: "Crowns (prestige)", v: S.crowns });
+    rows.push({ k: "Ascensions", v: S.ascends || 0 });
+    rows.push({ k: "Best streak (all time)", v: S.bestStreak || 0 });
+    rows.push({ k: "Biggest cashout", v: S.biggestCashout || 0 });
+    rows.push({ k: "Lifetime denarii", v: S.lifetimeGold });
+    rows.push({ k: "Lifetime renown", v: S.lifetimeRenown });
+
+    // People & land
+    rows.push({ type: "header", label: "People & Land" });
+    rows.push({ k: "Population", v: S.population || 0 });
+    rows.push({ k: "Frontline (pop used)", v: S.populationUsed });
+    rows.push({ k: "Population Cap", v: populationCap() });
+    rows.push({ k: "Farms", v: S.farmCount });
+    rows.push({ k: "Villas", v: S.villaCount });
+    rows.push({ k: "Territories", v: territoryCount() });
+    rows.push({ k: "Land", v: S.land || 0 });
+
+    // Legion
+    rows.push({ type: "header", label: "Legion" });
+    rows.push({ k: "Milites", v: S.warriors });
+    rows.push({ k: "Archers", v: S.archers || 0 });
+    rows.push({ k: "Cavalry", v: S.cavalry || 0 });
+    rows.push({ k: "Auxilia", v: S.auxilia || 0 });
+    rows.push({ k: "Equites", v: S.equites || 0 });
+    rows.push({ k: "Veteran cohorts", v: S.veterans || 0 });
+    rows.push({ k: "Legion attack", v: Math.round(leg.atk) });
+    rows.push({ k: "Legion defence", v: Math.round(leg.def) });
+    rows.push({ k: "Legion HP", v: Math.round(leg.hp) });
+
+    // Faith & glory
+    rows.push({ type: "header", label: "Faith & Glory" });
+    rows.push({ k: "Faith", v: S.faith });
+    rows.push({ k: "Glory", v: S.glory || 0 });
+    rows.push({ k: "Total glory earned", v: S.lifetimeGlory || 0 });
+
+    // Battles & kills
+    rows.push({ type: "header", label: "Battles & Kills" });
+    rows.push({ k: "Battles fought", v: battlesFought });
+    rows.push({ k: "Battles won", v: battlesWon });
+    rows.push({ k: "Battles lost", v: battlesLost });
+    rows.push({ k: "Win rate", v: winRate });
+    rows.push({ k: "Enemies slain (all time)", v: enemiesKilled });
+    rows.push({ k: "Biggest battle (enemies slain)", v: biggestBattleKill });
+
+    // Multipliers
+    rows.push({ type: "header", label: "Global Multipliers" });
+    rows.push({ k: "Land multiplier", v: "x" + landMult().toFixed(2) });
+    rows.push({ k: "Crown multiplier", v: "x" + crownMult().toFixed(2) });
+
     return rows;
   }
 
@@ -7125,13 +7185,23 @@ handleRankUps();
     const body = $("#statsTable");
     if(body){
       body.innerHTML = "";
-      for(const [k,v] of statsRows()){
+      for(const row of statsRows()){
         const tr = document.createElement("tr");
-        const td1 = document.createElement("td");
-        const td2 = document.createElement("td");
-        td1.textContent = k;
-        td2.textContent = (typeof v === "number") ? fmt(v) : String(v);
-        tr.appendChild(td1); tr.appendChild(td2);
+        if(row && row.type === "header"){
+          const td = document.createElement("td");
+          td.colSpan = 2;
+          td.textContent = row.label || "";
+          td.classList.add("statHeaderRow");
+          tr.appendChild(td);
+        }else if(row){
+          const td1 = document.createElement("td");
+          const td2 = document.createElement("td");
+          td1.textContent = row.k;
+          const v = row.v;
+          td2.textContent = (typeof v === "number") ? fmt(v) : String(v);
+          tr.appendChild(td1);
+          tr.appendChild(td2);
+        }
         body.appendChild(tr);
       }
     }
@@ -8140,6 +8210,19 @@ function showBattleSimulation(rep, tier){
     ? sim.enemies
     : beforeWarriors + rnd(4, 10);
 
+  // Count this as a fought and won battle, and track kills/records.
+  S.battlesFought = (S.battlesFought || 0) + 1;
+  S.battlesWon = (S.battlesWon || 0) + 1;
+  (function(){
+    const kills = Math.max(0, Math.floor(enemies));
+    if(kills > 0){
+      S.enemiesKilled = (S.enemiesKilled || 0) + kills;
+      if(!S.biggestBattleKill || kills > S.biggestBattleKill){
+        S.biggestBattleKill = kills;
+      }
+    }
+  })();
+
   // Modest early reward so the opener feels impactful
   const denGain = 16;
   const landGain = 0; // Tutorial battle: no land granted
@@ -8217,6 +8300,9 @@ function doBattle(slot, opts){
   }
 
   const sim = battleSim(slot);
+
+  // Track total battles fought (offence + defence).
+  S.battlesFought = (S.battlesFought || 0) + 1;
 
   // Allow tactical mode to override win/loss and casualty counts.
   const lossDetailOverride = opts && opts.overrideLossDetail ? opts.overrideLossDetail : null;
@@ -8358,6 +8444,16 @@ function doBattle(slot, opts){
 
   recalcLegionStrength();
 
+  // --- Kill stats tracking ---
+  if (sim && typeof sim.enemyKills === "number") {
+    const thisBattleKills = Math.max(0, Math.floor(sim.enemyKills));
+    if (thisBattleKills > 0) {
+      S.enemiesKilled = (S.enemiesKilled || 0) + thisBattleKills;
+      if (!S.biggestBattleKill || thisBattleKills > S.biggestBattleKill) {
+        S.biggestBattleKill = thisBattleKills;
+      }
+    }
+  }
 
   // Loot / penalties
   let loot = 0;
