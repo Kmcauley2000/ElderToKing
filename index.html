@@ -1,3 +1,25 @@
+<!doctype html>
+<!--
+=== ELDER TO KING – CODE MAP / GLOSSARY ===
+
+[VIEW] VILLAGE            – Village card UI (tribute, farms, villas, objectives, log)
+[VIEW] LEGION             – Legion card UI (recruitment, battles, glory button)
+[VIEW] TEMPLE             – Temple card UI (offerings, blessings, ascend)
+[VIEW] TERRITORIES        – Land / territory card UI
+[VIEW] STATS              – Stats + export / reset UI
+
+[SYS] STATE & SAVE/LOAD   – defaultState(), normalizeState(), localStorage save/load
+[SYS] VILLAGE ECONOMY     – Tribute tap, income, migration, objectives, streaks
+[SYS] LEGION & BATTLES    – Recruitment costs, legion strength, battle simulator, glory
+[SYS] TEMPLE & ASCEND     – Faith, crits, buffs, ascend crowns, rank-ups
+[SYS] TERRITORIES         – Named territories, workers, land outputs
+[SYS] OFFLINE PROGRESSION – Offline gains, welcome-back overlays
+[SYS] RENDER & UI         – render() and DOM updates for all views
+[SYS] EVENTS & OBJECTIVES – Objectives, bursts, skirmishes, logs
+
+Search for the [VIEW] or [SYS] tag below to jump to that system.
+-->
+
 
 
 <!doctype html>
@@ -1462,7 +1484,16 @@ header{
 
   <main class="wrap" id="views">
 
-    <!-- VILLAGE -->
+    <!-- ===================================================================
+     [VIEW] VILLAGE
+     Main village UI card:
+       - Tribute button & streak rewards
+       - Huts / Farms / Villas (income + population capacity)
+       - Population, migration, and income breakdown
+       - Recent event log and current Objectives
+     When editing anything about early-game flow or basic economy UI,
+     start your search here.
+     =================================================================== -->
     <section class="card view" data-view="village">
       <div class="sectionTitle"><span>Village</span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:.74rem;"><span>Income <b id="incomeRate">0</b>/s</span></span></div>
       <div class="cardBody">
@@ -1529,7 +1560,15 @@ header{
       </div>
     </section>
 
-    <!-- LEGION -->
+    <!-- ===================================================================
+     [VIEW] LEGION
+     Legion / army management UI card:
+       - Recruit Milites, Archers, Cavalry (and special forces via glory)
+       - Shows upkeep, glory, and land used by the legion
+       - Battle buttons (Bandits, Levy, Village Raid, Siege)
+     When changing battle entry points, recruitment buttons, or how
+     the player sees their army, start here.
+     =================================================================== -->
     <section class="card view" data-view="legion" hidden>
       <div class="sectionTitle"><span>⚔️</span><span class="milites-label"></span><span>Glory <b id="gloryNow">0</b></span></div>
       <div class="cardBody">
@@ -1629,7 +1668,15 @@ header{
       </div>
     </section>
 
-    <!-- TEMPLE -->
+    <!-- ===================================================================
+     [VIEW] TEMPLE
+     Temple / prestige UI card:
+       - Offerings (convert denarii into faith)
+       - Blessing button (temporary combat buff)
+       - Ascend (reset run for crowns / permanent boosts)
+       - Shows crit rate and buff timer
+     When tuning prestige pacing, faith, or crit info display, begin here.
+     =================================================================== -->
 <section class="card view" data-view="temple" hidden>
       <div class="sectionTitle"><span>Temple</span><span>Crowns <b id="crowns">0</b></span></div>
       <div class="cardBody">
@@ -1662,7 +1709,16 @@ header{
       </div>
     </section>
 
-    <!-- TERRITORIES (replaces old Land allocation UI) -->
+    <!-- [VIEW] TERRITORIES (replaces old Land allocation UI) -->
+    <!-- ===================================================================
+     [VIEW] TERRITORIES
+     Land / territory management UI card:
+       - Lists named territories captured from battles
+       - Shows per-tick outputs and total contributions
+       - Handles empty-state messaging before first conquest
+     When adjusting land flavor text or how territories are presented,
+     this is the HTML entry point.
+     =================================================================== -->
     <section class="card view" data-view="land" hidden>
       <div class="sectionTitle">
         <span>Territories</span>
@@ -1692,7 +1748,15 @@ header{
     </section>
 
 
-<!-- STATS -->
+<!-- ===================================================================
+     [VIEW] STATS
+     Stats and meta tools UI card:
+       - Large stats table (all tracked metrics)
+       - Copy Save (exports JSON to clipboard)
+       - Reset Save (wipe local progress)
+     When you need to expose new numbers to the player or debug the
+     save format visually, start here.
+     =================================================================== -->
     <section class="card view" data-view="stats" hidden>
       <div class="sectionTitle"><span>Stats</span><span><b>Geek mode</b></span></div>
       <div class="cardBody">
@@ -1732,6 +1796,22 @@ header{
   const rnd = (a,b)=> Math.floor(Math.random()*(b-a+1))+a;
   const chance = (p)=> Math.random() < p;
 
+// ============================================================================
+// [SYS] STATE & SAVE/LOAD
+//
+// Purpose:
+//   - Defines the full game state shape via defaultState().
+//   - Normalizes older saves into the current shape (normalizeState()).
+//   - Handles localStorage read/write via the STORAGE_KEY constant.
+//
+// Touches:
+//   - All other systems read/write fields on this state object.
+//   - Offline progression, battles, village, temple, territories, stats.
+//
+// If you add, remove, or rename fields in the game state, update this
+// system first, then adjust any dependent systems (village, legion, etc.).
+// ============================================================================
+
   const STORAGE_KEY = "roman_denarii_land_loop_villagecap_v14_save";
 
   const unlock = {
@@ -1766,11 +1846,45 @@ header{
     gold: 18,
     renown: 0,
 
+
+  // ============================================================================
+  // [SYS] VILLAGE ECONOMY
+  //
+  // Purpose:
+  //   - Handles tribute tapping (gold per tap + streak multiplier).
+  //   - Manages huts / farms / villas and their passive income.
+  //   - Tracks population, migration rate, and population capacity.
+  //   - Drives early-game Objectives tied to the village tab.
+  //
+  // Related UI:
+  //   - [VIEW] VILLAGE (village card with tribute, buildings, log).
+  //
+  // If you are rebalancing income pacing, early progression, or how
+  // quickly players unlock other systems, this is one of the first
+  // places to look.
+  // ============================================================================
     // village economy
     tribute: 1,
     farmCount: 0,
     villaCount: 0,
     hutCount: 0,
+
+    // ========================================================================
+    // [SYS] LEGION & BATTLES
+    //
+    // Purpose:
+    //   - Tracks Milites / Archers / Cavalry counts and special units.
+    //   - Computes upkeep for the standing army.
+    //   - Runs battle simulations and writes out results (loot, glory, land).
+    //   - Tracks battle wins, glory totals, and related progression.
+    //
+    // Related UI:
+    //   - [VIEW] LEGION (recruitment buttons, battle entry buttons).
+    //   - [VIEW] TERRITORIES (land captured from victories).
+    //
+    // If you want to change combat difficulty, loot, glory gain, or
+    // how costly armies are to maintain, start your search in this system.
+    // ========================================================================
 
     // legion
     warriors: 0,
@@ -4543,7 +4657,22 @@ function adjustTerritoryWorkers(delta){
   ]
 };
 
-  function pickTerritoryTemplate(tier){
+  
+// ============================================================================
+// [SYS] TERRITORIES
+//
+// Purpose:
+//   - Represents named regions captured through battles.
+//   - Determines each region's contribution to income and population cap.
+//   - Manages per-territory worker assignment and specialization (if any).
+//
+// Related UI:
+//   - [VIEW] TERRITORIES (list of regions, outputs, and summaries).
+//
+// If you are changing how much land is worth, how many workers it uses,
+// or the flavour/variety of captured regions, start in this system.
+// ============================================================================
+function pickTerritoryTemplate(tier){
     // Use a cumulative pool: all land types from tier 1 up to the current tier.
     const t = clamp(tier || 1, 1, 6);
     const pool = [];
@@ -4874,6 +5003,21 @@ const TICK_SEC = 0.35;
   };
 }
 
+  // ============================================================================
+  // [SYS] TEMPLE & ASCEND
+  //
+  // Purpose:
+  //   - Handles faith, blessings, and ascension for crowns.
+  //   - Converts denarii into faith via offerings.
+  //   - Controls short-term blessing buffs and their cooldown.
+  //   - Calculates crown gain and applies ascension resets.
+  //
+  // Related UI:
+  //   - [VIEW] TEMPLE (Offer, Blessing, Ascend buttons + crit info).
+  //
+  // Touches:
+  //   - S.faith, S.blessUntil, S.lastBless, S.crowns, S.renown, titles, etc.
+  // ============================================================================
   function offerCost(){
     return Math.round(600 * Math.pow(1.34, Math.floor((S.faith||0)/120)));
   }
@@ -5037,6 +5181,20 @@ function handleRankUps(){
     const now = Date.now();
     return (now >= (S.cashoutCooldownUntil || 0)) && cashoutPotential() > 0;
   }
+  // ============================================================================
+  // [SYS] EVENTS & OBJECTIVES
+  //
+  // Purpose:
+  //   - Maintains the rotating micro-objectives shown in the Village view.
+  //   - Awards streak bonuses and rewards for completing tasks.
+  //   - Drives burst events and "something to do" prompts tied to current progress.
+  //
+  // Related UI:
+  //   - [VIEW] VILLAGE (Objectives card and Recent Events log).
+  //
+  // Touches:
+  //   - S.objectives, S.objStreak, S.lastBurst, log entries, renown, and gold.
+  // ============================================================================
 // ---- Micro objectives (state-driven, procedural, always something to do) ----
 const OBJ_SLOTS = 3;
 
@@ -5350,7 +5508,6 @@ function objText(o){
   return `Complete this task (${left} left)`;
 }
 
-function objComplete(o){ return o.progress >= o.target; }
 function objComplete(o){ return o.progress >= o.target; }
 function bumpObjective(type, amount=1){
   for(const o of S.objectives){
@@ -5959,7 +6116,22 @@ function canAccess(view){
 
   
   // ---- Offline Progress + Welcome Back Screen ----
-  function applyOfflineProgress(){
+  
+  // ============================================================================
+  // [SYS] OFFLINE PROGRESSION
+  //
+  // Purpose:
+  //   - Records when the player was last seen (lastSeenAt in state).
+  //   - Computes income, migration, and other gains while the game was closed.
+  //   - Shows the "Welcome back" overlay summarizing offline progress.
+  //
+  // Related UI:
+  //   - offlineOverlay (welcome-back card in the DOM).
+  //
+  // If you want to cap offline gains, change how generous they are,
+  // or alter the messaging shown on return, this system is in charge.
+  // ============================================================================
+function applyOfflineProgress(){
     const now = Date.now();
     const last = Number(S.lastSeenAt || 0) || S.created || now;
     let elapsedSec = Math.max(0, (now - last) / 1000);
@@ -6306,7 +6478,24 @@ function statsRows(){
     }
   }
 
-  function render(){
+  
+  // ============================================================================
+  // [SYS] RENDER & UI
+  //
+  // Purpose:
+  //   - Central render() loop that syncs game state to the DOM.
+//   - Updates HUD counters (renown, gold, land, etc.).
+//   - Refreshes each main view (Village, Legion, Temple, Territories, Stats).
+//   - Ensures buttons are enabled/disabled based on current state.
+//
+// Related UI:
+//   - All [VIEW] sections rely on this function to stay in sync.
+//   - Toasts, overlays, and small feedback elements are also updated here.
+//
+// If you see something visually "stuck" or not updating after state
+// changes, render() is the first place to inspect.
+// ============================================================================
+function render(opts){
 handleRankUps();
     expireCashoutIfNeeded();
     expireStreakIfNeeded();
@@ -6456,7 +6645,8 @@ handleRankUps();
 
     
     
-    // Battles (rank-based)
+    if (!opts || !opts.skipBattles) {
+// Battles (rank-based)
     const bs = currentBattleSet();
     const btns = [
       { btn:"#btnBattleBandits1", titleSel:"#btnBattleBandits1 .t", desc:"#battleBandits1Desc" },
@@ -6561,6 +6751,8 @@ handleRankUps();
     $("#btnBattleSiege").disabled       = !hasTroops;
 
 
+
+}
 // Village capacity hint: recruiting uses capacity, but battles are allowed regardless.
     if(!hasVillageCapacity()){
     }
@@ -6898,7 +7090,7 @@ handleRankUps();
   toast("Recruited");
   logLine(`A milites joins your banner. (Milites: ${fmt(S.warriors)})`, "good");
 
-  render();
+  render({skipBattles:true});
 });
 
   
@@ -6937,7 +7129,7 @@ handleRankUps();
     );
 
     toast("Archers recruited.");
-    render();
+    render({skipBattles:true});
   });
 
 $("#btnRecruitCavalry").addEventListener("click", (e)=>{
@@ -6977,7 +7169,7 @@ $("#btnRecruitCavalry").addEventListener("click", (e)=>{
     );
 
     toast("New cavalry unit recruited.");
-    render();
+    render({skipBattles:true});
   });
 // ---- Defensive/local skirmish popups ----
 
@@ -7097,22 +7289,24 @@ function openDefencePopup(slot, battle){
     enemyLine = `Enemies: ${min}–${max} (${riskWord})`;
   }
   const w = S.warriors || 0;
-  const cav = S.cavalry || 0;
-  const aux = S.auxilia || 0;
-  const eq  = S.equites || 0;
+  const arc = S.archers  || 0;
+  const cav = S.cavalry  || 0;
+  const aux = S.auxilia  || 0;
+  const eq  = S.equites  || 0;
   const vet = S.veterans || 0;
-  const totalDef = w + cav + aux + eq + vet;
+  const totalDef = w + arc + cav + aux + eq + vet;
 
   let defendersLine;
   if(totalDef <= 0){
     defendersLine = "Defenders Available: none";
   }else{
     const parts = [];
-    if(w)  parts.push(`${fmt(w)} Milites`);
-    if(cav)parts.push(`${fmt(cav)} Cavalry`);
-    if(aux)parts.push(`${fmt(aux)} Auxilia`);
-    if(eq) parts.push(`${fmt(eq)} Equites`);
-    if(vet)parts.push(`${fmt(vet)} Veterans`);
+    if(w)   parts.push(`${fmt(w)} Milites`);
+    if(arc) parts.push(`${fmt(arc)} Archers`);
+    if(cav) parts.push(`${fmt(cav)} Cavalry`);
+    if(aux) parts.push(`${fmt(aux)} Auxilia`);
+    if(eq)  parts.push(`${fmt(eq)} Equites`);
+    if(vet) parts.push(`${fmt(vet)} Veterans`);
     const breakdown = parts.length ? ` (${parts.join(", ")})` : "";
     defendersLine = `Defenders Available: ${fmt(totalDef)} troops${breakdown}`;
   }
@@ -9066,6 +9260,7 @@ $("#btnExport").addEventListener("click", async ()=>{
     let effAtkEn = Math.pow(enemyTroops, 0.80) * qEn * mEn * atkEn;
     let effDefEn = Math.max(1, Math.pow(enemyTroops, 0.50) * qEn * mEn * defEn);
 
+
     // --- Composition shares (infantry, cavalry, ranged) ---
     const yourCavShare    = pComp.cav / Math.max(1, pComp.total);
     const yourInfShare    = pComp.inf / Math.max(1, pComp.total);
@@ -9074,27 +9269,60 @@ $("#btnExport").addEventListener("click", async ()=>{
     const enCavShare      = eComp.cav / Math.max(1, eComp.total);
     const enRangedShare   = eComp.ranged / Math.max(1, eComp.total);
 
-    // --- Cavalry vs infantry matchups ---
-    if (yourCavShare > 0.10 && enInfShare > 0.30) {
-      const cavPressure = Math.min(0.40, yourCavShare * enInfShare * 1.20);
+    const roundNr = s.round || 1;
+
+    // === CAVALRY LOGIC ===
+    // Your cavalry slams infantry hard.
+    if (yourCavShare > 0.05 && enInfShare > 0.20) {
+      // Stronger than the old 0.40 cap – cav should feel scary vs bandit infantry.
+      const cavPressure = Math.min(0.80, yourCavShare * enInfShare * 1.8);
       effAtkYou *= (1 + cavPressure);
     }
 
-    if (enCavShare > 0.10 && yourInfShare > 0.30) {
-      const cavThreat = Math.min(0.40, enCavShare * yourInfShare * 1.20);
-      effAtkEn *= (1 + cavThreat * 0.70);
-      effDefYou *= (1 - cavThreat * 0.40);
+    // Your cavalry absolutely shreds archers if they get to them.
+    if (yourCavShare > 0.05 && enRangedShare > 0.05) {
+      const overrun = Math.min(1.00, yourCavShare * enRangedShare * 2.0);
+      effAtkYou *= (1 + overrun);
     }
 
-    // --- Ranged pressure: big early damage ---
-    if (enRangedShare > 0.15 && (s.round || 1) <= 2) {
-      const rangedShock = Math.min(0.35, enRangedShare * 1.30);
+    // Enemy cavalry into your infantry still dangerous, but a bit more controlled.
+    if (enCavShare > 0.05 && yourInfShare > 0.20) {
+      const cavThreat = Math.min(0.60, enCavShare * yourInfShare * 1.5);
+      effAtkEn  *= (1 + cavThreat * 0.7);
+      effDefYou *= (1 - cavThreat * 0.4);
+    }
+
+    // === RANGED LOGIC ===
+    // Archers do a *big* opening volley before melee.
+    if (enRangedShare > 0.10 && roundNr <= 2) {
+      const rangedShock = Math.min(0.60, enRangedShare * 2.0);
       effAtkEn *= (1 + rangedShock);
     }
-    if (yourRangedShare > 0.15 && (s.round || 1) <= 2) {
-      const rangedShockYou = Math.min(0.35, yourRangedShare * 1.30);
+    if (yourRangedShare > 0.10 && roundNr <= 2) {
+      const rangedShockYou = Math.min(0.60, yourRangedShare * 2.0);
       effAtkYou *= (1 + rangedShockYou);
     }
+
+    // After round 2, archer advantage drops off – melee dominates.
+    if (roundNr >= 3) {
+      effAtkEn   *= 1 - Math.min(0.30, enRangedShare * 0.6);
+      effAtkYou  *= 1 - Math.min(0.30, yourRangedShare * 0.6);
+    }
+
+    // === INFANTRY VS ARCHERS ===
+    // Once infantry makes contact, archers melt.
+    if (yourInfShare > 0.25 && enRangedShare > 0.05 && roundNr >= 2) {
+      const grind = Math.min(0.80, yourInfShare * enRangedShare * 1.4);
+      effAtkYou *= (1 + grind * 0.7);  // your infantry eats their archers
+      effAtkEn  *= (1 - grind * 0.5);  // and enemy damage falls off
+    }
+
+    if (enInfShare > 0.25 && yourRangedShare > 0.05 && roundNr >= 2) {
+      const grindBack = Math.min(0.80, enInfShare * yourRangedShare * 1.4);
+      effAtkEn  *= (1 + grindBack * 0.7);
+      effAtkYou *= (1 - grindBack * 0.5);
+    }
+
 
     // Base kill fraction knob — how "fast" battles chew through troops.
     // Slightly higher now so equal-sized fights feel bloodier and resolve faster.
@@ -9253,6 +9481,36 @@ $("#btnExport").addEventListener("click", async ()=>{
         enemyExposure["Horsemen"] *= 1.10;
       }
     }
+
+    // --- Extra exposure rules for counters ---
+
+    const roundNr2 = s.round || 1;
+
+    // Your cavalry running down enemy archers: they are prime targets.
+    if (yourCavShare > 0.05 && enRangedShare > 0.05) {
+      ["Archers", "Skirmishers"].forEach(k => {
+        if (enemyExposure[k] != null) {
+          enemyExposure[k] *= 1.6; // cav focus on them
+        }
+      });
+    }
+
+    // Your infantry in contact with their archers – after early volleys, archers die fast.
+    if (yourInfShare > 0.25 && enRangedShare > 0.05 && roundNr2 >= 2) {
+      ["Archers", "Skirmishers"].forEach(k => {
+        if (enemyExposure[k] != null) {
+          enemyExposure[k] *= 1.4;
+        }
+      });
+    }
+
+    // Mirror: enemy infantry punishes your archers once they reach them.
+    if (enInfShare > 0.25 && yourRangedShare > 0.05 && roundNr2 >= 2) {
+      if (playerExposure.arc != null) {
+        playerExposure.arc *= 1.4;
+      }
+    }
+
 
     const splitP = tacticalSplitLosses(dmgToP, pPool, playerExposure);
     const splitE = tacticalSplitLosses(dmgToE, ePool, enemyExposure);
