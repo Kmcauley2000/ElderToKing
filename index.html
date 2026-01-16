@@ -1609,10 +1609,10 @@ header{
             <div class="d" id="battleVillageRaidDesc">500–1,000 enemies • high risk</div>
           </button>
           <button class="smallBtn battleCard" id="btnBattleSiege">
-            <div class="t">Siege town</div>
+            <div class="t">Conquest of the border town</div>
             <div class="d" id="battleSiegeDesc">1,000–5,000 enemies • deadly</div>
           </button>
-          <div class="hint">Renown gained from winning battles.</div>
+          <div class="hint">Loot, land, and renown gained from winning battles.</div>
         </div>
 
         
@@ -3005,15 +3005,15 @@ function battleTierFromTitleIdx(idx){
   }
 
   function battleOutcomeLabel(kind, tier){
-    if(kind === "skirmish") return "Outcome: Gold + small renown";
+    if(kind === "skirmish") return "Outcome: High loot + small renown (no land)";
     if(kind === "feud"){
       return tier <= 2
-        ? "Outcome: Renown, small chance of territory"
-        : "Outcome: Renown + chance of territory";
+        ? "Outcome: Loot + renown, small chance of land"
+        : "Outcome: Loot + renown, chance of land";
     }
-    if(kind === "field") return "Outcome: Renown + territory";
-    if(kind === "siege") return "Outcome: High renown + territory";
-    return "Outcome: Renown";
+    if(kind === "field") return "Outcome: Loot + renown + land";
+    if(kind === "siege") return "Outcome: Heavy loot + renown + land";
+    return "Outcome: Loot + renown";
   }
 
 
@@ -3073,9 +3073,9 @@ const BATTLE_ARCHETYPES = {
         flavour: "Levies muster along the slopes above Ilma."
       },
       {
-        label: "Storm the Hill-Fort at Narrow Gate",
+        label: "Conquest of the Hill-Fort at Narrow Gate",
         kind: "siege",
-        short: "Hill-fort siege",
+        short: "Hill-fort conquest",
         flavour: "One gate, one crest, and all the uplands follow."
       }
     ],
@@ -3109,15 +3109,15 @@ const BATTLE_ARCHETYPES = {
 
     4: [
       {
-        label: "Intercept Confederation Riders",
+        label: "Raid the Confederation Outriders",
         kind: "skirmish",
-        short: "Confed skirmish",
+        short: "Confed raid",
         flavour: "Messengers race between confederate chiefs."
       },
       {
-        label: "Punish the March Coalition’s Envoys",
+        label: "Cut the March Coalition's Supply Lines",
         kind: "feud",
-        short: "Coalition feud",
+        short: "Supply clash",
         flavour: "Envoys arrive under arms and speak as equals."
       },
       {
@@ -3127,9 +3127,9 @@ const BATTLE_ARCHETYPES = {
         flavour: "Grain stores and river land decide the winter."
       },
       {
-        label: "Besiege the Confederation Citadel at River-Bend",
+        label: "Conquest of the Confederation Citadel at River-Bend",
         kind: "siege",
-        short: "Citadel siege",
+        short: "Citadel conquest",
         flavour: "A stone keep crowns the bend where two rivers meet."
       }
     ],
@@ -3142,21 +3142,21 @@ const BATTLE_ARCHETYPES = {
         flavour: "Provincial banners appear at the shallows."
       },
       {
-        label: "Humiliate the Provincial Tax-Farmers",
+        label: "Seize the Provincial Storehouses",
         kind: "feud",
-        short: "Tax feud",
+        short: "Storehouse clash",
         flavour: "Collectors return with short tribute and long complaints."
       },
       {
-        label: "Reduce the Tributary Valley of Altar-Kings",
+        label: "Campaign in the Tributary Valley of Altar-Kings",
         kind: "field",
         short: "Tributary field",
         flavour: "Old altar-stones mark a valley that pays two masters."
       },
       {
-        label: "Compel Submission of the Provincial Seat",
+        label: "Conquest of the Provincial Seat",
         kind: "siege",
-        short: "Provincial siege",
+        short: "Provincial conquest",
         flavour: "The province’s officers shelter behind old walls."
       }
     ],
@@ -3169,9 +3169,9 @@ const BATTLE_ARCHETYPES = {
         flavour: "The king’s riders taste the edge of your realm."
       },
       {
-        label: "Defy the Royal Magistrate of the Cross-Road",
+        label: "Seize the Cross-Road Garrison",
         kind: "feud",
-        short: "Royal feud",
+        short: "Cross-road clash",
         flavour: "A royal judge arrives with laws and escorts."
       },
       {
@@ -3181,9 +3181,9 @@ const BATTLE_ARCHETYPES = {
         flavour: "Whole marches decide whether to bow or bleed."
       },
       {
-        label: "Take the Captaincy of the Tributary Citadel",
+        label: "Conquest of the Tributary Citadel",
         kind: "siege",
-        short: "Royal siege",
+        short: "Royal conquest",
         flavour: "The garrison decides who truly rules this frontier."
       }
     ]
@@ -3247,7 +3247,42 @@ const BATTLE_ARCHETYPES = {
   }
 
 
-  function makeBattleContext(tier, slot, arch, baseDef){
+  
+function battleContractLabel(tier, kind, baseDef){
+  const pools = {
+    skirmish: [
+      "Destroy bandit camp",
+      "Hunt raiding party",
+      "Clear forest road",
+      "Break outlaw gang"
+    ],
+    feud: [
+      "Crush rebel levy",
+      "Punish defiant chief",
+      "Break rival warband",
+      "Secure border steading"
+    ],
+    field: [
+      "Seize border farmland",
+      "Take crossroads field",
+      "Break enemy host",
+      "Drive off war host"
+    ],
+    siege: [
+      "Storm hillfort",
+      "Assault border stronghold",
+      "Breach town walls",
+      "Take fortified holdfast"
+    ]
+  };
+  if(kind && Object.prototype.hasOwnProperty.call(pools, kind)){
+    const arr = pools[kind];
+    return sample(arr);
+  }
+  return (baseDef && baseDef.label) || "Campaign";
+}
+
+function makeBattleContext(tier, slot, arch, baseDef){
     const kind = arch && arch.kind || "";
     // Generate a house / faction identity that persists per tier+slot until defeated.
     const house = makeHouseIdentity(tier, kind);
@@ -3288,7 +3323,7 @@ const BATTLE_ARCHETYPES = {
     return {
       tier,
       slot,
-      label: arch && arch.label || baseDef.label,
+      label: battleContractLabel(tier, kind, baseDef),
       kind: arch && arch.kind,
       leader,
       approx,
@@ -3304,8 +3339,7 @@ const BATTLE_ARCHETYPES = {
     if(!S.battleContexts) S.battleContexts = {};
     const key = tier + ":" + slot;
     const existing = S.battleContexts[key];
-    const archLabel = arch && arch.label || baseDef.label;
-    if(existing && existing.label === archLabel){
+    if(existing){
       return existing;
     }
     const ctx = makeBattleContext(tier, slot, arch, baseDef);
@@ -3317,9 +3351,45 @@ function battleArchetypeFor(tier, slot){
     return t && t[slot] ? t[slot] : t ? t[0] : null;
   }
 
+    const battleSetCache = {};
+
+  function clearBattleSetCache(){
+    for(const k in battleSetCache){
+      if(Object.prototype.hasOwnProperty.call(battleSetCache, k)){
+        delete battleSetCache[k];
+      }
+    }
+    if (typeof S === "object" && S.battleContexts && typeof S.battleContexts === "object"){
+      for(const k in S.battleContexts){
+        if(Object.prototype.hasOwnProperty.call(S.battleContexts, k)){
+          delete S.battleContexts[k];
+        }
+      }
+    }
+  }
+
+
   function currentBattleSet(){
     const { idx } = titleInfo();
-    return BATTLE_SETS[Math.min(idx, BATTLE_SETS.length-1)];
+    const key = String(Math.min(idx, BATTLE_SETS.length-1));
+    const base = BATTLE_SETS[Math.min(idx, BATTLE_SETS.length-1)] || [];
+    if(!battleSetCache[key] || battleSetCache[key].length !== base.length){
+      const arr = base.slice();
+      // Ensure we always have 4 battle options by padding from the shuffled base.
+      for(let i = arr.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        const tmp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = tmp;
+      }
+      if(arr.length > 0){
+        while(arr.length < 4){
+          arr.push(arr[arr.length % base.length]);
+        }
+      }
+      battleSetCache[key] = arr;
+    }
+    return battleSetCache[key] || [];
   }
 
 
@@ -4862,6 +4932,7 @@ function handleRankUps(){
     const before = S.tribute;
     S.tribute = Math.max(1, Math.round((S.tribute + gained * 0.25) * 10) / 10);
     S.rankIdx = idx;
+    if (typeof clearBattleSetCache === "function") clearBattleSetCache();
 
     const tributeGain = (S.tribute - before);
     logLine(`Rank up! Your tribute grows. (+${tributeGain.toFixed(1)} tap base)`, "good");
@@ -6398,7 +6469,12 @@ handleRankUps();
 
     for(let i=0;i<4;i++){
       const base = bs[i];
-      if(!base) continue;
+      const btnRef = btns[i] && btns[i].btn ? $(btns[i].btn) : null;
+      if(!base){
+        if(btnRef) btnRef.style.display = "none";
+        continue;
+      }
+      if(btnRef) btnRef.style.display = "";
       const tEl = $(btns[i].titleSel);
       const dEl = $(btns[i].desc);
 
@@ -6421,8 +6497,9 @@ handleRankUps();
         const ariaHint = diffName
           ? (rarity ? diffName + " • " + rarity : diffName)
           : rarity;
+        const fullLabel = ctx.label;
         tEl.innerHTML =
-          `<span class="battleTitleText">${label}</span>` +
+          `<span class="battleTitleText">${fullLabel}</span>` +
           `<span class="battleStars" aria-label="${ariaHint}">${stars}</span>`;
       }
       if(dEl){
@@ -6433,13 +6510,13 @@ handleRankUps();
         //  Line 4: Outcome hint
         const kind = ctx.kind || (arch && arch.kind) || "";
         const kindTag = kind === "skirmish"
-          ? "Skirmish"
+          ? "Raid"
           : kind === "feud"
-            ? "Feud"
+            ? "Clash"
             : kind === "field"
-              ? "Field action"
+              ? "Field battle"
               : kind === "siege"
-                ? "Siege"
+                ? "Conquest"
                 : "";
 
         const faction = battleFactionMetaForTier(tier, kind, min, max);
@@ -8125,7 +8202,14 @@ bumpObjective("winBattle", 1);
       : "You retreat to lick your wounds."
   };
 
-  // Show battle results.  If suppressSim flag is set (e.g. tactical battles), skip the cinematic sim and go straight to the report.
+  
+  // Show battle results. If suppressSim flag is set (e.g. tactical battles),
+  // skip the cinematic sim and go straight to the report.
+  if (typeof clearBattleSetCache === "function") {
+    // After each battle, refresh the available contracts.
+    clearBattleSetCache();
+  }
+
   if (opts && opts.suppressSim) {
     showBattleReport(rep);
     render();
@@ -8135,6 +8219,7 @@ bumpObjective("winBattle", 1);
   }
   return rep;
 }
+
 // Battle buttons
 // For offensive battles the player can choose to command tactically.  This will launch the tactical overlay rather than immediately resolving.
 $("#btnBattleBandits1").addEventListener("click", ()=> startTacticalBattle(0));
