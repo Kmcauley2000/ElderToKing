@@ -9310,119 +9310,204 @@ $("#btnExport").addEventListener("click", async ()=>{
   }
 
 
-  function startTacticalBattle(slot, defenceFlag){
-    // Use *all* troop types as the visible pool for this battle.
-    const mil = Number(S.warriors || 0);
-    const cav = Number(S.cavalry  || 0);
-    const arc = Number(S.archers  || 0);
-    const aux = Number(S.auxilia  || 0);
-    const eq  = Number(S.equites  || 0);
-    const vet = Number(S.veterans || 0);
+    let pendingTactical = null;
 
-    const totalTroops = mil + cav + arc + aux + eq + vet;
+function startTacticalBattle(slot, defenceFlag){
+  // Use *all* troop types as the visible pool for this battle.
+  const mil = Number(S.warriors || 0);
+  const cav = Number(S.cavalry  || 0);
+  const arc = Number(S.archers  || 0);
+  const aux = Number(S.auxilia  || 0);
+  const eq  = Number(S.equites  || 0);
+  const vet = Number(S.veterans || 0);
 
-    if(totalTroops <= 0){
-      toast('You have no troops to muster.');
-      return;
-    }
+  const totalTroops = mil + cav + arc + aux + eq + vet;
 
-    const sim = battleSim(slot);
+  if(totalTroops <= 0){
+    toast('You have no troops to muster.');
+    return;
+  }
 
-    const enemies = (sim && typeof sim.enemies === 'number')
-      ? sim.enemies
-      : Math.max(4, Math.round(totalTroops * 1.1));
+  const sim = battleSim(slot);
 
-    const overlay = document.getElementById('tacticalOverlay');
-    if(overlay) overlay.style.display = 'flex';
+  const enemies = (sim && typeof sim.enemies === 'number')
+    ? sim.enemies
+    : Math.max(4, Math.round(totalTroops * 1.1));
 
-    // Initial morale from hidden legionMorale, clamped.
-    let legionMorale = typeof S.legionMorale === "number" ? S.legionMorale : 1;
-    legionMorale = clamp(legionMorale, 0.6, 1.4);
+  // Build enemy composition for preview and later tactical use.
+  const enemyBuilt = tacticalBuildEnemyPools(slot, enemies);
 
-    // Build enemy composition just for tactical view.
-    const enemyBuilt = tacticalBuildEnemyPools(slot, enemies);
+  pendingTactical = {
+    slot,
+    defenceFlag: !!defenceFlag,
+    mil, cav, arc, aux, eq, vet,
+    totalTroops,
+    sim,
+    enemies,
+    enemyBuilt
+  };
 
-    currentTactical = {
-      slot: slot,
-      sim: sim,
-      // total headcount pools (for percentages / bars)
-      initPlayer: totalTroops,
-      currentPlayer: totalTroops,
-      initEnemy: enemies,
-      currentEnemy: enemies,
-      // keep track of starting pools so we can compute exact per‑type losses
-      initMilites: mil,
-      initPlayerPools: {
-        mil: mil,
-        cav: cav,
-        arc: arc,
-        aux: aux,
-        eq:  eq,
-        vet: vet
-      },
-      events: [],
-      finished: false,
-      round: 0,
-      defence: !!defenceFlag,
-      // quality + morale for attrition math
-      qualityYou: tacticalQualityForPlayer(),
-      qualityEnemy: tacticalQualityForEnemy(slot),
-      moraleYou: legionMorale,
-      moraleEnemy: 1.0,
-      // Detailed pools for per-type losses
-      playerPools: {
-        mil: mil,
-        cav: cav,
-        arc: arc,
-        aux: aux,
-        eq:  eq,
-        vet: vet
-      },
-      playerExposure: {
-        mil: 1.0,
-        cav: 1.05,
-        arc: 1.25,
-        aux: 0.95,
-        eq:  1.1,
-        vet: 0.8
-      },
-      enemyPools: enemyBuilt.pool,
-      enemyExposure: enemyBuilt.exposure
+  const preOverlay = document.getElementById('preBattleOverlay');
+  const summaryEl  = document.getElementById('preBattleSummary');
+
+  if(preOverlay && summaryEl){
+    const pool = enemyBuilt.pool || {};
+    const roleMap = {
+      "Bandits": "infantry",
+      "Levies": "infantry",
+      "Town Militia": "infantry",
+      "Raiders": "infantry",
+      "Infantry": "infantry",
+      "Guard": "infantry",
+      "Horsemen": "cavalry",
+      "Skirmishers": "ranged",
+      "Archers": "ranged"
     };
 
-    const titleEl = document.getElementById("tacticalTitle");
-    if(titleEl){
-      const label = sim && sim.label ? sim.label : "Engagement";
-      titleEl.textContent = label;
+    const lines = [];
+    for(const key in pool){
+      if(!Object.prototype.hasOwnProperty.call(pool, key)) continue;
+      const n = pool[key] || 0;
+      if(n <= 0) continue;
+      const role = roleMap[key] || "infantry";
+      lines.push(`<div>${fmt(n)} ${key} (${role})</div>`);
     }
 
-    // Wire buttons each time we open to be safe.
-    const btnA     = document.getElementById('tacBtnAttack');
-    const btnD     = document.getElementById('tacBtnOversee');
-    const btnH     = document.getElementById('tacBtnStats');
-    const btnClose = document.getElementById('tacCloseBtn');
+    const body = lines.length
+      ? `<div style="margin-bottom:6px;">Scouts report the enemy fielding:</div>${lines.join('')}`
+      : "<div>Scouts report no clear enemy formations.</div>";
 
-    if (btnA) {
-      btnA.onclick = () => tacAction('attack');
-    }
-    if (btnD) {
-      btnD.onclick = () => openTacticalOversee();
-    }
-    if (btnH) {
-      btnH.onclick = () => toggleTacticalStats();
-    }
-    if (btnClose) {
-      btnClose.onclick = () => {
-        if (currentTactical) {
-          currentTactical.events.push('You call the retreat.');
-          currentTactical.finished = true;
-          finishTacticalBattle(false);
-        }
+    summaryEl.innerHTML = body;
+    preOverlay.style.display = 'flex';
+
+    // Wire buttons now that the overlay is shown and elements exist.
+    const backBtn = document.getElementById('preBattleBackBtn');
+    const goBtn   = document.getElementById('preBattleEngageBtn');
+
+    if(backBtn){
+      backBtn.onclick = function(){
+        if(preOverlay) preOverlay.style.display = 'none';
+        pendingTactical = null;
       };
     }
-
-    updateTacticalUI();
+    if(goBtn){
+      goBtn.onclick = function(){
+        if(preOverlay) preOverlay.style.display = 'none';
+        actuallyStartTacticalBattle();
+      };
+    }
+  }else{
+    // Fallback: if overlay missing, go straight into battle.
+    actuallyStartTacticalBattle();
   }
+}
+
+function actuallyStartTacticalBattle(){
+  const cfg = pendingTactical;
+  if(!cfg) return;
+  pendingTactical = null;
+
+  const {
+    slot,
+    defenceFlag,
+    mil, cav, arc, aux, eq, vet,
+    totalTroops,
+    sim,
+    enemies,
+    enemyBuilt
+  } = cfg;
+
+  const overlay = document.getElementById('tacticalOverlay');
+  if(overlay) overlay.style.display = 'flex';
+
+  // Initial morale from hidden legionMorale, clamped.
+  let legionMorale = typeof S.legionMorale === "number" ? S.legionMorale : 1;
+  legionMorale = clamp(legionMorale, 0.6, 1.4);
+
+  currentTactical = {
+    slot: slot,
+    sim: sim,
+    // total headcount pools (for percentages / bars)
+    initPlayer: totalTroops,
+    currentPlayer: totalTroops,
+    initEnemy: enemies,
+    currentEnemy: enemies,
+    // keep track of starting pools so we can compute exact per-type losses
+    initMilites: mil,
+    initPlayerPools: {
+      mil: mil,
+      cav: cav,
+      arc: arc,
+      aux: aux,
+      eq:  eq,
+      vet: vet
+    },
+    events: [],
+    finished: false,
+    round: 0,
+    defence: !!defenceFlag,
+    // quality + morale for attrition math
+    qualityYou: tacticalQualityForPlayer(),
+    qualityEnemy: tacticalQualityForEnemy(slot),
+    moraleYou: legionMorale,
+    moraleEnemy: 1.0,
+    // Detailed pools for per-type losses
+    playerPools: {
+      mil: mil,
+      cav: cav,
+      arc: arc,
+      aux: aux,
+      eq:  eq,
+      vet: vet
+    },
+    playerExposure: {
+      mil: 1.0,
+      cav: 1.05,
+      arc: 1.25,
+      aux: 0.95,
+      eq:  1.1,
+      vet: 0.8
+    },
+    enemyPools: enemyBuilt.pool,
+    enemyExposure: enemyBuilt.exposure
+  };
+
+  const titleEl = document.getElementById("tacticalTitle");
+  if(titleEl){
+    const label = sim && sim.label ? sim.label : "Engagement";
+    titleEl.textContent = label;
+  }
+
+  // Wire buttons each time we open to be safe.
+  const btnA     = document.getElementById('tacBtnAttack');
+  const btnD     = document.getElementById('tacBtnOversee');
+  const btnH     = document.getElementById('tacBtnStats');
+  const btnClose = document.getElementById('tacCloseBtn');
+
+  if (btnA) {
+    btnA.onclick = () => tacAction('attack');
+  }
+  if (btnD) {
+    btnD.onclick = () => openTacticalOversee();
+  }
+  if (btnH) {
+    btnH.onclick = () => toggleTacticalStats();
+  }
+  if (btnClose) {
+    btnClose.onclick = () => {
+      if (currentTactical) {
+        currentTactical.events.push('You call the retreat.');
+        currentTactical.finished = true;
+        finishTacticalBattle(false);
+      }
+    };
+  }
+
+  updateTacticalUI();
+}
+
+
+
 
 
   function openTacticalOversee(){
@@ -9669,7 +9754,24 @@ ttleBar"> <img id="battleSimYourBarImg" class="battleBarSprite" src="Sprites/pla
     </div>
   </div>
 
-  <!-- Tactical Battle Overlay -->
+  <!-- Pre-Battle Scout Report Overlay -->
+<div id="preBattleOverlay" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:2200;">
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);"></div>
+  <div class="card" style="position:relative;width:min(460px, calc(100vw - 26px));border-radius:24px;overflow:hidden;">
+    <div class="sectionTitle" style="justify-content:center;">
+      <span style="color:var(--accent);font-weight:900;">Scout Report</span>
+    </div>
+    <div class="cardBody" style="padding:14px;">
+      <div id="preBattleSummary" style="font-family:var(--mono);font-size:.8rem;line-height:1.5;"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap;">
+        <button class="tab" id="preBattleBackBtn" type="button" style="flex:1 1 40%;">Back</button>
+        <button class="tab" id="preBattleEngageBtn" type="button" style="flex:1 1 40%;">Engage</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tactical Battle Overlay -->
   <div id="tacticalOverlay" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:2250;">
     <div style="position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);"></div>
     <div class="card" style="position:relative;width:min(560px, calc(100vw - 26px));border-radius:26px;overflow:hidden;">
