@@ -1518,8 +1518,8 @@ header{
           Income: 0.00/s (net)
         </p>
         <div class="meta">
-          <div>Title: <b id="title">Elder</b></div>
-          <div>Next: <b id="nextTitle">Elder</b></div>
+          <div>Title: <b id="title">Village Elder</b></div>
+          <div>Next: <b id="nextTitle">Village Elder</b></div>
         </div>
 
         <div class="miniLog">
@@ -1552,6 +1552,26 @@ header{
             <span class="owned">• Owned: <b id="ownedMilites">0</b></span>
           </div>
         </button>
+        <button class="bigBtn unitCard" id="btnRecruitArchers">
+          <div class="unitHeaderRow">
+            <div class="unitHeader">
+              <span class="unitName">Archers</span>
+              <span class="unitRole">Villager bowmen</span>
+            </div>
+            <img src="Sprites/Archers.png" class="unitImg" alt="Archers">
+          </div>
+          <div class="unitStats">
+            <span class="stat">⚔ 6</span>
+            <span class="stat">🛡 2</span>
+            <span class="stat">❤ 12</span>
+          </div>
+          <div class="unitMeta">
+            <span class="cost" id="recruitArchCost">Cost 0</span>
+            <span class="upkeep">• Upkeep: 0.8×</span>
+            <span class="owned">• Owned: <b id="ownedArchers">0</b></span>
+          </div>
+        </button>
+
         <button class="bigBtn unitCard" id="btnRecruitCavalry">
           <div class="unitHeaderRow">
             <div class="unitHeader">
@@ -1732,48 +1752,13 @@ header{
   // while forcing players to invest more in early renown before the next
   // tier of enemies appears.
   const titles = [
-    // Tier 1 — Intra‑Village Prestige
-    { name: "Elder", need: 0 },
-    { name: "Respected Elder", need: 300 },    // 150×2 → 300
-    { name: "Clan Speaker", need: 700 },        // 350×2 → 700
-    { name: "Council Elder", need: 1200 },      // 600×2 → 1200
-    { name: "First Elder", need: 1800 },        // 900×2 → 1800
-
-    // Tier 2 — Clan Leadership
-    { name: "Patriarch/Matriarch", need: 2600 }, // 1300×2 → 2600
-    { name: "High Patriarch", need: 3600 },      // 1800×2 → 3600
-    { name: "Great Patriarch", need: 4800 },     // 2400×2 → 4800
-    { name: "Clan Warden", need: 6200 },         // 3100×2 → 6200
-    { name: "Clan Protector", need: 7800 },      // 3900×2 → 7800
-
-    // Tier 3 — Tribal Influence
-    { name: "Village Chief", need: 9600 },       // 4800×2 → 9600
-    { name: "Senior Chief", need: 11600 },      // 5800×2 → 11600
-    { name: "Paramount Chief", need: 13800 },   // 6900×2 → 13800
-    { name: "Tribal Speaker", need: 16200 },    // 8100×2 → 16200
-    { name: "War Chief", need: 18800 },         // 9400×2 → 18800
-    { name: "Peace Chief", need: 21600 },       // 10800×2 → 21600
-
-    // Tier 4 — Confederation Level
-    { name: "High Chief", need: 24600 },       // 12300×2 → 24600
-    { name: "Warlord", need: 28000 },          // 14000×2 → 28000
-    { name: "Lawgiver", need: 32000 },         // 16000×2 → 32000
-    { name: "First Magistrate", need: 36600 }, // 18300×2 → 36600
-    { name: "Sacred Chief", need: 41800 },      // 20900×2 → 41800
-    { name: "Lord of Clans", need: 47600 },     // 23800×2 → 47600
-
-    // Tier 5 — Protoking / Chiefdom‑State
-    { name: "Protector of the People", need: 54000 }, // 27000×2 → 54000
-    { name: "Heir of the Ancestors", need: 61000 },   // 30500×2 → 61000
-    { name: 'Princeps ("First Among Equals")', need: 68800 }, // 34400×2 → 68800
-    { name: "Rex Designatus", need: 77400 },   // 38700×2 → 77400
-    { name: "High Lord", need: 87000 },        // 43500×2 → 87000
-    { name: "Sovereign Chief", need: 97600 },  // 48800×2 → 97600
-
-    // Tier 6 — Kingship
-    { name: "King (Rex)", need: 110000 },      // 55000×2 → 110000
-    { name: "High King", need: 124000 },       // 62000×2 → 124000
-    { name: "Divine King", need: 140000 }      // 70000×2 → 140000
+    { name: "Village Elder", need: 0 },
+    { name: "Clan Leader", need: 100 },
+    { name: "Warlord", need: 300 },
+    { name: "High Warlord", need: 800 },
+    { name: "Princeps", need: 2000 },
+    { name: "King", need: 5000 },
+    { name: "Emperor", need: 6000 }
   ];
 
   const defaultState = () => ({
@@ -1789,6 +1774,7 @@ header{
 
     // legion
     warriors: 0,
+    archers: 0,
     cavalry: 0,
     battlesWon: 0,
 
@@ -1956,7 +1942,7 @@ header{
   if(typeof S.populationUsed !== "number") S.populationUsed = 0;
   // Ensure milites never exceed population
   if((S.warriors||0) > (S.population||0)) S.warriors = S.population;
-  S.populationUsed = (S.warriors||0) + (S.cavalry||0);
+  S.populationUsed = (S.warriors||0) + (S.archers||0) + (S.cavalry||0);
 
   // If localStorage is empty/evicted, try IndexedDB recovery (especially on iPhone).
   recoverSaveFromIDB();
@@ -2482,27 +2468,30 @@ function decreeMult(){
   }
   function warriorUpkeepPerSec(){
     const w   = S.warriors || 0;
+    const a   = S.archers  || 0;
     const cav = S.cavalry  || 0;
     const aux = S.auxilia  || 0;
     const eq  = S.equites  || 0;
     const vet = S.veterans || 0;
 
-    const totalUnits = w + cav + aux + eq + vet;
+    const totalUnits = w + a + cav + aux + eq + vet;
     if(totalUnits <= 0) return 0;
 
     // Base upkeep per milite per second (heavier than before).
     let perMil = 0.04;
 
     // Special forces count as heavier to maintain.
-    const weightMil = 1.0;
-    const weightCav = 1.5; // mounted, better paid
+    const weightMil  = 1.0;
+    const weightArch = 0.8; // lightly equipped villager archers
+    const weightCav  = 1.5; // mounted, better paid
     const weightAux = 1.3; // better equipped infantry
     const weightEq  = 1.8; // elite cavalry
     const weightVet = 2.1; // elite pay + gear
 
     let effectiveCount =
-      (w   * weightMil) +
-      (cav * weightCav) +
+      (w   * weightMil)  +
+      (a   * weightArch) +
+      (cav * weightCav)  +
       (aux * weightAux) +
       (eq  * weightEq)  +
       (vet * weightVet);
@@ -2716,30 +2705,36 @@ function decreeMult(){
     return 900;
   }
 
+  function archerRecruitCost(){
+    return 320;
+  }
+
   function recruitStrengthGain(){
     return 6;
   }
 
-    function recalcLegionStrength(){
-    // Aggregate legion stats from unit types (milites + cavalry + special forces).
+    
+function recalcLegionStrength(){
+    // Aggregate legion stats from unit types (milites + archers + cavalry + special forces).
     const warriors = Math.max(0, S.warriors || 0);
+    const archers  = Math.max(0, S.archers  || 0);
     const cav      = Math.max(0, S.cavalry  || 0);
     const aux      = S.auxilia  || 0;
     const equites  = S.equites  || 0;
     const veterans = S.veterans || 0;
 
-    // Base per-unit stats (can be tuned later).
-    const MIL = { atk: 7,  def: 5,  hp: 16 };
-    const CAV = { atk: 11, def: 4,  hp: 20 };
-    const AUX = { atk: 6,  def: 8,  hp: 20 };
-    const EQ  = { atk: 13, def: 4,  hp: 18 };
-    const VET = { atk: 9,  def: 10, hp: 24 };
+    // Base per-unit stats.
+    const MIL  = { atk: 7,  def: 5,  hp: 16 };
+    const ARCH = { atk: 6,  def: 2,  hp: 12 };
+    const CAV  = { atk: 11, def: 4,  hp: 20 };
+    const AUX  = { atk: 6,  def: 8,  hp: 20 };
+    const EQ   = { atk: 13, def: 4,  hp: 18 };
+    const VET  = { atk: 9,  def: 10, hp: 24 };
 
-    let atk = warriors * MIL.atk + cav * CAV.atk + aux * AUX.atk + equites * EQ.atk + veterans * VET.atk;
-    let def = warriors * MIL.def + cav * CAV.def + aux * AUX.def + equites * EQ.def + veterans * VET.def;
-    let hp  = warriors * MIL.hp  + cav * CAV.hp  + aux * AUX.hp  + equites * EQ.hp  + veterans * VET.hp;
+    let atk = warriors * MIL.atk  + archers * ARCH.atk + cav * CAV.atk + aux * AUX.atk + equites * EQ.atk + veterans * VET.atk;
+    let def = warriors * MIL.def  + archers * ARCH.def + cav * CAV.def + aux * AUX.def + equites * EQ.def + veterans * VET.def;
+    let hp  = warriors * MIL.hp   + archers * ARCH.hp  + cav * CAV.hp  + aux * AUX.hp  + equites * EQ.hp  + veterans * VET.hp;
 
-    // Clamp a bit so tiny legions still have some footprint.
     atk = Math.max(0, atk);
     def = Math.max(0, def);
     hp  = Math.max(0, hp);
@@ -2749,43 +2744,38 @@ function decreeMult(){
       def,
       hp,
       warriors,
+      archers,
       cav,
       aux,
       equites,
       veterans
     };
   }
-
 // --- Battles  ---
   const BATTLE_SETS = [
     [
       { label:"Break Up Farm Brawl", enemyMin:8, enemyMax:14 },
       { label:"Defend Stray Herd", enemyMin:6, enemyMax:11 },
-      { label:"Drive Off Rustlers", enemyMin:6, enemyMax:12 },
       { label:"Feud at the Wall", enemyMin:5, enemyMax:10 }
     ], // Elder
     [
       { label:"Break Up Farm Brawl", enemyMin:15, enemyMax:15 },
       { label:"Defend Stray Herd", enemyMin:15, enemyMax:15 },
-      { label:"Drive Off Rustlers", enemyMin:10, enemyMax:20 },
       { label:"Feud at the Wall", enemyMin:10, enemyMax:20 }
     ], // Respected Elder
     [
       { label:"Break Up Farm Brawl", enemyMin:20, enemyMax:25 },
       { label:"Defend Stray Herd", enemyMin:20, enemyMax:25 },
-      { label:"Drive Off Rustlers", enemyMin:15, enemyMax:25 },
       { label:"Feud at the Wall", enemyMin:15, enemyMax:25 }
     ], // Clan Speaker
     [
       { label:"Break Up Farm Brawl", enemyMin:30, enemyMax:35 },
       { label:"Defend Stray Herd", enemyMin:25, enemyMax:35 },
-      { label:"Drive Off Rustlers", enemyMin:20, enemyMax:35 },
       { label:"Feud at the Wall", enemyMin:20, enemyMax:35 }
     ], // Council Elder
     [
       { label:"Break Up Farm Brawl", enemyMin:35, enemyMax:40 },
       { label:"Defend Stray Herd", enemyMin:30, enemyMax:40 },
-      { label:"Drive Off Rustlers", enemyMin:30, enemyMax:40 },
       { label:"Feud at the Wall", enemyMin:25, enemyMax:40 }
     ], // First Elder
     [
@@ -2946,13 +2936,15 @@ function decreeMult(){
     ], // Divine King
   ];
 function battleTierFromTitleIdx(idx){
-    if(idx <= 4) return 1;
-    if(idx <= 9) return 2;
-    if(idx <= 15) return 3;
-    if(idx <= 21) return 4;
-    if(idx <= 27) return 5;
-    return 6;
-  }
+  const ren = (typeof S === "object" && S && typeof S.renown === "number") ? S.renown : 0;
+
+  if(ren < 100) return 1;   // Village Elder (0–99)
+  if(ren < 300) return 2;   // Clan Leader (100–299)
+  if(ren < 800) return 3;   // Warlord (300–799)
+  if(ren < 2000) return 4;  // High Warlord (800–1,999)
+  if(ren < 5000) return 5;  // Princeps (2,000–4,999)
+  return 6;                 // King & Emperor (5,000+)
+}
 
   function battleDifficultyForTier(tier){
     if(tier <= 1) return { baseStars: 1, name: "Easy" };
@@ -4554,24 +4546,27 @@ function captureTerritory(battleTier){
   if(arch && arch.label) b.label = arch.label;
 
   // --- YOUR TROOPS ---
+  
   const warriors = Math.max(0, S.warriors || 0);
+  const archers  = Math.max(0, S.archers  || 0);
   const cav      = Math.max(0, S.cavalry  || 0);
   const aux      = S.auxilia  || 0;
   const equites  = S.equites  || 0;
   const veterans = S.veterans || 0;
 
-  const yourTroops = warriors + cav; // frontline that can take casualties (milites + cavalry)
+  const yourTroops = warriors + archers + cav; // frontline that can take casualties
 
-  // Base per-unit stats (can tweak later)
-  const MIL = { atk: 7,  def: 5,  hp: 16 };
-  const CAV = { atk: 11, def: 4,  hp: 20 };
-  const AUX = { atk: 6,  def: 8,  hp: 20 };
-  const EQ  = { atk: 13, def: 4,  hp: 18 };
-  const VET = { atk: 9,  def: 10, hp: 24 };
+  // Base per-unit stats
+  const MIL  = { atk: 7,  def: 5,  hp: 16 };
+  const ARCH = { atk: 6,  def: 2,  hp: 12 };
+  const CAV  = { atk: 11, def: 4,  hp: 20 };
+  const AUX  = { atk: 6,  def: 8,  hp: 20 };
+  const EQ   = { atk: 13, def: 4,  hp: 18 };
+  const VET  = { atk: 9,  def: 10, hp: 24 };
 
-  let baseAtk = warriors * MIL.atk + cav * CAV.atk + aux * AUX.atk + equites * EQ.atk + veterans * VET.atk;
-  let baseDef = warriors * MIL.def + cav * CAV.def + aux * AUX.def + equites * EQ.def + veterans * VET.def;
-  let baseHP  = warriors * MIL.hp  + cav * CAV.hp  + aux * AUX.hp  + equites * EQ.hp  + veterans * VET.hp;
+  let baseAtk = warriors * MIL.atk  + archers * ARCH.atk + cav * CAV.atk + aux * AUX.atk + equites * EQ.atk + veterans * VET.atk;
+  let baseDef = warriors * MIL.def  + archers * ARCH.def + cav * CAV.def + aux * AUX.def + equites * EQ.def + veterans * VET.def;
+  let baseHP  = warriors * MIL.hp   + archers * ARCH.hp  + cav * CAV.hp  + aux * AUX.hp  + equites * EQ.hp  + veterans * VET.hp;
 
   // Global multipliers from crowns, decrees, land, faith, veterancy, morale
   const land = S.land || 0;
@@ -6293,15 +6288,16 @@ handleRankUps();
     const totalPop = (S.population||0);
     const warriors = (S.warriors||0); // line infantry
     const cavalry  = (S.cavalry||0);  // mounted troops using population
+    const archers  = (S.archers||0);  // archers also use population
     const labourers = (typeof totalTypeWorkers === "function") ? totalTypeWorkers() : 0;
-    const frontlineUsed = warriors + cavalry;
+    const frontlineUsed = warriors + cavalry + archers;
     const civilians = Math.max(0, totalPop - frontlineUsed);
     const freePop = Math.max(0, civilians - labourers);
     const pu = $("#popUsed"); const pc = $("#popCap");
     const mr = (typeof migrationPerSec === "function") ? migrationPerSec() : 0;
     $("#migRate") && ($("#migRate").textContent = (Math.round(mr*100)/100).toFixed(2));
     if(pu && pc){
-      pu.textContent = `${fmt(totalPop)} (Free: ${fmt(freePop)}, Warriors: ${fmt(warriors)}, Cavalry: ${fmt(cavalry)}, Labourers: ${fmt(labourers)})`;
+      pu.textContent = `${fmt(totalPop)} (Free: ${fmt(freePop)}, Warriors: ${fmt(warriors)}, Archers: ${fmt(archers)}, Cavalry: ${fmt(cavalry)}, Labourers: ${fmt(labourers)})`;
       pc.textContent = fmt(cap);
     }
 
@@ -6345,6 +6341,9 @@ handleRankUps();
     const ownedMil = $("#ownedMilites");
     if(ownedMil) ownedMil.textContent = fmt(S.warriors);
 
+    const ownedArch = $("#ownedArchers");
+    if(ownedArch) ownedArch.textContent = fmt(S.archers || 0);
+
     const ownedCav = $("#ownedCavalry");
     if(ownedCav) ownedCav.textContent = fmt(S.cavalry || 0);
     $("#landLegion").textContent = fmt(S.land || 0);
@@ -6371,6 +6370,9 @@ handleRankUps();
 
     const rcEl = $("#recruitCost");
     if(rcEl) rcEl.textContent = `Cost ${fmt(recruitCost())}`;
+
+    const rcArchEl = $("#recruitArchCost");
+    if(rcArchEl) rcArchEl.textContent = `Cost ${fmt(archerRecruitCost())}`;
 
     const rcCavEl = $("#recruitCavCost");
     if(rcCavEl) rcCavEl.textContent = `Cost ${fmt(cavalryRecruitCost())}`;
@@ -6469,6 +6471,7 @@ handleRankUps();
     // Battles: requirement is "do you have any troops at all?"
     const totalTroops =
       (S.warriors || 0) +
+      (S.archers  || 0) +
       (S.cavalry  || 0) +
       (S.auxilia  || 0) +
       (S.equites  || 0) +
@@ -6799,7 +6802,7 @@ handleRankUps();
   // Pay the cost and convert 1 civilian into a milites.
   S.gold -= c;
   S.warriors = warriors + 1;
-  S.populationUsed = (S.warriors||0) + (S.cavalry||0); // keep pop-used in sync with milites
+  S.populationUsed = (S.warriors||0) + (S.archers||0) + (S.cavalry||0); // keep pop-used in sync with milites
 
   recalcLegionStrength();
 
@@ -6821,7 +6824,46 @@ handleRankUps();
   render();
 });
 
-  $("#btnRecruitCavalry").addEventListener("click", (e)=>{
+  
+  $("#btnRecruitArchers").addEventListener("click", (e)=>{
+    const c = archerRecruitCost();
+    if(S.gold < c){
+      toast("Not enough denarii");
+      return;
+    }
+
+    const pop = S.population || 0;
+    const warriors = S.warriors || 0;
+    const archers = S.archers || 0;
+    const cavalry = S.cavalry || 0;
+    const labourers = (typeof totalTypeWorkers === "function") ? totalTypeWorkers() : 0;
+
+    const civilians = Math.max(0, pop - warriors - archers - cavalry - labourers);
+    if(civilians < 1){
+      toast("No free settlers — build housing and wait for more to arrive");
+      return;
+    }
+
+    S.gold -= c;
+    S.archers = archers + 1;
+    S.populationUsed = (S.warriors||0) + (S.archers||0) + (S.cavalry||0);
+
+    recalcLegionStrength();
+    bumpObjective("recruit", 1);
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const goldness = clamp(0.3 + (S.archers || 0) * 0.012, 0.3, 0.8);
+    sparkAt(
+      rect.left + rect.width * 0.7,
+      rect.top  + rect.height * 0.4,
+      goldness
+    );
+
+    toast("Archers recruited.");
+    render();
+  });
+
+$("#btnRecruitCavalry").addEventListener("click", (e)=>{
     const c = cavalryRecruitCost();
     if(S.gold < c){
       toast("Not enough denarii");
@@ -6843,7 +6885,7 @@ handleRankUps();
     // Pay cost and convert 1 civilian into a cavalry unit.
     S.gold -= c;
     S.cavalry = cavalry + 1;
-    S.populationUsed = (S.warriors||0) + (S.cavalry||0);
+    S.populationUsed = (S.warriors||0) + (S.archers||0) + (S.cavalry||0);
 
     recalcLegionStrength();
     bumpObjective("recruit", 1);
@@ -6894,7 +6936,10 @@ function maybeSpawnDefenceFromTap(){
   // Don’t stack multiple popups, don’t fire during intro, and only if you actually have troops
   if(window.defenceOverlayOpen) return;
   if(!S.introBattleDone) return;
-  if((S.warriors || 0) <= 0) return;
+
+  // Need at least some troops of any type to be eligible for a defence
+  const totalTroops = (S.warriors||0) + (S.archers||0) + (S.cavalry||0) + (S.auxilia||0) + (S.equites||0) + (S.veterans||0);
+  if(totalTroops <= 0) return;
 
   if(Math.random() > defenceSpawnChance()) return;
 
@@ -6974,7 +7019,26 @@ function openDefencePopup(slot, battle){
   }else{
     enemyLine = `Enemies: ${min}–${max} (${riskWord})`;
   }
-  const defendersLine = `Defenders Available: ${fmt(S.warriors||0)} milites`;
+  const w = S.warriors || 0;
+  const cav = S.cavalry || 0;
+  const aux = S.auxilia || 0;
+  const eq  = S.equites || 0;
+  const vet = S.veterans || 0;
+  const totalDef = w + cav + aux + eq + vet;
+
+  let defendersLine;
+  if(totalDef <= 0){
+    defendersLine = "Defenders Available: none";
+  }else{
+    const parts = [];
+    if(w)  parts.push(`${fmt(w)} Milites`);
+    if(cav)parts.push(`${fmt(cav)} Cavalry`);
+    if(aux)parts.push(`${fmt(aux)} Auxilia`);
+    if(eq) parts.push(`${fmt(eq)} Equites`);
+    if(vet)parts.push(`${fmt(vet)} Veterans`);
+    const breakdown = parts.length ? ` (${parts.join(", ")})` : "";
+    defendersLine = `Defenders Available: ${fmt(totalDef)} troops${breakdown}`;
+  }
 
   stats.innerHTML = `<div>${enemyLine}</div><div>${defendersLine}</div>`;
 
@@ -6988,7 +7052,7 @@ function openDefencePopup(slot, battle){
 
   const btnEngage = document.createElement("button");
   btnEngage.className = "smallBtn";
-  btnEngage.innerHTML = `<div class="t">🛡️ Defend</div><div class="d">Risk milites, no payment.</div>`;
+  btnEngage.innerHTML = `<div class="t">🛡️ Defend</div><div class="d">Risk your troops, no payment.</div>`;
 
   const btnIgnore = document.createElement("button");
   btnIgnore.className = "smallBtn";
@@ -6998,7 +7062,6 @@ function openDefencePopup(slot, battle){
     closeDefencePopup(overlay);
     // Refresh lastTap so streak window resumes from now
     S.lastTap = Date.now();
-    // Launch a tactical defence instead of auto-resolve
     startTacticalBattle(slot, true);
   });
 
@@ -7088,7 +7151,7 @@ function showBattleReport(rep){
   title.textContent = rep.win ? "Battle Victory!" : "Battle Defeat";
 
   const lines = [];
-  lines.push(rep.win ? "Battle Victory!" : "Battle Defeat.");
+  lines.push(rep.win ? "Result: Victory" : "Result: Defeat.");
 
   // Show treasure tier (if this warband was carrying extra spoils)
   if(rep && rep.win && rep.treasureType && rep.treasureType !== "normal"){
@@ -7148,6 +7211,7 @@ function showBattleReport(rep){
       if(n > 0) bits.push(`${fmt(n)} ${label}`);
     }
     add("Milites",  "mil");
+    add("Archers",  "arc");
     add("Cavalry",  "cav");
     add("Auxilia",  "aux");
     add("Equites",  "eq");
@@ -7218,7 +7282,6 @@ function showBattleSimulation(rep, tier){
   const enemyStatsEl = document.getElementById("battleSimEnemyStats");
   const yourStatsEl  = document.getElementById("battleSimYourStats");
   const eventsEl     = document.getElementById("battleSimEvents");
-  const btnSkip      = document.getElementById("battleSimSkip");
   const btnContinue  = document.getElementById("battleSimContinue");
 
   if(
@@ -7522,7 +7585,7 @@ function showBattleSimulation(rep, tier){
   }
   S.warriors = warriors;
   S.population = population;
-  S.populationUsed = (S.warriors||0) + (S.cavalry||0);
+  S.populationUsed = (S.warriors||0) + (S.archers||0) + (S.cavalry||0);
 
   // Use the new battleSim to decide how bloody the intro feels,
   // but always treat it as a hard-won victory in the story.
@@ -7576,7 +7639,7 @@ function showBattleSimulation(rep, tier){
   // with only the scars and spoils to show for it.
   S.warriors = prevWarriors;
   S.population = prevPopulation;
-  S.populationUsed = (S.warriors||0) + (S.cavalry||0);
+  S.populationUsed = (S.warriors||0) + (S.archers||0) + (S.cavalry||0);
 
   const introLines = [
     "Battle Victory!",
@@ -7608,11 +7671,12 @@ function doBattle(slot, opts){
 
   // Minimal requirement: you need at least *some* troops for offensive campaigns.
   const w   = (S.warriors || 0);
+  const arc = (S.archers  || 0);
   const cav = (S.cavalry  || 0);
   const aux = (S.auxilia  || 0);
   const eq  = (S.equites  || 0);
   const vet = (S.veterans || 0);
-  const totalTroops = w + cav + aux + eq + vet;
+  const totalTroops = w + arc + cav + aux + eq + vet;
   if (!isDefence && totalTroops <= 0) {
     toast("You have no troops to muster.");
     return;
@@ -7629,6 +7693,7 @@ function doBattle(slot, opts){
     sim.win = opts.overrideWin;
   }
   const beforeWarriors = S.warriors||0;
+  const beforeArch     = S.archers  || 0;
   const beforeCav      = S.cavalry || 0;
   const beforeAux      = S.auxilia || 0;
   const beforeEq       = S.equites || 0;
@@ -7638,7 +7703,6 @@ function doBattle(slot, opts){
   const startRenown = S.renown||0;
   const startGlory = S.glory || 0;
 
-  // NEW: we’ll fill this with per-type losses (even for auto battles)
   let lossDetail = null;
 
   // Soft warning: under-strength force vs enemy numbers / odds (no hard gate)
@@ -7660,39 +7724,42 @@ function doBattle(slot, opts){
   if (lossDetailOverride && typeof lossDetailOverride === "object") {
     // Tactical mode: trust the detailed breakdown supplied.
     const dMil = Math.max(0, Math.min(beforeWarriors, Math.floor(lossDetailOverride.mil || 0)));
+    const dArc = Math.max(0, Math.min(beforeArch,     Math.floor(lossDetailOverride.arc || 0)));
     const dCav = Math.max(0, Math.min(beforeCav,      Math.floor(lossDetailOverride.cav || 0)));
     const dAux = Math.max(0, Math.min(beforeAux,      Math.floor(lossDetailOverride.aux || 0)));
     const dEq  = Math.max(0, Math.min(beforeEq,       Math.floor(lossDetailOverride.eq  || 0)));
     const dVet = Math.max(0, Math.min(beforeVet,      Math.floor(lossDetailOverride.vet || 0)));
 
     S.warriors = Math.max(0, beforeWarriors - dMil);
+    S.archers  = Math.max(0, beforeArch     - dArc);
     S.cavalry  = Math.max(0, beforeCav      - dCav);
     S.auxilia  = Math.max(0, beforeAux      - dAux);
     S.equites  = Math.max(0, beforeEq       - dEq);
     S.veterans = Math.max(0, beforeVet      - dVet);
 
-    losses = dMil + dCav + dAux + dEq + dVet;
-    lossDetail = { mil:dMil, cav:dCav, aux:dAux, eq:dEq, vet:dVet };
+    losses = dMil + dArc + dCav + dAux + dEq + dVet;
+    lossDetail = { mil:dMil, arc:dArc, cav:dCav, aux:dAux, eq:dEq, vet:dVet };
 
   } else {
-    // Auto-resolve: take the sim.losses total and distribute it across all troop types.
-    const allBefore = beforeWarriors + beforeCav + beforeAux + beforeEq + beforeVet;
+    const allBefore = beforeWarriors + beforeArch + beforeCav + beforeAux + beforeEq + beforeVet;
     const rawLosses = Math.max(0, Math.floor(sim.losses || 0));
     const totalLosses = Math.min(allBefore, rawLosses);
 
     if (totalLosses > 0) {
       const pool = {
         mil: beforeWarriors,
+        arc: beforeArch,
         cav: beforeCav,
         aux: beforeAux,
         eq:  beforeEq,
         vet: beforeVet
       };
 
-      // Frontline + cavalry take more of the hammering; vets & aux a bit less.
+      // Frontline + cavalry take more of the hammering; archers are more exposed; vets & aux a bit less.
       const exposure = {
         mil: 1.0,
-        cav: 1.15,
+        arc: 1.25,
+        cav: 1.05,
         aux: 0.95,
         eq:  1.10,
         vet: 0.80
@@ -7718,19 +7785,21 @@ function doBattle(slot, opts){
 
       const ld = split.losses || {};
       const dMil = Math.max(0, Math.floor(ld.mil || 0));
+      const dArc = Math.max(0, Math.floor(ld.arc || 0));
       const dCav = Math.max(0, Math.floor(ld.cav || 0));
       const dAux = Math.max(0, Math.floor(ld.aux || 0));
       const dEq  = Math.max(0, Math.floor(ld.eq  || 0));
       const dVet = Math.max(0, Math.floor(ld.vet || 0));
 
       S.warriors = Math.max(0, beforeWarriors - dMil);
+      S.archers  = Math.max(0, beforeArch     - dArc);
       S.cavalry  = Math.max(0, beforeCav      - dCav);
       S.auxilia  = Math.max(0, beforeAux      - dAux);
       S.equites  = Math.max(0, beforeEq       - dEq);
       S.veterans = Math.max(0, beforeVet      - dVet);
 
-      losses = dMil + dCav + dAux + dEq + dVet;
-      lossDetail = { mil:dMil, cav:dCav, aux:dAux, eq:dEq, vet:dVet };
+      losses = dMil + dArc + dCav + dAux + dEq + dVet;
+      lossDetail = { mil:dMil, arc:dArc, cav:dCav, aux:dAux, eq:dEq, vet:dVet };
     }
   }
 
@@ -7751,7 +7820,7 @@ function doBattle(slot, opts){
     // Safety clamp (shouldn't happen, but protects old saves)
     S.warriors = S.population;
   }
-  S.populationUsed = (S.warriors||0) + (S.cavalry||0);
+  S.populationUsed = (S.warriors||0) + (S.archers||0) + (S.cavalry||0);
 
   recalcLegionStrength();
 
@@ -7789,18 +7858,18 @@ function doBattle(slot, opts){
     // Treasure caravans (from battleSim) further swing the payout.
     const treasureLootMult = sim.treasureLootMult || 1;
 
-    loot = Math.round(baseLoot * riskBonus * tierBonus * treasureLootMult);
+    loot = Math.round(baseLoot * riskBonus * tierBonus * treasureLootMult * 3.0);
 
     if(isDefence){
       // --- DEFENSIVE BATTLE REWARD (no land, safer fantasy) ---
-      loot = Math.max(5, Math.round(loot * 0.55));
+      loot = Math.max(5, Math.round(loot * 0.75));
       S.gold += loot;
       S.lifetimeGold += loot;
       bumpEarnedDenarii(loot);
 
       // Moderate renown for holding the line (slightly higher now)
       let renGain = Math.max(1, Math.round(enemies / 12) + tier * 3);
-      renGain = Math.round(renGain * landAllocRenownMult());
+      renGain = Math.round(renGain * landAllocRenownMult() * 2.5);
       S.renown += renGain;
       S.lifetimeRenown += renGain;
 
@@ -7808,7 +7877,7 @@ function doBattle(slot, opts){
       let gloryGain = Math.max(1, Math.round(enemies / 18) + tier);
       // Losses and land allocation (Military) make defence more renowned.
       gloryGain += Math.round(losses / 80);
-      gloryGain = Math.max(1, Math.round(gloryGain * landAllocLegionMult()));
+      gloryGain = Math.max(1, Math.round(gloryGain * landAllocLegionMult() * 3.0));
       S.glory = (S.glory || 0) + gloryGain;
       S.lifetimeGlory = (S.lifetimeGlory || 0) + gloryGain;
 
@@ -7817,7 +7886,7 @@ bumpObjective("winBattle", 1);
 
       toast("Village defended!");
 
-      const yourLossPct = Math.round(100 * losses / Math.max(1, beforeWarriors || 1));
+      const yourLossPct = Math.round(100 * losses / Math.max(1, totalTroops || 1));
       let winTag;
       if(yourLossPct <= 6)       winTag = "Clean defence";
       else if(yourLossPct <= 18) winTag = "Hard defence";
@@ -7908,7 +7977,7 @@ bumpObjective("winBattle", 1);
 
       // Renown from big wins (buffed so progression feels faster)
       let renGain = Math.max(1, Math.round(loot/90) + Math.round(landGain*3) + tier*4);
-      renGain = Math.round(renGain * landAllocRenownMult());
+      renGain = Math.round(renGain * landAllocRenownMult() * 2.5);
       S.renown += renGain;
       S.lifetimeRenown += renGain;
 
@@ -7920,7 +7989,7 @@ bumpObjective("winBattle", 1);
         Math.round(enemies / 20) +
         tier * 2
       );
-      gloryGain = Math.max(1, Math.round(gloryGain * landAllocLegionMult()));
+      gloryGain = Math.max(1, Math.round(gloryGain * landAllocLegionMult() * 3.0));
       S.glory = (S.glory || 0) + gloryGain;
       S.lifetimeGlory = (S.lifetimeGlory || 0) + gloryGain;
 
@@ -7931,11 +8000,11 @@ bumpObjective("winBattle", 1);
       maybeBurst("battle");
 
       // Political capital: victories generate influence with your realm.
-      const infGain = Math.max(1, Math.round(1 + sim.tier * 0.8 + landGain * 0.4));
+      const infGain = Math.max(1, Math.round((1 + sim.tier * 0.8 + landGain * 0.4) * 2.0));
       
       toast("Victory!");
 
-      const yourLossPct = Math.round(100 * losses / Math.max(1, beforeWarriors || 1));
+      const yourLossPct = Math.round(100 * losses / Math.max(1, totalTroops || 1));
       let winTag;
       if(yourLossPct <= 6)       winTag = "Clean win";
       else if(yourLossPct <= 18) winTag = "Hard win";
@@ -7982,7 +8051,7 @@ bumpObjective("winBattle", 1);
 
     toast(isDefence ? "Defence lost" : "Defeat");
 
-    const yourLossPct = Math.round(100 * losses / Math.max(1, beforeWarriors || 1));
+    const yourLossPct = Math.round(100 * losses / Math.max(1, totalTroops || 1));
     let lossTag;
     if(yourLossPct <= 12)      lossTag = isDefence ? "Breach at the edge" : "Setback";
     else if(yourLossPct <= 28) lossTag = "Bloody loss";
@@ -8417,7 +8486,7 @@ $("#btnExport").addEventListener("click", async ()=>{
 
           // They leave the population as well (either gone or dead).
           S.population = Math.max(0, (S.population || 0) - lose);
-          S.populationUsed = (S.warriors||0) + (S.cavalry||0);
+          S.populationUsed = (S.warriors||0) + (S.archers||0) + (S.cavalry||0);
 
           recalcLegionStrength();
 
@@ -8469,7 +8538,7 @@ $("#btnExport").addEventListener("click", async ()=>{
 
     // Keep pop-used synced with milites, and clamp old saves
     if((S.population||0) < (S.warriors||0)) S.warriors = S.population;
-    S.populationUsed = (S.warriors||0) + (S.cavalry||0);
+    S.populationUsed = (S.warriors||0) + (S.archers||0) + (S.cavalry||0);
 
 
     render();
@@ -8565,15 +8634,44 @@ $("#btnExport").addEventListener("click", async ()=>{
     const detail = {
       mil: Math.max(0, norm(initPools.mil) - norm(endPools.mil)),
       cav: Math.max(0, norm(initPools.cav) - norm(endPools.cav)),
+      arc: Math.max(0, norm(initPools.arc) - norm(endPools.arc)),
       aux: Math.max(0, norm(initPools.aux) - norm(endPools.aux)),
       eq:  Math.max(0, norm(initPools.eq)  - norm(endPools.eq)),
       vet: Math.max(0, norm(initPools.vet) - norm(endPools.vet))
     };
 
     const totalLostAll =
-      detail.mil + detail.cav + detail.aux + detail.eq + detail.vet;
+      detail.mil + detail.cav + detail.arc + detail.aux + detail.eq + detail.vet;
 
-    // For backward compatibility, still pass a milites-only overrideLoss,
+    
+    // Commander orders: field medics can soften the final toll of this battle.
+    const medicsOrders = s.medicsOrders || 0;
+    if(medicsOrders > 0 && totalLostAll > 0){
+      // Each order lets a slice of the wounded return to the ranks, up to a cap.
+      const maxFrac = Math.min(0.25, medicsOrders * 0.06); // up to 25% of losses recoverable
+      const maxSaved = Math.floor(totalLostAll * maxFrac);
+
+      let remaining = maxSaved;
+
+      function refundType(key){
+        if(remaining <= 0) return;
+        const lost = detail[key] || 0;
+        if(lost <= 0) return;
+        const give = Math.min(lost, remaining);
+        detail[key] = lost - give;
+        remaining -= give;
+      }
+
+      // Return cheaper bodies first by default; can tune later.
+      refundType("mil");
+      refundType("aux");
+      refundType("arc");
+      refundType("cav");
+      refundType("eq");
+      refundType("vet");
+    }
+
+// For backward compatibility, still pass a milites-only overrideLoss,
     // but also send the full breakdown in overrideLossDetail.
     const militeLoss = detail.mil;
 
@@ -8592,16 +8690,18 @@ $("#btnExport").addEventListener("click", async ()=>{
   function tacticalQualityForPlayer(){
     const mil = Number(S.warriors || 0);
     const cav = Number(S.cavalry  || 0);
+    const arc = Number(S.archers  || 0);
     const aux = Number(S.auxilia  || 0);
     const eq  = Number(S.equites  || 0);
     const vet = Number(S.veterans || 0);
 
-    const total = Math.max(1, mil + cav + aux + eq + vet);
+    const total = Math.max(1, mil + cav + arc + aux + eq + vet);
 
     // Frontline heavies and veterans push quality up.
     const weighted =
       mil * 1.00 +
       cav * 1.25 +
+      arc * 1.05 +
       aux * 1.10 +
       eq  * 1.35 +
       vet * 1.30;
@@ -8705,13 +8805,15 @@ $("#btnExport").addEventListener("click", async ()=>{
     }
 
     const newPool = {};
+    let totalLost = 0;
     for(const k of keys){
       const count = pool[k] || 0;
       const lost = losses[k] || 0;
       newPool[k] = Math.max(0, count - lost);
+      totalLost += lost;
     }
 
-    return { losses: losses, remaining: newPool };
+    return { losses: losses, remaining: newPool, total: totalLost };
   }
 
   // Helper: enemy composition for tactical view only.
@@ -8888,23 +8990,62 @@ $("#btnExport").addEventListener("click", async ()=>{
     fracKillEnemy = noisy(fracKillEnemy);
     fracKillYou   = noisy(fracKillYou);
 
-    // Clamp kill fractions
+        // Field works from commander orders: engineers reduce incoming damage for the rest of the fight.
+    if(s.engineersBuilt){
+      // Defensive works mostly blunt enemy killing power.
+      fracKillYou *= 0.7;
+      // They also make it a bit harder for you to press the attack.
+      fracKillEnemy *= 0.95;
+    }
+
+// Clamp kill fractions
     fracKillEnemy = Math.max(0.01, Math.min(0.65, fracKillEnemy));
-    fracKillYou   = Math.max(0.0,  Math.min(0.80, fracKillYou));
+
+    // Even when you're winning hard, there should still be some risk while the enemy has bodies on the field.
+    // We keep a tiny minimum self-loss fraction for non-trivial remaining enemy forces, so late rounds don't go "free".
+    let minYouFrac = 0.0;
+    if(enemyTroops > 0){
+      const rel = enemyTroops / Math.max(1, s.initEnemy || enemyTroops);
+      if(enemyTroops >= 5 && rel > 0.10){
+        minYouFrac = 0.005;
+      }
+    }
+    fracKillYou   = Math.max(minYouFrac, Math.min(0.80, fracKillYou));
 
     // Convert fractions → integer casualties
     let dmgToE = Math.floor(enemyTroops * fracKillEnemy);
     let dmgToP = Math.floor(yourTroops  * fracKillYou);
 
+    // For very small remaining forces, make sure battles don't stall with 0–5 troops surviving many rounds.
+    // If there are still troops on the field and the fractional kill says "some" damage,
+    // enforce at least 1 casualty on that side.
+    if (enemyTroops > 0 && dmgToE <= 0 && fracKillEnemy > 0) {
+      dmgToE = 1;
+    }
+    if (yourTroops > 0 && dmgToP <= 0 && fracKillYou > 0) {
+      dmgToP = 1;
+    }
+
     if(dmgToE < 1 && enemyTroops > 0) dmgToE = 1;
     if(dmgToP < 0) dmgToP = 0;
+
+    // If rounding would give you a completely free round while meaningful enemy forces remain,
+    // occasionally turn that into a single unlucky casualty so the fight never feels "riskless".
+    if(dmgToP === 0 && enemyTroops > 0 && fracKillYou > 0){
+      const relRemain = enemyTroops / Math.max(1, s.initEnemy || enemyTroops);
+      if(enemyTroops >= 5 && relRemain > 0.10 && Math.random() < 0.6){
+        dmgToP = 1;
+      }
+    }
+
     if(dmgToE > enemyTroops) dmgToE = enemyTroops;
     if(dmgToP > yourTroops)  dmgToP = yourTroops;
 
     // --- Distribute casualties across troop types ---
     const playerExposure = s.playerExposure || {
       mil: 1.0,
-      cav: 1.15,
+      cav: 1.05,
+      arc: 1.25,
       aux: 0.95,
       eq:  1.1,
       vet: 0.8
@@ -8945,6 +9086,7 @@ $("#btnExport").addEventListener("click", async ()=>{
       const map = {
         mil: { label: "Milites",  icon: "Sprites/Milites.png" },
         cav: { label: "Cavalry",  icon: "Sprites/Cavalry.png" },
+        arc: { label: "Archers",  icon: "Sprites/Archers.png" },
         aux: { label: "Auxilia",  icon: null },
         eq:  { label: "Equites",  icon: null },
         vet: { label: "Veterans", icon: null }
@@ -9054,11 +9196,12 @@ $("#btnExport").addEventListener("click", async ()=>{
     // Use *all* troop types as the visible pool for this battle.
     const mil = Number(S.warriors || 0);
     const cav = Number(S.cavalry  || 0);
+    const arc = Number(S.archers  || 0);
     const aux = Number(S.auxilia  || 0);
     const eq  = Number(S.equites  || 0);
     const vet = Number(S.veterans || 0);
 
-    const totalTroops = mil + cav + aux + eq + vet;
+    const totalTroops = mil + cav + arc + aux + eq + vet;
 
     if(totalTroops <= 0){
       toast('You have no troops to muster.');
@@ -9094,6 +9237,7 @@ $("#btnExport").addEventListener("click", async ()=>{
       initPlayerPools: {
         mil: mil,
         cav: cav,
+        arc: arc,
         aux: aux,
         eq:  eq,
         vet: vet
@@ -9111,13 +9255,15 @@ $("#btnExport").addEventListener("click", async ()=>{
       playerPools: {
         mil: mil,
         cav: cav,
+        arc: arc,
         aux: aux,
         eq:  eq,
         vet: vet
       },
       playerExposure: {
         mil: 1.0,
-        cav: 1.15,
+        cav: 1.05,
+        arc: 1.25,
         aux: 0.95,
         eq:  1.1,
         vet: 0.8
@@ -9133,33 +9279,121 @@ $("#btnExport").addEventListener("click", async ()=>{
     }
 
     // Wire buttons each time we open to be safe.
-    const btnA    = document.getElementById('tacBtnAttack');
-    const btnD    = document.getElementById('tacBtnDefend');
-    const btnH    = document.getElementById('tacBtnHeal');
-    const btnAuto = document.getElementById('tacBtnAuto');
-    const btnClose= document.getElementById('tacCloseBtn');
+    const btnA     = document.getElementById('tacBtnAttack');
+    const btnD     = document.getElementById('tacBtnOversee');
+    const btnH     = document.getElementById('tacBtnStats');
+    const btnClose = document.getElementById('tacCloseBtn');
 
-    if(btnA)    btnA.onclick    = ()=> tacAction('attack');
-    if(btnD)    btnD.onclick    = ()=> tacAction('defend');
-    if(btnH)    btnH.onclick    = ()=> tacAction('heal'); // Rally
-    if(btnAuto) btnAuto.onclick = ()=>{
-      // Auto-resolve using existing simulation; hide overlay and call doBattle normally.
-      if(overlay) overlay.style.display = 'none';
-      if(currentTactical){
-        const autoSlot = currentTactical.slot;
-        currentTactical = null;
-        doBattle(autoSlot, { suppressSim: true });
-      }
-    };
-    if(btnClose) btnClose.onclick = ()=>{
-      if(currentTactical){
-        currentTactical.events.push('You call the retreat.');
-        currentTactical.finished = true;
-        finishTacticalBattle(false);
-      }
-    };
+    if (btnA) {
+      btnA.onclick = () => tacAction('attack');
+    }
+    if (btnD) {
+      btnD.onclick = () => openTacticalOversee();
+    }
+    if (btnH) {
+      btnH.onclick = () => toggleTacticalStats();
+    }
+    if (btnClose) {
+      btnClose.onclick = () => {
+        if (currentTactical) {
+          currentTactical.events.push('You call the retreat.');
+          currentTactical.finished = true;
+          finishTacticalBattle(false);
+        }
+      };
+    }
 
     updateTacticalUI();
+  }
+
+
+  function openTacticalOversee(){
+    try{
+      const s = window.currentTactical;
+      if(!s || s.finished){
+        toast("The battle is already decided.");
+        return;
+      }
+
+      const overlay = document.getElementById('tacOrdersOverlay');
+      if(!overlay){
+        toast("Orders interface missing.");
+        return;
+      }
+
+      // Populate overlay text and button states based on current situation.
+      const titleEl = document.getElementById('tacOrdersTitle');
+      const descEl  = document.getElementById('tacOrdersDesc');
+      const btnMed  = document.getElementById('tacOrdersMedics');
+      const btnEng  = document.getElementById('tacOrdersEngineers');
+      const noteEl  = document.getElementById('tacOrdersNote');
+
+      const sim  = s.sim || {};
+      const tier = sim.tier || 1;
+      const gold = S.gold || 0;
+
+      const medCost = 35 + tier * 12;
+      const engCost = 60 + tier * 18;
+
+      if(titleEl) titleEl.textContent = "Oversee the Battle";
+      if(descEl){
+        descEl.textContent = "Issue mid-battle orders that trade denarii for lives and field position.";
+      }
+      if(noteEl){
+        noteEl.textContent = "Current gold: " + fmt(gold);
+      }
+
+      if(btnMed){
+        btnMed.disabled = (gold < medCost);
+        btnMed.textContent = "Field Medics (" + medCost + "d)";
+        btnMed.onclick = function(){
+          const g = S.gold || 0;
+          if(g < medCost){
+            toast("You lack the denarii to call for medics.");
+            return;
+          }
+          S.gold = g - medCost;
+          s.medicsOrders = (s.medicsOrders || 0) + 1;
+          toast("You dispatch field medics to save the wounded.");
+          if(typeof render === "function") render();
+          overlay.style.display = 'none';
+        };
+      }
+
+      if(btnEng){
+        const canBuild = !s.engineersBuilt && (s.round || 0) <= 3;
+        btnEng.style.display = canBuild ? '' : 'none';
+        if(canBuild){
+          btnEng.disabled = (gold < engCost);
+          btnEng.textContent = "Raise Field Works (" + engCost + "d)";
+          btnEng.onclick = function(){
+            const g = S.gold || 0;
+            if(g < engCost){
+              toast("You lack the denarii to raise proper fieldworks.");
+              return;
+            }
+            S.gold = g - engCost;
+            s.engineersBuilt = true;
+            toast("Engineers throw up ditches and palisades along your line.");
+            if(typeof render === "function") render();
+            overlay.style.display = 'none';
+          };
+        }
+      }
+
+      overlay.style.display = 'flex';
+    }catch(e){}
+  }
+
+  function toggleTacticalStats(){
+    try{
+      // For now, just toggle a simple flag and re-render, so future UI can show extra numbers.
+      window.tacticalStatsVisible = !window.tacticalStatsVisible;
+      toast(window.tacticalStatsVisible
+        ? "Battle stats overlay toggled on."
+        : "Battle stats overlay toggled off.");
+      if(typeof updateTacticalUI === "function") updateTacticalUI();
+    }catch(e){}
   }
 
 // Land tier unlock popup helpers
@@ -9274,7 +9508,6 @@ $("#btnExport").addEventListener("click", async ()=>{
       <div class="sectionTitle" style="justify-content:space-between;">
         <span id="battleSimTitle" style="color:var(--accent);font-weight:900;">Engagement</span>
         <div style="display:flex;gap:8px;align-items:center;">
-          <button class="tab" style="padding:8px 12px;" id="battleSimSkip">Auto resolve</button>
         </div>
       </div>
       <div class="cardBody" style="padding:14px;">
@@ -9285,7 +9518,28 @@ $("#btnExport").addEventListener("click", async ()=>{
             <div class="simMetaText" id="battleSimEnemyName">0 enemies</div>
           </div>
         </div>
-<div class="simBlock"> <div class="simLabel">Enemy</div> <div class="simBar"> <div class="battleBar"> <img id="battleSimEnemyBarImg" class="battleBarSprite" src="Sprites/player and enemy bars/enemy bar full.png" alt="Enemy bar"> <div class="battleBarCount battleBarCount--enemy" id="enemyBarCount"></div> </div> </div> <div class="simStats" id="battleSimEnemyStats"></div> </div> <div class="simBlock"> <div class="simLabel">Your force</div> <div class="simBar"> <div class="battleBar"> <img id="battleSimYourBarImg" class="battleBarSprite" src="Sprites/player and enemy bars/Player bar full.png" alt="Your bar"> <div class="battleBarCount battleBarCount--ally" id="yourBarCount"></div> </div> </div> <div class="simStats" id="battleSimYourStats"></div> </div>
+<div class="simBlock"> <div class="simLabel">Enemy</div> <div class="simBar"> <div class="battleBar"> <img id="battleSimEnemyBarImg" class="battleBarSprite" src="Sprites/player and enemy bars/enemy bar full.png" alt="Enemy bar"> <div class="battleBarCount battleBarCount--enemy" id="enemyBarCount"></div> </div> </div> <div class="simStats" id="battleSimEnemyStats"></div> </div> <div class="simBlock"> <div class="simLabel">Your force</div> <div class="simBar"> <div class="ba
+  <div id="tacOrdersOverlay" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:2300;">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);"></div>
+    <div class="card" style="position:relative;width:min(420px, calc(100vw - 26px));border-radius:24px;overflow:hidden;">
+      <div class="sectionTitle" style="justify-content:space-between;">
+        <span id="tacOrdersTitle" style="color:var(--accent);font-weight:900;">Oversee the Battle</span>
+        <button class="tab" style="padding:6px 10px;" type="button" onclick="document.getElementById('tacOrdersOverlay').style.display='none'">Close</button>
+      </div>
+      <div class="cardBody" style="padding:14px;display:flex;flex-direction:column;gap:10px;">
+        <div id="tacOrdersDesc" style="font-size:14px;opacity:0.9;">
+          Issue mid-battle orders to trade denarii for lives and better position.
+        </div>
+        <div id="tacOrdersNote" style="font-size:13px;opacity:0.8;">
+          Current gold: 0
+        </div>
+        <button class="tab" id="tacOrdersMedics" type="button">Field Medics</button>
+        <button class="tab" id="tacOrdersEngineers" type="button">Raise Field Works</button>
+      </div>
+    </div>
+  </div>
+
+ttleBar"> <img id="battleSimYourBarImg" class="battleBarSprite" src="Sprites/player and enemy bars/Player bar full.png" alt="Your bar"> <div class="battleBarCount battleBarCount--ally" id="yourBarCount"></div> </div> </div> <div class="simStats" id="battleSimYourStats"></div> </div>
 
 
         <div class="simEvents" id="battleSimEvents"></div>
@@ -9301,9 +9555,8 @@ $("#btnExport").addEventListener("click", async ()=>{
   <div id="tacticalOverlay" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:2250;">
     <div style="position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);"></div>
     <div class="card" style="position:relative;width:min(560px, calc(100vw - 26px));border-radius:26px;overflow:hidden;">
-      <div class="sectionTitle" style="justify-content:space-between;">
+      <div class="sectionTitle" style="justify-content:center;">
         <span id="tacticalTitle" style="color:var(--accent);font-weight:900;">Battle Orders</span>
-        <button class="tab" style="padding:8px 12px;" id="tacCloseBtn" type="button">Retreat</button>
       </div>
       <div class="cardBody" style="padding:14px;">
         <div class="simBlock">
@@ -9326,10 +9579,8 @@ $("#btnExport").addEventListener("click", async ()=>{
         </div>
         <div id="tacEvents" class="simEvents" style="margin-top:8px;min-height:60px;max-height:160px;overflow-y:auto;"></div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
-          <button class="tab" id="tacBtnAttack" type="button" style="flex:1 1 auto;">Assault</button>
-          <button class="tab" id="tacBtnDefend" type="button" style="flex:1 1 auto;">Defend</button>
-          <button class="tab" id="tacBtnHeal" type="button" style="flex:1 1 auto;">Heal</button>
-          <button class="tab" id="tacBtnAuto" type="button" style="flex:1 1 auto;">Auto</button>
+          <button class="tab" id="tacBtnAttack" type="button" style="flex:1 1 auto;">Attack</button>
+          <button class="tab" id="tacCloseBtn" type="button" style="flex:1 1 auto;">Retreat</button>
         </div>
       </div>
     </div>
