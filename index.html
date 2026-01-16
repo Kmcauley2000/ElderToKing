@@ -1554,6 +1554,28 @@ header{
       </div>
     </section>
   </div>
+  <div id="populationOverlay" class="offlineOverlay" hidden>
+    <section class="offlineCard" role="dialog" aria-modal="true" aria-labelledby="populationTitle">
+      <div class="offlineTitle">
+        <div>
+          <div id="populationTitle" class="offlineTitleText">Population</div>
+          <div class="offlineSub">See how many people you have and how fast they arrive.</div>
+        </div>
+        <div style="font-size:1.6rem;line-height:1;">👥</div>
+      </div>
+      <div class="offlineBody">
+        <div class="villagePopBlock">
+          <div>Population: <b id="popUsed">0</b></div>
+          <div>Population Capacity: <b id="popCap">0</b></div>
+          <div>Migration: <b id="migRate">0.00</b>/s</div>
+        </div>
+      </div>
+      <div class="offlineOkRow">
+        <button id="populationCloseBtn" class="offlineOkBtn">Close</button>
+      </div>
+    </section>
+  </div>
+
 
 
 
@@ -1629,25 +1651,25 @@ header{
         </button>
 
 
-        <button class="smallBtn" id="btnConstruction" style="margin-top:10px;">
-          <div class="t">Construction</div>
-          <div class="d">Build farms, villas, and more as you grow.</div>
-        </button>
-
-        <div class="villagePopBlock">
-          <div>Population: <b id="popUsed">0</b></div>
-          <div>Population Capacity: <b id="popCap">0</b></div>
-          <div>Migration: <b id="migRate">0.00</b>/s</div>
-        </div>
+        <div class="row2" style="display:flex;gap:10px;margin-top:10px;">
+<button class="smallBtn" id="btnConstruction" style="flex:1;">
+  <div class="t">Construction</div>
+  <div class="d">Build farms, villas, and more as you grow.</div>
+</button>
+<button class="smallBtn" id="btnPopulation" style="flex:1;">
+  <div class="t">Population</div>
+  <div class="d">See people, capacity, and migration.</div>
+</button>
+</div>
 
         <div class="bar"><div id="progressFill"></div></div>
-        <p id="incomeBreakdown" style="margin:6px 0 0;font-size:.72rem;color:var(--muted);">
-          Income: 0.00/s (net)
-        </p>
         <div class="meta">
           <div>Title: <b id="title">Village Elder</b></div>
           <div>Next: <b id="nextTitle">Village Elder</b></div>
         </div>
+        <p id="incomeBreakdown" style="margin:6px 0 0;font-size:.72rem;color:var(--muted);">
+          Income: 0.00/s (net)
+        </p>
 
         <div class="miniLog">
           <div class="miniLogHeader">Recent Events</div>
@@ -8830,6 +8852,24 @@ $("#btnBattleSiege").addEventListener("click", ()=> startTacticalBattle(3));
 
     render();
   });
+
+const populationOverlay = $("#populationOverlay");
+const btnPopulation = $("#btnPopulation");
+const btnPopulationClose = $("#populationCloseBtn");
+
+if(btnPopulation && populationOverlay){
+  btnPopulation.addEventListener("click", ()=>{
+    populationOverlay.removeAttribute("hidden");
+    populationOverlay.classList.add("visible");
+  });
+}
+
+if(btnPopulationClose && populationOverlay){
+  btnPopulationClose.addEventListener("click", ()=>{
+    populationOverlay.classList.remove("visible");
+    populationOverlay.setAttribute("hidden","hidden");
+  });
+}
 
 const constructionOverlay = $("#constructionOverlay");
 const btnConstruction = $("#btnConstruction");
