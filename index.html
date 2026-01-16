@@ -8875,6 +8875,47 @@ $("#btnExport").addEventListener("click", async ()=>{
   }
 
 
+
+
+  function tacticalClassifyPlayer(pPool){
+    pPool = pPool || {};
+    const mil = pPool.mil || 0;
+    const cav = pPool.cav || 0;
+    const arc = pPool.arc || 0;
+    const aux = pPool.aux || 0;
+    const eq  = pPool.eq  || 0;
+    const vet = pPool.vet || 0;
+    const total = Math.max(1, mil + cav + arc + aux + eq + vet);
+
+    return {
+      total: total,
+      inf: mil + aux + vet,      // generic line infantry
+      cav: cav + eq,             // horse
+      ranged: arc                // player archers count as ranged
+    };
+  }
+
+  function tacticalClassifyEnemy(ePool){
+    ePool = ePool || {};
+    const band = ePool.Bandits      || 0;
+    const skir = ePool.Skirmishers  || 0;
+    const raid = ePool.Raiders      || 0;
+    const hors = ePool.Horsemen     || 0;
+    const mil  = ePool["Town Militia"] || 0;
+    const inf  = ePool.Infantry     || 0;
+    const arch = ePool.Archers      || 0;
+    const guard= ePool.Guard        || 0;
+
+    const total = Math.max(1, band+skir+raid+hors+mil+inf+arch+guard);
+
+    return {
+      total: total,
+      inf: band + raid + mil + inf + guard,
+      cav: hors,
+      ranged: skir + arch
+    };
+  }
+
   function tacAction(action){
     const s = currentTactical;
     if(!s || s.finished) return;
@@ -8891,6 +8932,11 @@ $("#btnExport").addEventListener("click", async ()=>{
     if(yourTroops <= 0 || enemyTroops <= 0){
       return;
     }
+
+    const pComp = tacticalClassifyPlayer(pPool);
+    const eComp = tacticalClassifyEnemy(ePool);
+    yourTroops  = pComp.total;
+    enemyTroops = eComp.total;
 
     // --- Stance multipliers (your choice) ---
     // Attack  = hit harder, take a bit more
@@ -8929,11 +8975,41 @@ $("#btnExport").addEventListener("click", async ()=>{
     const mEn  = s.moraleEnemy;
 
     // Effective attack / defence with diminishing returns on size.
-    const effAtkYou = Math.pow(yourTroops, 0.80) * qYou * mYou * atkYou;
-    const effDefYou = Math.max(1, Math.pow(yourTroops, 0.50) * qYou * mYou * defYou);
+    let effAtkYou = Math.pow(yourTroops, 0.80) * qYou * mYou * atkYou;
+    let effDefYou = Math.max(1, Math.pow(yourTroops, 0.50) * qYou * mYou * defYou);
 
-    const effAtkEn = Math.pow(enemyTroops, 0.80) * qEn * mEn * atkEn;
-    const effDefEn = Math.max(1, Math.pow(enemyTroops, 0.50) * qEn * mEn * defEn);
+    let effAtkEn = Math.pow(enemyTroops, 0.80) * qEn * mEn * atkEn;
+    let effDefEn = Math.max(1, Math.pow(enemyTroops, 0.50) * qEn * mEn * defEn);
+
+    // --- Composition shares (infantry, cavalry, ranged) ---
+    const yourCavShare    = pComp.cav / Math.max(1, pComp.total);
+    const yourInfShare    = pComp.inf / Math.max(1, pComp.total);
+    const yourRangedShare = pComp.ranged / Math.max(1, pComp.total);
+    const enInfShare      = eComp.inf / Math.max(1, eComp.total);
+    const enCavShare      = eComp.cav / Math.max(1, eComp.total);
+    const enRangedShare   = eComp.ranged / Math.max(1, eComp.total);
+
+    // --- Cavalry vs infantry matchups ---
+    if (yourCavShare > 0.10 && enInfShare > 0.30) {
+      const cavPressure = Math.min(0.40, yourCavShare * enInfShare * 1.20);
+      effAtkYou *= (1 + cavPressure);
+    }
+
+    if (enCavShare > 0.10 && yourInfShare > 0.30) {
+      const cavThreat = Math.min(0.40, enCavShare * yourInfShare * 1.20);
+      effAtkEn *= (1 + cavThreat * 0.70);
+      effDefYou *= (1 - cavThreat * 0.40);
+    }
+
+    // --- Ranged pressure: big early damage ---
+    if (enRangedShare > 0.15 && (s.round || 1) <= 2) {
+      const rangedShock = Math.min(0.35, enRangedShare * 1.30);
+      effAtkEn *= (1 + rangedShock);
+    }
+    if (yourRangedShare > 0.15 && (s.round || 1) <= 2) {
+      const rangedShockYou = Math.min(0.35, yourRangedShare * 1.30);
+      effAtkYou *= (1 + rangedShockYou);
+    }
 
     // Base kill fraction knob — how "fast" battles chew through troops.
     // Slightly higher now so equal-sized fights feel bloodier and resolve faster.
@@ -9042,7 +9118,7 @@ $("#btnExport").addEventListener("click", async ()=>{
     if(dmgToP > yourTroops)  dmgToP = yourTroops;
 
     // --- Distribute casualties across troop types ---
-    const playerExposure = s.playerExposure || {
+    const basePlayerExposure = s.playerExposure || {
       mil: 1.0,
       cav: 1.05,
       arc: 1.25,
@@ -9050,7 +9126,48 @@ $("#btnExport").addEventListener("click", async ()=>{
       eq:  1.1,
       vet: 0.8
     };
-    const enemyExposure = s.enemyExposure || {};
+    const baseEnemyExposure = s.enemyExposure || {};
+
+    const playerExposure = Object.assign({}, basePlayerExposure);
+    const enemyExposure  = Object.assign({}, baseEnemyExposure);
+
+    // Archers are more exposed once lines clash, especially after early volleys.
+    if (eComp.ranged > 0) {
+      const round = s.round || 1;
+      let archFactor = 1.2;
+      if (round >= 2) archFactor += 0.2;
+      if (round >= 4) archFactor += 0.2;
+
+      if (enemyExposure["Archers"] != null) {
+        enemyExposure["Archers"] *= archFactor;
+      }
+      if (enemyExposure["Skirmishers"] != null) {
+        enemyExposure["Skirmishers"] *= (archFactor * 0.9);
+      }
+    }
+
+    if (pComp.ranged > 0) {
+      const round = s.round || 1;
+      let arcFactor = 1.1;
+      if (round >= 2) arcFactor += 0.25;
+      if (round >= 4) arcFactor += 0.25;
+      if (playerExposure.arc != null) {
+        playerExposure.arc *= arcFactor;
+      }
+    }
+
+    // When cavalry crashes into tougher enemies (Guard, other cav), it suffers more.
+    if (pComp.cav > 0 && (eComp.cav > 0 || (ePool.Guard || 0) > 0)) {
+      if (playerExposure.cav != null) playerExposure.cav *= 1.15;
+      if (playerExposure.eq  != null) playerExposure.eq  *= 1.10;
+    }
+
+    // Enemy cavalry tearing through your line infantry, but also getting chewed by prepared spears.
+    if (enCavShare > 0.10 && yourInfShare > 0.20) {
+      if (enemyExposure["Horsemen"] != null) {
+        enemyExposure["Horsemen"] *= 1.10;
+      }
+    }
 
     const splitP = tacticalSplitLosses(dmgToP, pPool, playerExposure);
     const splitE = tacticalSplitLosses(dmgToE, ePool, enemyExposure);
@@ -9156,7 +9273,8 @@ $("#btnExport").addEventListener("click", async ()=>{
       }
     }
 
-    const msg = `${icon} ${stanceLabel} R${s.round}: ${youPart}; ${enemyPart}.${extraMsg}`;
+    const extraLine = extraMsg ? `<br>${extraMsg.trim()}` : "";
+    const msg = `${icon} ${stanceLabel} Round ${s.round}:<br>Your losses: ${playerLossText}<br>Enemy losses: ${enemyLossText}${extraLine}`;
     s.events.push(msg);
 
     // --- Rout / end conditions ---
