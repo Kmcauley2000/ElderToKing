@@ -3515,10 +3515,15 @@ const totalPages = Math.max(1, Math.ceil(cards.length / PAGE_SIZE));
         el.className = "smallBtn factionCard";
         el.setAttribute("data-battle-slot", String(card.battleSlot));
         el.setAttribute("data-faction-index", String(card.cardIndex));
+
+        const iconHtml = (card.type === "Bandit camp")
+          ? '<img src="Sprites/Bandits.png" class="tacLossIcon" alt="Bandits">'
+          : (card.icon || "⚔️");
+
         el.innerHTML = [
   '<div class="factionCardHeader">',
     '<div>',
-      '<div class="factionCardTitle">', card.icon, " ", card.name, "</div>",
+      '<div class="factionCardTitle">', iconHtml, " ", card.name, "</div>",
     "</div>",
   "</div>",
   '<div class="factionCardLeader">Leader: ', card.leader, "</div>",
@@ -11093,7 +11098,7 @@ function actuallyStartTacticalBattle(){
     <div style="position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);" onclick="closeFactionAssimilation()"></div>
     <div class="card" style="position:relative;width:min(520px, calc(100vw - 26px));border-radius:26px;overflow:hidden;">
       <div class="sectionTitle" style="justify-content:space-between;">
-        <span style="display:flex;align-items:center;gap:6px;"><img src="images/Bandits.png" style="width:22px;height:22px;image-rendering:pixelated;"><span id="factionAssimTitle" style="color:var(--accent);font-weight:900;">Faction Defeated</span></span>
+        <span id="factionAssimTitle" style="color:var(--accent);font-weight:900;">Faction Defeated</span>
         <button class="tab" style="padding:8px 12px;" type="button" onclick="closeFactionAssimilation()">Close</button>
       </div>
       <div class="cardBody" style="padding:14px;">
