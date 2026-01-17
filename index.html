@@ -189,6 +189,134 @@ body::after{
     .bigRight .hint{font-size:.72rem;color:var(--muted);margin-top:2px;}
     .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
     .row2.battleRow{grid-template-columns:1fr;}
+
+    /* PURGE UI: Hide battle cards grid visually but keep battle/tactics systems functional */
+    .row2.battleRow,
+    .smallBtn.battleCard{
+      display:none !important;
+    }
+
+    /* Faction card layout within Legion view */
+    .factionCardsWrap{
+      margin-top:12px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .factionCardsGrid{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .factionPanelCol{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .factionCard{
+      text-align:left;
+      align-items:flex-start;
+      gap:6px;
+      padding:10px 12px;
+      border-radius:16px;
+      width:100%;
+    }
+    .factionCardHeader{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:8px;
+      font-family:var(--mono);
+      font-size:.78rem;
+    }
+    .factionCardTitle{
+      font-weight:900;
+      color:var(--accent);
+      font-size:.9rem;
+    }
+    .factionCardType{
+      font-family:var(--sans);
+      font-size:.72rem;
+      color:var(--muted);
+    }
+    .factionCardStats{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px 12px;
+      margin-top:4px;
+      font-family:var(--mono);
+      font-size:.74rem;
+    }
+    .factionCardStat{
+      display:flex;
+      gap:4px;
+      align-items:center;
+    }
+    .factionCardLeader{
+      margin-top:4px;
+      font-family:var(--sans);
+      font-size:.76rem;
+    }
+    .factionCardActions{
+      margin-top:6px;
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:6px;
+    }
+    .factionPager{
+      margin-top:8px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      font-family:var(--mono);
+      font-size:.72rem;
+      color:var(--muted);
+    }
+    .factionPageDot{
+      width:6px;
+      height:6px;
+      border-radius:999px;
+      background:rgba(255,255,255,0.35);
+    }
+    .factionPageDot.is-active{
+      background:var(--accent);
+    }
+
+    /* Faction buttons: reuse the same gradient / border as smallBtn, but in a compact size */
+    .factionActionBtn,
+    .factionPageBtn{
+      border:1px solid rgba(244,170,92,.9);
+      background: linear-gradient(180deg,
+                   rgba(255,255,255,0.32),
+                   rgba(244,170,92,0.28));
+      color:var(--text);
+      border-radius:14px;
+      padding:4px 10px;
+      cursor:pointer;
+      font-family:var(--mono);
+      font-size:.78rem;
+      min-height:0;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:4px;
+      transition: transform .08s ease, border-color .2s ease, opacity .2s ease, filter .2s ease;
+      touch-action:manipulation;
+    }
+    .factionActionBtn{
+      flex:0 0 auto;
+    }
+    .factionPageBtn{
+      min-width:32px;
+    }
+    .factionPageBtn.is-active,
+    .factionActionBtn:focus-visible{
+      outline:0;
+      filter:brightness(1.15);
+      font-weight:700;
+    }
+
     .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;}
     @media (max-width: 520px){ .row3{grid-template-columns:1fr;} }
 
@@ -1574,11 +1702,9 @@ header{
         <div style="font-size:1.6rem;line-height:1;">👥</div>
       </div>
       <div class="offlineBody">
-        <div class="villagePopBlock">
-          <div>Population: <b id="popUsed">0</b></div>
-          <div>Population Capacity: <b id="popCap">0</b></div>
-          <div>Migration: <b id="migRate">0.00</b>/s</div>
-        </div>
+        <table class="table" aria-label="Population details">
+          <tbody id="populationTable"></tbody>
+        </table>
       </div>
       <div class="offlineOkRow">
         <button id="populationCloseBtn" class="offlineOkBtn">Close</button>
@@ -1759,12 +1885,24 @@ header{
           </div>
         </button>
 
-
-
-        
+        <!-- [VIEW] LEGION – Neighboring Factions / Faction Cards -->
+        <div id="factionCardsContainer" class="factionCardsWrap">
+          <div class="sectionTitle" style="margin-top:10px;border-radius:14px 14px 0 0;">
+            <span>Neighboring Factions</span>
+            <span style="font-size:.72rem;color:var(--muted);">Scouts report nearby powers.</span>
+          </div>
+          <div class="cardBody" style="padding:10px 12px;border-radius:0 0 14px 14px;border:1px solid rgba(244,170,92,0.32);border-top:none;background:linear-gradient(180deg,rgba(255,255,255,0.18),rgba(244,170,92,0.16));">
+            <div id="factionCardsList" class="factionCardsGrid"></div>
+            <div id="factionCardsPager" class="factionPager">
+              <button type="button" class="factionPageBtn" data-page-dir="-1">&#x25C0;</button>
+              <span id="factionPageLabel">1 / 1</span>
+              <button type="button" class="factionPageBtn" data-page-dir="1">&#x25B6;</button>
+            </div>
+          </div>
+        </div>
         <div class="row2 battleRow">
           <button class="smallBtn battleCard" id="btnBattleBandits1">
-            <div class="t">Crush bandits</div>
+            <div class="t">Deal with local bandits</div>
             <div class="d" id="battleBandits1Desc">10–50 enemies • quick skirmish</div>
           </button>
           <button class="smallBtn battleCard" id="btnBattleLevy">
@@ -1779,7 +1917,7 @@ header{
             <div class="t">Conquest of the border town</div>
             <div class="d" id="battleSiegeDesc">1,000–5,000 enemies • deadly</div>
           </button>
-          <div class="hint">Loot, land, and renown gained from winning battles.</div>
+          <div class="hint"></div>
         </div>
 
         
@@ -2047,6 +2185,10 @@ header{
     // NEW: named territories captured from battles
     controlledRegions: [],
     territoryWorkers: {},
+
+    // Faction cards pagination state
+    factionPage: 0,
+
 // village capacity
     population: 0,          // total settlers (includes milites)
     populationUsed: 0,      // milites using population (kept for compatibility)
@@ -3262,7 +3404,161 @@ function battleTierFromTitleIdx(idx){
   }
 
 
-  // Narrative battle archetypes by tier (Hybrid: title tier × slot)
+  
+
+
+function renderFactionCardsFromCurrentBattles(bs, tier, hasTroops){
+    const listEl = $("#factionCardsList");
+    if(!listEl) return;
+
+    const PAGE_SIZE = 3;
+    const MAX_VISIBLE = 9;
+
+    const cards = [];
+    if (typeof window !== "undefined") window.currentFactionCards = cards;
+    const baseCount = Array.isArray(bs) ? bs.length : 0;
+    if(!baseCount){
+      listEl.innerHTML = "";
+      const empty = document.createElement("div");
+      empty.className = "smallBtn factionCard";
+      empty.textContent = "Scouts report no nearby factions.";
+      listEl.appendChild(empty);
+      const labelEmpty = $("#factionPageLabel");
+      if(labelEmpty){
+        labelEmpty.textContent = "0 / 0";
+      }
+      const pagerEmpty = $("#factionCardsPager");
+      if(pagerEmpty){
+        pagerEmpty.style.display = "none";
+      }
+      return;
+    }
+
+    for(let i=0;i<MAX_VISIBLE;i++){
+  const slot = i % baseCount;
+  const base = bs[slot];
+  if(!base) continue;
+
+  // Procedurally generate a plausible bandit camp around this slot.
+  const banditAdjectives = [
+    "Marsh", "Ridge", "Red", "Black", "Broken", "Silver", "Dust", "Thorn",
+    "Iron", "Shadow", "Grim", "Blood", "Pale", "Drift", "Fog", "Stone"
+  ];
+  const banditNouns = [
+    "Knives", "Riders", "Bandits", "Company", "Raiders", "Brothers",
+    "Brigands", "Outriders", "Host", "Marauders", "Reavers", "Lancers"
+  ];
+  const campNouns = [
+    "Camp", "Hideout", "Den", "Lair", "Hold", "Warren", "Encampment", "Nest"
+  ];
+  const leaderFirst = [
+    "Hostor", "Marro", "Len", "Sar", "Vessa", "Karro", "Ilma", "Thane",
+    "Risa", "Jor", "Tarin", "Edda", "Fenn", "Ost", "Garron", "Lysa"
+  ];
+  const leaderLast = [
+    "One-Eye", "the Fox", "Skull", "Ironhand", "Redcloak", "the Quiet",
+    "Longknife", "Blackbriar", "Crow", "Grim", "Storm", "the Lean",
+    "Stoneblood", "Riftwalker", "Speartooth", "of the Marsh"
+  ];
+
+  function pick(arr){
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  const banditName = pick(banditAdjectives) + " " + pick(banditNouns);
+  const campName = pick(campNouns);
+  const fullName = banditName + " " + campName;
+
+  const land = 1 + Math.floor(Math.random() * 4); // 1–4 rough land units
+  const basePopPerLand = 40 + Math.floor(Math.random() * 70); // 40–109
+  const population = land * basePopPerLand;
+
+  const minMil = Math.max(10, Math.floor(population * 0.25));
+  const maxMil = Math.max(minMil + 5, Math.floor(population * 0.6));
+  const military = minMil + Math.floor(Math.random() * (maxMil - minMil + 1));
+
+  const leader = pick(leaderFirst) + " " + pick(leaderLast);
+
+  cards.push({
+    cardIndex: i,
+    battleSlot: slot,
+    name: fullName,
+    icon: "⚔️",
+    leader: leader,
+    type: "Bandit camp",
+    land: land,
+    population: population,
+    military: military
+  });
+}
+
+const totalPages = Math.max(1, Math.ceil(cards.length / PAGE_SIZE));
+    if(typeof S.factionPage !== "number" || !Number.isFinite(S.factionPage)){
+      S.factionPage = 0;
+    }
+    if(S.factionPage < 0) S.factionPage = 0;
+    if(S.factionPage >= totalPages) S.factionPage = totalPages - 1;
+
+    const startIdx = S.factionPage * PAGE_SIZE;
+    const endIdx = startIdx + PAGE_SIZE;
+    const visible = cards.slice(startIdx, endIdx);
+
+    listEl.innerHTML = "";
+    if(visible.length === 0){
+      const empty = document.createElement("div");
+      empty.className = "smallBtn factionCard";
+      empty.textContent = "Scouts report no nearby factions.";
+      listEl.appendChild(empty);
+    }else{
+      for(const card of visible){
+        const el = document.createElement("div");
+        el.className = "smallBtn factionCard";
+        el.setAttribute("data-battle-slot", String(card.battleSlot));
+        el.setAttribute("data-faction-index", String(card.cardIndex));
+        el.innerHTML = [
+  '<div class="factionCardHeader">',
+    '<div>',
+      '<div class="factionCardTitle">', card.icon, " ", card.name, "</div>",
+    "</div>",
+  "</div>",
+  '<div class="factionCardLeader">Leader: ', card.leader, "</div>",
+  '<div class="factionCardType">', card.type, "</div>",
+  '<div class="factionCardActions">',
+    '<button type="button" class="factionActionBtn" data-faction-action="trade"',    hasTroops ? "" : " disabled",  ">Trade</button>",
+    '<button type="button" class="factionActionBtn" data-faction-action="attack"',   hasTroops ? "" : " disabled", ">Attack</button>",
+    '<button type="button" class="factionActionBtn" data-faction-action="diplomacy"', hasTroops ? "" : " disabled", ">Diplomacy</button>",
+    '<button type="button" class="factionActionBtn" data-faction-action="raid"',     hasTroops ? "" : " disabled", ">Raid</button>",
+  "</div>",
+  '<div class="factionCardStats">',
+    '<div class="factionCardStat"><span>Land</span><b>', fmt(card.land), "</b></div>",
+    '<div class="factionCardStat"><span>Population</span><b>', fmt(card.population), "</b></div>",
+    '<div class="factionCardStat"><span>Military</span><b>', fmt(card.military), "</b></div>",
+  "</div>"
+].join("");
+
+        listEl.appendChild(el);
+      }
+    }
+
+    const pager = $("#factionCardsPager");
+    const labelEl = $("#factionPageLabel");
+    const prevBtn = pager && pager.querySelector ? pager.querySelector('[data-page-dir="-1"]') : null;
+    const nextBtn = pager && pager.querySelector ? pager.querySelector('[data-page-dir="1"]') : null;
+
+    if(pager){
+      pager.style.display = totalPages > 1 ? "flex" : "none";
+    }
+    if(labelEl){
+      labelEl.textContent = totalPages ? (String(S.factionPage + 1) + " / " + String(totalPages)) : "0 / 0";
+    }
+    if(prevBtn){
+      prevBtn.disabled = (S.factionPage <= 0);
+    }
+    if(nextBtn){
+      nextBtn.disabled = (S.factionPage >= totalPages - 1);
+    }
+  }
+// Narrative battle archetypes by tier (Hybrid: title tier × slot)
   // kind:
   //  - "skirmish"  → never grants land
   //  - "feud"      → may grant land at higher tiers
@@ -4975,9 +5271,19 @@ function captureTerritory(battleTier, kind, label){
   }
 
 
+  let pendingFactionCardBattle = null;
+
+  let factionAttackMeta = null;
+
   function battleSim(slot){
   const b = currentBattleSet()[slot];
-  const enemyCount = rnd(b.enemyMin, b.enemyMax);
+  let enemyCount;
+  if (pendingFactionCardBattle && typeof pendingFactionCardBattle === "object" && pendingFactionCardBattle.slot === slot && typeof pendingFactionCardBattle.enemies === "number" && pendingFactionCardBattle.enemies > 0){
+    enemyCount = Math.max(1, Math.round(pendingFactionCardBattle.enemies));
+    pendingFactionCardBattle = null;
+  } else {
+    enemyCount = rnd(b.enemyMin, b.enemyMax);
+  }
 
   const wins = (S.battlesWon || 0);
   const tier = battleTierFromTitleIdx(titleInfo().idx);
@@ -6840,12 +7146,47 @@ handleRankUps();
     const frontlineUsed = warriors + cavalry + archers;
     const civilians = Math.max(0, totalPop - frontlineUsed);
     const freePop = Math.max(0, civilians - labourers);
-    const pu = $("#popUsed"); const pc = $("#popCap");
     const mr = (typeof migrationPerSec === "function") ? migrationPerSec() : 0;
-    $("#migRate") && ($("#migRate").textContent = (Math.round(mr*100)/100).toFixed(2));
-    if(pu && pc){
-      pu.textContent = `${fmt(totalPop)} (Free: ${fmt(freePop)}, Warriors: ${fmt(warriors)}, Archers: ${fmt(archers)}, Cavalry: ${fmt(cavalry)}, Labourers: ${fmt(labourers)})`;
-      pc.textContent = fmt(cap);
+    const popTable = $("#populationTable");
+    if(popTable){
+      popTable.innerHTML = "";
+      const rows = [];
+
+      rows.push({ type: "header", label: "Overview" });
+      rows.push({ k: "Total population", v: fmt(totalPop) });
+      rows.push({ k: "Capacity", v: fmt(cap) });
+      rows.push({ k: "Free citizens", v: fmt(freePop) });
+      rows.push({ k: "Civilians (non-military)", v: fmt(civilians) });
+
+      rows.push({ type: "header", label: "Military" });
+      rows.push({ k: "Milites", v: fmt(warriors) });
+      rows.push({ k: "Archers", v: fmt(archers) });
+      rows.push({ k: "Cavalry", v: fmt(cavalry) });
+
+      rows.push({ type: "header", label: "Labour" });
+      rows.push({ k: "Assigned to work", v: fmt(labourers) });
+
+      rows.push({ type: "header", label: "Growth" });
+      rows.push({ k: "Migration rate", v: (Math.round(mr*100)/100).toFixed(2) + "/s" });
+
+      for(const row of rows){
+        const tr = document.createElement("tr");
+        if(row.type === "header"){
+          const td = document.createElement("td");
+          td.colSpan = 2;
+          td.textContent = row.label || "";
+          td.classList.add("statHeaderRow");
+          tr.appendChild(td);
+        }else{
+          const td1 = document.createElement("td");
+          const td2 = document.createElement("td");
+          td1.textContent = row.k;
+          td2.textContent = String(row.v);
+          tr.appendChild(td1);
+          tr.appendChild(td2);
+        }
+        popTable.appendChild(tr);
+      }
     }
 
 
@@ -6932,95 +7273,11 @@ handleRankUps();
 
     
     
-    if (!opts || !opts.skipBattles) {
-// Battles (rank-based)
+    
+if (!opts || !opts.skipBattles) {
     const bs = currentBattleSet();
-    const btns = [
-      { btn:"#btnBattleBandits1", titleSel:"#btnBattleBandits1 .t", desc:"#battleBandits1Desc" },
-      { btn:"#btnBattleLevy",     titleSel:"#btnBattleLevy .t",     desc:"#battleLevyDesc" },
-      { btn:"#btnBattleVillageRaid", titleSel:"#btnBattleVillageRaid .t", desc:"#battleVillageRaidDesc" },
-      { btn:"#btnBattleSiege",    titleSel:"#btnBattleSiege .t",    desc:"#battleSiegeDesc" }
-    ];
     const { idx } = titleInfo();
     const tier = battleTierFromTitleIdx(idx);
-
-    for(let i=0;i<4;i++){
-      const base = bs[i];
-      const btnRef = btns[i] && btns[i].btn ? $(btns[i].btn) : null;
-      if(!base){
-        if(btnRef) btnRef.style.display = "none";
-        continue;
-      }
-      if(btnRef) btnRef.style.display = "";
-      const tEl = $(btns[i].titleSel);
-      const dEl = $(btns[i].desc);
-
-      const arch = battleArchetypeFor(tier, i);
-      const ctx  = getBattleContext(tier, i, arch, base);
-
-      const min = base.enemyMin;
-      const max = base.enemyMax;
-      const range = (min===max) ? `${min}` : `${min}–${max}`;
-
-      // Keep the archetype label everywhere
-      const label = ctx.label;
-      base.label = label;
-
-      if(tEl){
-        const starsCount = ctx.difficultyStars || 1;
-        const stars = "★".repeat(starsCount);
-        const rarity = ctx.rarityLabel || "";
-        const diffName = ctx.difficultyName || "";
-        const ariaHint = diffName
-          ? (rarity ? diffName + " • " + rarity : diffName)
-          : rarity;
-        const fullLabel = ctx.label;
-        tEl.innerHTML =
-          `<span class="battleTitleText">${fullLabel}</span>` +
-          `<span class="battleStars" aria-label="${ariaHint}">${stars}</span>`;
-      }
-      if(dEl){
-        // Structured battle preview:
-        //  Line 1: Faction (icon + name)
-        //  Line 2: Scale • Discipline • enemies • Tier
-        //  Line 3: Leader
-        //  Line 4: Outcome hint
-        const kind = ctx.kind || (arch && arch.kind) || "";
-        const kindTag = kind === "skirmish"
-          ? "Raid"
-          : kind === "feud"
-            ? "Clash"
-            : kind === "field"
-              ? "Field battle"
-              : kind === "siege"
-                ? "Conquest"
-                : "";
-
-        const faction = battleFactionMetaForTier(tier, kind, min, max);
-        const leader = ctx.leader || "";
-        const outcome = battleOutcomeLabel(kind, tier);
-
-        const line1 = `${faction.icon} ${faction.name}`;
-
-        const parts2 = [];
-        if(faction.scale) parts2.push(faction.scale);
-        if(faction.order) parts2.push(faction.order);
-        if(range) parts2.push(`${range} enemies`);
-        parts2.push(`Tier ${tier}`);
-        const line2 = parts2.join(" • ");
-
-        const line3 = leader ? `Leader: ${leader}` : "";
-        const line4 = outcome;
-
-        let txt = line1;
-        if(line2) txt += "\n" + line2;
-        if(line3) txt += "\n" + line3;
-        if(line4) txt += "\n" + line4;
-
-        dEl.textContent = txt;
-      }
-    }
-    const cd = 0; // battle cooldown disabled
 
     // Battles: requirement is "do you have any troops at all?"
     const totalTroops =
@@ -7032,13 +7289,22 @@ handleRankUps();
       (S.veterans || 0);
     const hasTroops = totalTroops > 0;
 
-    $("#btnBattleBandits1").disabled    = !hasTroops;
-    $("#btnBattleLevy").disabled        = !hasTroops;
-    $("#btnBattleVillageRaid").disabled = !hasTroops;
-    $("#btnBattleSiege").disabled       = !hasTroops;
+    // Hook into the new faction card system (3 panels × 3 factions)
+    if (typeof renderFactionCardsFromCurrentBattles === "function") {
+      renderFactionCardsFromCurrentBattles(bs, tier, hasTroops);
+    }
 
-
-
+    // Old battle buttons (kept only for save compatibility; hidden in CSS)
+    const btnBattleBandits1 = $("#btnBattleBandits1");
+    if(btnBattleBandits1){
+      btnBattleBandits1.disabled = !hasTroops;
+    }
+    const btnBattleLevy        = $("#btnBattleLevy");
+    const btnBattleVillageRaid = $("#btnBattleVillageRaid");
+    const btnBattleSiege       = $("#btnBattleSiege");
+    if(btnBattleLevy)        btnBattleLevy.disabled        = !hasTroops;
+    if(btnBattleVillageRaid) btnBattleVillageRaid.disabled = !hasTroops;
+    if(btnBattleSiege)       btnBattleSiege.disabled       = !hasTroops;
 }
 // Village capacity hint: recruiting uses capacity, but battles are allowed regardless.
     if(!hasVillageCapacity()){
@@ -7848,6 +8114,81 @@ function closeBattleReport(){
 window.closeBattleReport = closeBattleReport;
 window.showBattleReport = showBattleReport;
 
+// --- Faction assimilation popup (after faction-card battles) ---
+function showFactionAssimilationPopup(meta, gained){
+  const overlay = document.getElementById("factionAssimOverlay");
+  const body = document.getElementById("factionAssimBody");
+  const title = document.getElementById("factionAssimTitle");
+  if(!overlay || !body || !title) return;
+
+  const name = meta && meta.name ? meta.name : "A rival faction";
+  const popGain = gained && typeof gained.population === "number" ? gained.population : 0;
+  const territories = gained && Array.isArray(gained.territories) ? gained.territories : [];
+  const landCount = gained && typeof gained.landCount === "number"
+    ? gained.landCount
+    : (territories ? territories.length : 0);
+
+  const lines = [];
+
+  lines.push(`<div style="font-weight:600;margin-bottom:6px;">${name} has been defeated.</div>`);
+
+  if(popGain > 0){
+    lines.push(
+      `<div style="margin-bottom:4px;">` +
+        `<span>Population assimilated: </span>` +
+        `<strong style="color:var(--good);">+${fmt(popGain)}</strong>` +
+      `</div>`
+    );
+  }
+
+  const names = [];
+  if(territories && territories.length){
+    for(const t of territories){
+      if(t && t.name){
+        names.push(t.name);
+      }
+    }
+  }
+
+  if(names.length > 0){
+    const counts = {};
+    for(const n of names){
+      counts[n] = (counts[n] || 0) + 1;
+    }
+    lines.push(`<div style="margin-top:6px;margin-bottom:4px;">New lands gained:</div>`);
+    lines.push(`<ul style="padding-left:18px;margin:0;">`);
+    Object.entries(counts)
+      .sort((a,b)=>a[0].localeCompare(b[0]))
+      .forEach(([n,c])=>{
+        lines.push(`<li>${n} &times; ${fmt(c)}</li>`);
+      });
+    lines.push(`</ul>`);
+  }else if(landCount > 0){
+    lines.push(
+      `<div style="margin-top:6px;">` +
+        `New land tiles gained: <strong style="color:var(--good);">+${fmt(landCount)}</strong>` +
+      `</div>`
+    );
+  }
+
+  if(lines.length === 1){
+    lines.push(`<div style="margin-top:6px;">Your standard now flies over their holdings.</div>`);
+  }
+
+  body.innerHTML = lines.join("");
+  overlay.style.display = "flex";
+  overlay.classList.add("visible");
+}
+
+function closeFactionAssimilation(){
+  const overlay = document.getElementById("factionAssimOverlay");
+  if(!overlay) return;
+  overlay.classList.remove("visible");
+  setTimeout(()=>{ overlay.style.display = "none"; }, 200);
+}
+window.closeFactionAssimilation = closeFactionAssimilation;
+
+
 // --- Battle Simulation (cinematic log before the report) ---
 function battleTierFoeLabel(tier){
   if(tier===1) return "Bandit gangs & feuding kin";
@@ -8281,6 +8622,8 @@ window.startIntroBattle = startIntroBattle;
 function doBattle(slot, opts){
   opts = opts || {};
   const isDefence = !!opts.defence;
+  const fromFactionCardAttack = !!(opts && opts.fromFactionCardAttack);
+  const factionBattleMeta = (opts && opts.fromFactionCardMeta) || null;
 
   const now = Date.now(); // cooldown disabled
   const b = currentBattleSet()[slot];
@@ -8632,6 +8975,86 @@ bumpObjective("winBattle", 1);
       // Political capital: victories generate influence with your realm.
       const infGain = Math.max(1, Math.round((1 + sim.tier * 0.8 + landGain * 0.4) * 2.0));
       
+      // If this was a faction card attack, assimilate their land & population
+      // into your realm. Land tiles are still rolled from the land tile system.
+      let assimilatedPopGain = 0;
+      let assimilatedTerritories = [];
+
+      if (fromFactionCardAttack && factionBattleMeta && sim.win && !isDefence) {
+        const rawPop = typeof factionBattleMeta.population === "number" ? factionBattleMeta.population : 0;
+        const rawLand = typeof factionBattleMeta.land === "number" ? factionBattleMeta.land : 0;
+        const popGain = Math.max(0, Math.round(rawPop));
+        const landTilesFromFaction = Math.max(0, Math.round(rawLand));
+
+        // Population: try to add as much as possible, respecting population cap if present.
+        if (popGain > 0) {
+          const prevPop = S.population || 0;
+          let cap = Infinity;
+          try {
+            if (typeof populationCap === "function") {
+              cap = populationCap();
+            }
+          } catch(e){}
+          let newPop = prevPop + popGain;
+          let effectiveGain = popGain;
+          if (Number.isFinite(cap)) {
+            newPop = Math.min(cap, newPop);
+            effectiveGain = Math.max(0, newPop - prevPop);
+          }
+          S.population = newPop;
+          assimilatedPopGain = effectiveGain;
+
+          // Recompute used population, treating all recruits as free civilians for now.
+          S.populationUsed = (S.warriors||0) + (S.archers||0) + (S.cavalry||0) + (S.auxilia||0) + (S.equites||0) + (S.veterans||0);
+        }
+
+        // Land: roll additional territories using the same tier/archetype as the battle,
+        // but the amount is driven by the faction card's land value.
+        if (landTilesFromFaction > 0) {
+          const tier = sim.tier;
+          const arch = battleArchetypeFor(tier, slot);
+          const kind = arch && arch.kind ? arch.kind : "";
+          const extraTerritories = [];
+          for (let i = 0; i < landTilesFromFaction; i++) {
+            const terr = captureTerritory(tier, kind, b && b.label);
+            if (terr) extraTerritories.push(terr);
+          }
+          if (extraTerritories.length) {
+            // Each extra tile also boosts population slots based on its type.
+            for (const terr of extraTerritories) {
+              const eff = LAND_TYPE_EFFECTS && LAND_TYPE_EFFECTS[terr.name];
+              if (eff && eff.pop) landSlotsGain += eff.pop;
+            }
+            // Track names both for the battle report and assimilation popup.
+            capturedNames = capturedNames.concat(extraTerritories.map(t => t.name));
+            assimilatedTerritories = extraTerritories;
+
+            S.land = (S.land || 0) + extraTerritories.length;
+          }
+        }
+
+        if (assimilatedPopGain > 0 || (assimilatedTerritories && assimilatedTerritories.length > 0)) {
+          const fname = factionBattleMeta.name || "A rival faction";
+          logLine(fname + " has been broken; their people and lands are folded into your realm.", "good");
+          toast("Faction defeated: their lands and people are yours.");
+
+          try {
+            if (typeof showFactionAssimilationPopup === "function") {
+              setTimeout(function(){
+                showFactionAssimilationPopup(
+                  { name: fname },
+                  {
+                    population: assimilatedPopGain,
+                    landCount: assimilatedTerritories ? assimilatedTerritories.length : 0,
+                    territories: assimilatedTerritories || []
+                  }
+                );
+              }, 80);
+            }
+          } catch(e){}
+        }
+      }
+
       toast("Victory!");
 
       const yourLossPct = Math.round(100 * losses / Math.max(1, totalTroops || 1));
@@ -8774,14 +9197,50 @@ bumpObjective("winBattle", 1);
 }
 
 // Battle buttons
-// For offensive battles the player can choose to command tactically.  This will launch the tactical overlay rather than immediately resolving.
-$("#btnBattleBandits1").addEventListener("click", ()=> startTacticalBattle(0));
+// For offensive battles the player can choose to command tactic...l launch the tactical overlay rather than immediately resolving.
+const btnBattleBandits1 = $("#btnBattleBandits1");
+if(btnBattleBandits1){
+  btnBattleBandits1.addEventListener("click", ()=> startTacticalBattle(0));
+}
 $("#btnBattleLevy").addEventListener("click", ()=> startTacticalBattle(1));
 $("#btnBattleVillageRaid").addEventListener("click", ()=> startTacticalBattle(2));
 $("#btnBattleSiege").addEventListener("click", ()=> startTacticalBattle(3));
 
 
+// Faction card actions & pager
+const factionList = $("#factionCardsList");
+if(factionList){
+  factionList.addEventListener("click", (ev)=>{
+    const target = ev.target;
+    if(!target) return;
+    const btn = target.closest && target.closest("[data-faction-action]");
+    if(!btn) return;
+    const card = btn.closest && btn.closest("[data-battle-slot]");
+    if(!card) return;
+    const slot = card.getAttribute("data-battle-slot");
+    const index = card.getAttribute("data-faction-index");
+    const action = btn.getAttribute("data-faction-action");
+    handleFactionCardAction(slot, action, index);
+  });
+}
 
+const factionPager = $("#factionCardsPager");
+if(factionPager){
+  factionPager.addEventListener("click", (ev)=>{
+    const target = ev.target;
+    if(!target) return;
+    const btn = target.closest && target.closest(".factionPageBtn");
+    if(!btn) return;
+    const dir = Number(btn.getAttribute("data-page-dir") || "0");
+    if(!dir) return;
+    if(typeof S.factionPage !== "number" || !Number.isFinite(S.factionPage)){
+      S.factionPage = 0;
+    }
+    S.factionPage += dir;
+    if(S.factionPage < 0) S.factionPage = 0;
+    render();
+  });
+}
 // Castrum Victoriae (Glory shop)
 
   const gloryOverlay = $("#gloryOverlay");
@@ -9043,7 +9502,9 @@ function updateConstructionPreviews(){
   }
 }
 
-$("#btnExport").addEventListener("click", async ()=>{
+const btnExport = $("#btnExport");
+if(btnExport){
+  btnExport.addEventListener("click", async ()=>{
     try{
       await navigator.clipboard.writeText(JSON.stringify(S));
       toast("Copied");
@@ -9051,8 +9512,11 @@ $("#btnExport").addEventListener("click", async ()=>{
       toast("Clipboard blocked");
     }
   });
+}
 
-  $("#btnReset").addEventListener("click", ()=>{
+const btnReset = $("#btnReset");
+if(btnReset){
+  btnReset.addEventListener("click", ()=>{
     // Flavour confirm for New Game
     const msg = "Abandon your realm and begin anew?\nYour lands, wealth, and renown will be lost.";
     if(!confirm(msg)) return;
@@ -9084,6 +9548,7 @@ $("#btnExport").addEventListener("click", async ()=>{
     // Nice little flavour toast
     toast("A new story begins.");
   });
+}
 
 
   const offlineOk = document.getElementById("offlineOkBtn");
@@ -9415,9 +9880,14 @@ $("#btnExport").addEventListener("click", async ()=>{
       overrideLossDetail: detail,
       overrideWin: didWin,
       suppressSim: true,
-      defence: s.defence
+      defence: s.defence,
+      fromFactionCardAttack: !!s.fromFactionAttack,
+      fromFactionCardMeta: s.factionCardMeta || null
     });
 
+    // Once resolved, clear any pending faction attack meta so it doesn't leak
+    // into unrelated battles.
+    factionAttackMeta = null;
     currentTactical = null;
   }
 
@@ -10111,7 +10581,103 @@ $("#btnExport").addEventListener("click", async ()=>{
 
     let pendingTactical = null;
 
-function startTacticalBattle(slot, defenceFlag){
+
+  
+  function handleFactionCardAction(slot, action, cardIndex){
+    const sRaw = Number(slot);
+    const actionKey = String(action || "").toLowerCase();
+    if(Number.isNaN(sRaw) || sRaw < 0) return;
+
+    const bs = currentBattleSet();
+    const baseCount = Array.isArray(bs) ? bs.length : 0;
+    if(!baseCount){
+      toast("No faction available for that action right now.");
+      return;
+    }
+
+    const s = sRaw % baseCount;
+    const base = bs[s];
+    if(!base){
+      toast("No faction available for that action right now.");
+      return;
+    }
+
+    let name = "a nearby bandit camp";
+
+// Look up the selected faction card so we can use its name and Military size.
+(function(){
+  const idx = Number(cardIndex);
+  if (!Number.isNaN(idx) && typeof window !== "undefined" && Array.isArray(window.currentFactionCards)) {
+    const cards = window.currentFactionCards;
+    let cardData = null;
+    for (let i = 0; i < cards.length; i++) {
+      const c = cards[i];
+      if (c && c.cardIndex === idx) {
+        cardData = c;
+        break;
+      }
+    }
+    if (cardData) {
+      if (cardData.name) {
+        name = cardData.name;
+      }
+      if (typeof cardData.military === "number" && cardData.military > 0) {
+        pendingFactionCardBattle = {
+          slot: s,
+          enemies: Math.max(1, Math.round(cardData.military))
+        };
+      } else {
+        pendingFactionCardBattle = null;
+      }
+
+      // If this action is a direct attack, remember full faction stats for assimilation.
+      if (actionKey === "attack") {
+        factionAttackMeta = {
+          slot: s,
+          cardIndex: idx,
+          name: cardData.name || name,
+          land: typeof cardData.land === "number" ? cardData.land : 0,
+          population: typeof cardData.population === "number" ? cardData.population : 0
+        };
+      } else if (actionKey !== "raid") {
+        // For non-attack, non-raid actions, clear any stale attack meta.
+        factionAttackMeta = null;
+      }
+    } else {
+      pendingFactionCardBattle = null;
+      factionAttackMeta = null;
+    }
+  } else {
+    pendingFactionCardBattle = null;
+    factionAttackMeta = null;
+  }
+})();
+;
+
+    if(actionKey === "raid"){
+      logLine(`You lead a raid against ${name}.`, "warn");
+      // Raid: engage roughly a quarter of the enemy strength.
+      startTacticalBattle(s, false, 0.25);
+      return;
+    }
+    if(actionKey === "attack"){
+      logLine(`You march to war against ${name}.`, "warn");
+      // Full assault: fight the enemy at full strength.
+      startTacticalBattle(s, false);
+      return;
+    }
+    if(actionKey === "trade"){
+      logLine(`You seek trade with ${name}.`, "info");
+      toast("Trade: prototype interaction only (no mechanical effect yet).");
+      return;
+    }
+    if(actionKey === "diplomacy"){
+      logLine(`You send envoys to ${name}.`, "info");
+      toast("Diplomacy: prototype interaction only (no mechanical effect yet).");
+      return;
+    }
+  }
+function startTacticalBattle(slot, defenceFlag, enemyScale){
   // Use *all* troop types as the visible pool for this battle.
   const mil = Number(S.warriors || 0);
   const cav = Number(S.cavalry  || 0);
@@ -10129,12 +10695,25 @@ function startTacticalBattle(slot, defenceFlag){
 
   const sim = battleSim(slot);
 
-  const enemies = (sim && typeof sim.enemies === 'number')
+  let enemies = (sim && typeof sim.enemies === 'number')
     ? sim.enemies
     : Math.max(4, Math.round(totalTroops * 1.1));
 
+  // If a caller passed an enemyScale (eg. raid), reduce the force accordingly.
+  const scale = (typeof enemyScale === "number" && enemyScale > 0 && enemyScale <= 1)
+    ? enemyScale
+    : 1;
+  enemies = Math.max(1, Math.round(enemies * scale));
+
   // Build enemy composition for preview and later tactical use.
   const enemyBuilt = tacticalBuildEnemyPools(slot, enemies);
+
+  // If this battle was launched via a faction card "Attack" action, we should
+  // carry that metadata forward so we can assimilate their land & population
+  // once the battle is resolved.
+  const isDef = !!defenceFlag;
+  const fromFactionAttack = !isDef && factionAttackMeta && typeof factionAttackMeta === "object" && factionAttackMeta.slot === slot;
+  const factionMeta = fromFactionAttack ? factionAttackMeta : null;
 
   pendingTactical = {
     slot,
@@ -10143,7 +10722,9 @@ function startTacticalBattle(slot, defenceFlag){
     totalTroops,
     sim,
     enemies,
-    enemyBuilt
+    enemyBuilt,
+    fromFactionAttack: !!fromFactionAttack,
+    factionCardMeta: factionMeta
   };
 
   const preOverlay = document.getElementById('preBattleOverlay');
@@ -10213,7 +10794,9 @@ function actuallyStartTacticalBattle(){
     totalTroops,
     sim,
     enemies,
-    enemyBuilt
+    enemyBuilt,
+    fromFactionAttack,
+    factionCardMeta
   } = cfg;
 
   const overlay = document.getElementById('tacticalOverlay');
@@ -10245,6 +10828,8 @@ function actuallyStartTacticalBattle(){
     finished: false,
     round: 0,
     defence: !!defenceFlag,
+    fromFactionAttack: !!fromFactionAttack,
+    factionCardMeta: factionCardMeta || null,
     // quality + morale for attrition math
     qualityYou: tacticalQualityForPlayer(),
     qualityEnemy: tacticalQualityForEnemy(slot),
@@ -10498,6 +11083,21 @@ function actuallyStartTacticalBattle(){
       </div>
       <div class="cardBody" style="padding:14px;">
         <div id="battleBody"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Faction Assimilation Overlay -->
+  <div id="factionAssimOverlay" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:2200;">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);" onclick="closeFactionAssimilation()"></div>
+    <div class="card" style="position:relative;width:min(520px, calc(100vw - 26px));border-radius:26px;overflow:hidden;">
+      <div class="sectionTitle" style="justify-content:space-between;">
+        <span style="display:flex;align-items:center;gap:6px;"><img src="images/Bandits.png" style="width:22px;height:22px;image-rendering:pixelated;"><span id="factionAssimTitle" style="color:var(--accent);font-weight:900;">Faction Defeated</span></span>
+        <button class="tab" style="padding:8px 12px;" type="button" onclick="closeFactionAssimilation()">Close</button>
+      </div>
+      <div class="cardBody" style="padding:14px;">
+        <div id="factionAssimBody"></div>
       </div>
     </div>
   </div>
