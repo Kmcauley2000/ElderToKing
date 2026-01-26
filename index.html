@@ -1,3 +1,4 @@
+
 <!doctype html>
 <!--
 === ELDER TO KING – CODE MAP / GLOSSARY ===
@@ -1885,6 +1886,28 @@ header{
           </div>
         </button>
 
+        <!-- Captivi Auxiliaries recruitment card (unlocked when you first acquire captivi) -->
+        <button class="bigBtn unitCard" id="btnRecruitCaptiviAux">
+          <div class="unitHeaderRow">
+            <div class="unitHeader">
+              <span class="unitName">Captivi Auxiliaries</span>
+              <span class="unitRole">Captive infantry</span>
+            </div>
+            <!-- Reuse Milites sprite as a placeholder for Captivi Auxiliaries -->
+            <img src="Sprites/Milites.png" class="unitImg" alt="Captivi Auxiliaries">
+          </div>
+          <div class="unitStats">
+            <span class="stat">⚔ 5</span>
+            <span class="stat">🛡 3</span>
+            <span class="stat">❤ 12</span>
+          </div>
+          <div class="unitMeta">
+            <span class="cost" id="recruitCaptiviAuxCost">Cost 0</span>
+            <span class="upkeep">• Upkeep: 0.6×</span>
+            <span class="owned">• Owned: <b id="ownedCaptiviAux">0</b></span>
+          </div>
+        </button>
+
         <!-- [VIEW] LEGION – Neighboring Factions / Faction Cards -->
         <div id="factionCardsContainer" class="factionCardsWrap">
           <div class="sectionTitle" style="margin-top:10px;border-radius:14px 14px 0 0;">
@@ -2042,6 +2065,31 @@ header{
       </div>
     </section>
 
+    <!-- ===================================================================
+     [VIEW] INVENTORY
+     Inventory UI card:
+       - Lists all items the player currently owns along with their quantities.
+       - Provides a "Drop" action to discard unwanted items from the inventory.
+       - Displays a running count of total items at the top right of the
+         section title.
+     When adding new types of trade goods or consumables, update
+     renderInventory() to reflect them.
+     =================================================================== -->
+    <section class="card view" data-view="inventory" hidden>
+      <div class="sectionTitle">
+        <span>Inventory</span>
+        <span><b id="inventoryCount">0 items</b></span>
+      </div>
+      <div class="cardBody">
+        <p style="margin:0 0 10px;font-size:.78rem;color:var(--muted);">
+          Your collected goods. Drop items to remove them from your pack; dropped items are permanently discarded.
+        </p>
+        <div id="inventoryList" style="display:flex;flex-direction:column;gap:10px;">
+          <!-- Filled dynamically by renderInventory() -->
+        </div>
+      </div>
+    </section>
+
     <div class="toast" id="toast">Saved.</div>
   </main>
 
@@ -2050,6 +2098,8 @@ header{
     <button class="tab" data-go="legion"><span class="dot"></span>⚔️</button>
 <button class="tab" data-go="temple"><span class="dot"></span>Temple</button>
     <button class="tab" data-go="land"><span class="dot"></span>Land</button>
+    <!-- New Inventory tab. Allows the player to view and manage their items. -->
+    <button class="tab" data-go="inventory"><span class="dot"></span>Inventory</button>
     <button class="tab" data-go="stats"><span class="dot"></span>Stats</button>
   </nav>
 
@@ -2084,8 +2134,175 @@ header{
     legion: 0,
     temple: 0,
     
+    // Inventory tab: available immediately (no renown required)
+    inventory: 0,
     
   };
+
+  // Forward declare trade item definitions. Without this var declaration, later
+  // references to `tradeItems` before its assignment would result in a
+  // ReferenceError due to the temporal dead zone of `const` declarations.
+  // We assign the actual values for tradeItems further down in the script.
+  var tradeItems;
+
+  // ---------------------------------------------------------------------------
+  // [SYS] LAND RESOURCES & PRODUCTION
+  //
+  // Purpose:
+  //   - Define a set of collectible resources produced passively by owned lands.
+  //   - Each territory type can output one or more resource types per second.
+  //   - Workers assigned to a territory double its resource output at full
+  //     staffing (5 labourers per tile).
+  //   - A passive tick accumulates fractional progress toward whole units and
+  //     awards items automatically when a full unit is produced.
+  //   - Offline progression also grants a portion of resources produced while
+  //     away (at the same dampening factor as gold).
+  //
+  // Terminology:
+  //   - "items" refers to the resource inventory object keyed by id.
+  //   - "itemFrac" accumulates fractional progress separately per resource.
+  //   - "LAND_ITEM_OUTPUTS" maps a territory name to per‑second resource rates.
+  //   - "ITEM_DEFS" provides display labels and icons for resources.
+  //   - "LAND_TAX_RATE" is an extra denarii output per tile per tick (rent).
+  //   - "passiveLandItemTick(dt)" and "landItemRates()" implement the passive
+  //     accumulation logic.
+
+  // Resource definitions: labels and icons. Use the icon when displaying
+  // resources in the land tab and stats table.
+  const ITEM_DEFS = {
+    grain:  { label: "Grain",    icon: "🌾" },
+    timber: { label: "Timber",   icon: "🪵" },
+    stone:  { label: "Stone",    icon: "🪨" },
+    livestock: { label: "Livestock", icon: "🐄" },
+    fish:   { label: "Fish",     icon: "🐟" },
+    ore:    { label: "Ore",      icon: "⛏️" },
+    fruit:  { label: "Fruit",    icon: "🍎" },
+    goods:  { label: "Goods",    icon: "📦" },
+    luxe:   { label: "Luxuries", icon: "💎" }
+    ,
+    // Additional trade item definitions. These were not part of the land
+    // resource system but are tradable in the merchant interface. Define
+    // their labels and icons here so we can display consistent icons in
+    // the trade overlay and inventory.
+    iron:  { label: "Iron",   icon: "⚒️" },
+    wine:  { label: "Wine",   icon: "🍷" },
+    horses:{ label: "Horses", icon: "🐎" },
+    captivi: { label: "Captive", icon: "🔗" }
+  };
+
+  // Per‑territory resource outputs per second. A base rate is listed for each
+  // resource; assignment of labourers increases output up to +100% at max
+  // staffing (five labourers per tile).
+  const LAND_ITEM_OUTPUTS = {
+    "Riverlands":      { grain: 0.020, fish: 0.010 },
+    "Forest Edge":     { timber: 0.020, goods: 0.005 },
+    "Farmlands":       { grain: 0.030 },
+    "Grazing Commons": { livestock: 0.020 },
+    "Marsh Flats":     { fish: 0.015 },
+    "Old Quarry":      { stone: 0.025, ore: 0.010 },
+
+    "Orchard Lands":   { fruit: 0.030, grain: 0.010 },
+    "Timber Stand":    { timber: 0.035 },
+    "Streamford":      { fish: 0.020, grain: 0.015 },
+    "Outlying Stead":  { grain: 0.015, livestock: 0.015 },
+
+    "Palisaded Hamlet": { goods: 0.025, grain: 0.015 },
+    "River Village":    { grain: 0.020, fish: 0.020 },
+    "Hill Village":     { grain: 0.020, stone: 0.015 },
+    "Market Crossing":  { goods: 0.035, grain: 0.015 },
+
+    "Walled Village":    { goods: 0.035, grain: 0.020 },
+    "Council Field":     { grain: 0.020 },
+    "Shrine Settlement": { goods: 0.020, fruit: 0.015 },
+    "Trade Road":        { goods: 0.040 },
+
+    "Border Fort":       { goods: 0.020, stone: 0.020 },
+    "Mineworks":         { ore: 0.035, stone: 0.020 },
+    "Sacred Grove":      { fruit: 0.020, goods: 0.015 },
+    "Growing Town":      { goods: 0.045, grain: 0.020, luxe: 0.010 },
+
+    "Border Stronghold": { goods: 0.040, stone: 0.025 },
+    "Regional Capital":  { goods: 0.060, luxe: 0.020 },
+    "Great Market":      { goods: 0.070, luxe: 0.030 },
+    "Subdued Seat":      { goods: 0.040, grain: 0.020 }
+  };
+
+  // Flat tax per territory tile (denarii per tick) representing rents and tithes.
+  const LAND_TAX_RATE = 1.0;
+
+  // Compute passive resource output rates across all controlled territories.
+  // Returns an object keyed by item id with per‑second production values.
+  function landItemRates(){
+    const rates = {};
+    if(!Array.isArray(S.controlledRegions)) return rates;
+    const workers = S.territoryWorkers || {};
+    // Group territories by type once to avoid nested loops.
+    const typeCounts = {};
+    for(const terr of S.controlledRegions){
+      if(!terr || !terr.name) continue;
+      typeCounts[terr.name] = (typeCounts[terr.name] || 0) + 1;
+    }
+    for(const [name, count] of Object.entries(typeCounts)){
+      const outputs = LAND_ITEM_OUTPUTS[name];
+      if(!outputs) continue;
+      const w = workers[name] || 0;
+      const maxWorkers = count * 5;
+      // Multiplier ranges [1,2]; full staffing doubles output.
+      let mult = 1;
+      if(maxWorkers > 0){
+        mult += Math.min(w / maxWorkers, 1);
+      }
+      for(const id in outputs){
+        const rate = outputs[id] * mult;
+        rates[id] = (rates[id] || 0) + rate;
+      }
+    }
+    return rates;
+  }
+
+  // Per‑second population growth from land. Larger population caps produce more
+  // settlers. The coefficient controls how fast natural growth occurs (1 per
+  // 2000 seconds for each unit of pop cap).
+  function landPopRate(){
+    const cap = landBasePopCap();
+    return cap * 0.0005;
+  }
+
+  // Passive tick that accumulates fractional resources from land over dt seconds.
+  function passiveLandItemTick(dt){
+    if(!S.items || !S.itemFrac) return;
+    const rates = landItemRates();
+    for(const id in rates){
+      const r = rates[id];
+      if(r <= 0) continue;
+      let frac = (S.itemFrac[id] || 0) + r * dt;
+      const whole = Math.floor(frac);
+      S.itemFrac[id] = frac - whole;
+      if(whole > 0){
+        S.items[id] = (S.items[id] || 0) + whole;
+      }
+    }
+  }
+
+  // Passive tick that produces settlers from land each second. Fractional growth
+  // is stored on S.populationFrac. Settlers will not exceed the population cap.
+  function passiveLandPopTick(dt){
+    const rate = landPopRate();
+    if(rate <= 0) return;
+    if(typeof S.populationFrac !== "number") S.populationFrac = 0;
+    let growth = S.populationFrac + rate * dt;
+    let add = Math.floor(growth);
+    S.populationFrac = growth - add;
+    if(add > 0){
+      const cap = populationCap();
+      const totalPop = S.population || 0;
+      const freeSpace = Math.max(0, cap - totalPop);
+      const toAdd = Math.min(add, freeSpace);
+      if(toAdd > 0){
+        S.population = totalPop + toAdd;
+      }
+    }
+  }
 
   // Define the title progression and the renown required to reach each rank.
   //
@@ -2156,6 +2373,8 @@ header{
     warriors: 0,
     archers: 0,
     cavalry: 0,
+    // Captivi auxiliaries: captive infantry trained from captivi, unlocked after first captivi captured
+    captiviAux: 0,
     battlesWon: 0,
     battlesFought: 0,
     enemiesKilled: 0,
@@ -2193,6 +2412,28 @@ header{
     population: 0,          // total settlers (includes milites)
     populationUsed: 0,      // milites using population (kept for compatibility)
     settlerProg: 0,         // fractional settlers progress
+
+    // Captivi: prisoners taken in raids and battles. These enslaved workers
+    // do not count towards your civilian population cap but still contribute
+    // to your economy. Each captivi automatically labours in your farms and
+    // villas, generating income every tick.
+    captivi: 0,
+
+        // Inventory of land-produced resources. Keys correspond to item ids
+        // defined in ITEM_DEFS. Each value represents how many units the
+        // player owns. Resources are produced passively by controlled
+        // territories and can be traded or consumed by other systems.
+        items: {},
+
+        // Fractional progress toward the next whole unit of each resource.
+        // Used by passiveLandItemTick() to accumulate partial outputs over
+        // multiple ticks. Mirrors the keys of the items object.
+        itemFrac: {},
+
+        // Fractional settlers progress from land-based population growth.
+        // Each time this reaches or exceeds 1, one settler is added (up to
+        // the population cap) and the remainder stored for the next tick.
+        populationFrac: 0,
 
     // temple / prestige
     faith: 0,
@@ -2302,6 +2543,18 @@ header{
       if(typeof terr.project === "undefined") terr.project = null;
       if(typeof terr.workersAssigned !== "number") terr.workersAssigned = 0;
       if(typeof terr.maxWorkers !== "number") terr.maxWorkers = 0;
+    }
+
+    // Add inventory and fractional progress fields introduced in the land update.
+    if(!state.items || typeof state.items !== "object") state.items = {};
+    if(!state.itemFrac || typeof state.itemFrac !== "object") state.itemFrac = {};
+    if(typeof state.populationFrac !== "number") state.populationFrac = 0;
+    // Ensure every defined trade item has both an inventory entry and fractional progress.
+    if(typeof tradeItems !== "undefined"){
+      for(const it of tradeItems){
+        if(typeof state.items[it.id] !== "number") state.items[it.id] = 0;
+        if(typeof state.itemFrac[it.id] !== "number") state.itemFrac[it.id] = 0;
+      }
     }
     return state;
   }
@@ -2860,20 +3113,22 @@ function decreeMult(){
     const aux = S.auxilia  || 0;
     const eq  = S.equites  || 0;
     const vet = S.veterans || 0;
+    const captAux = S.captiviAux || 0;
 
-    const totalUnits = w + a + cav + aux + eq + vet;
+    const totalUnits = w + a + cav + aux + eq + vet + captAux;
     if(totalUnits <= 0) return 0;
 
     // Base upkeep per milite per second (heavier than before).
     let perMil = 0.04;
 
     // Special forces count as heavier to maintain.
-    const weightMil  = 1.0;
-    const weightArch = 0.8; // lightly equipped villager archers
-    const weightCav  = 1.5; // mounted, better paid
-    const weightAux = 1.3; // better equipped infantry
-    const weightEq  = 1.8; // elite cavalry
-    const weightVet = 2.1; // elite pay + gear
+    const weightMil   = 1.0;
+    const weightArch  = 0.8; // lightly equipped villager archers
+    const weightCav   = 1.5; // mounted, better paid
+    const weightAux   = 1.3; // better equipped infantry
+    const weightEq    = 1.8; // elite cavalry
+    const weightVet   = 2.1; // elite pay + gear
+    const weightCaptAux = 0.6; // captivi auxiliaries are cheap to maintain
 
     let effectiveCount =
       (w   * weightMil)  +
@@ -2881,7 +3136,8 @@ function decreeMult(){
       (cav * weightCav)  +
       (aux * weightAux) +
       (eq  * weightEq)  +
-      (vet * weightVet);
+      (vet * weightVet) +
+      (captAux * weightCaptAux);
 
     // Agriculture + villas + land (Agriculture) soften upkeep.
     const foodRelief =
@@ -2929,6 +3185,11 @@ function decreeMult(){
 
   function incomePerSec(){
     let farm = S.farmCount * 0.75;
+    // Captivi work your fields as forced labour. Each captivi contributes
+    // income equivalent to a territory labourer (0.4 denarii per second).
+    if(typeof S.captivi === "number" && S.captivi > 0){
+      farm += (S.captivi || 0) * 0.4;
+    }
     // Soft cap: without land, extra farms become less effective (nudges you into the land loop)
     const softCap = 6 + (S.land * 2);
     if(S.farmCount > softCap){
@@ -2936,7 +3197,10 @@ function decreeMult(){
     }
     const villa = S.villaCount * 3.0;
     const landWork = landWorkersIncome();
-    const base = farm + villa + landWork;
+    // Land denarii: base income from each tile plus tax. Worker yield is already
+    // accounted for via landWork above.
+    const landDen = landBaseIncome() + ((Array.isArray(S.controlledRegions) ? S.controlledRegions.length : 0) * LAND_TAX_RATE);
+    const base = farm + villa + landWork + landDen;
     const prosper = (Date.now() < (S.prosperUntil||0)) ? 1.5 : 1.0;
     // Land allocation (Agriculture) further boosts income.
     return base * landMult() * landAllocIncomeMult() * decreeMult() * crownMult() * prosper;
@@ -3096,6 +3360,14 @@ function decreeMult(){
     return 320;
   }
 
+  // Base recruit cost for Captivi Auxiliaries. Captivi auxiliaries are cheaper than milites.
+  // The cost grows modestly with each additional captivi auxiliary to prevent runaway armies.
+  function captiviAuxRecruitCost(){
+    const base = 150;
+    const owned = S.captiviAux || 0;
+    return Math.floor(base + owned * 8);
+  }
+
   function recruitStrengthGain(){
     return 6;
   }
@@ -3109,6 +3381,8 @@ function recalcLegionStrength(){
     const aux      = S.auxilia  || 0;
     const equites  = S.equites  || 0;
     const veterans = S.veterans || 0;
+    // Captivi auxiliaries: captive infantry trained from captivi. These do not use civilian population.
+    const captAux  = S.captiviAux || 0;
 
     // Base per-unit stats.
     const MIL  = { atk: 7,  def: 5,  hp: 16 };
@@ -3117,10 +3391,18 @@ function recalcLegionStrength(){
     const AUX  = { atk: 6,  def: 8,  hp: 20 };
     const EQ   = { atk: 13, def: 4,  hp: 18 };
     const VET  = { atk: 9,  def: 10, hp: 24 };
+    // Stats for captivi auxiliaries: weaker but cheaper infantry.
+    const CAPAUX = { atk: 5, def: 3, hp: 12 };
 
     let atk = warriors * MIL.atk  + archers * ARCH.atk + cav * CAV.atk + aux * AUX.atk + equites * EQ.atk + veterans * VET.atk;
     let def = warriors * MIL.def  + archers * ARCH.def + cav * CAV.def + aux * AUX.def + equites * EQ.def + veterans * VET.def;
     let hp  = warriors * MIL.hp   + archers * ARCH.hp  + cav * CAV.hp  + aux * AUX.hp  + equites * EQ.hp  + veterans * VET.hp;
+    // Add captivi auxiliaries contributions
+    if(captAux > 0){
+      atk += captAux * CAPAUX.atk;
+      def += captAux * CAPAUX.def;
+      hp  += captAux * CAPAUX.hp;
+    }
 
     atk = Math.max(0, atk);
     def = Math.max(0, def);
@@ -3135,7 +3417,8 @@ function recalcLegionStrength(){
       cav,
       aux,
       equites,
-      veterans
+      veterans,
+      captAux
     };
   }
 // --- Battles  ---
@@ -3471,7 +3754,18 @@ function renderFactionCardsFromCurrentBattles(bs, tier, hasTroops){
 
   const land = 1 + Math.floor(Math.random() * 4); // 1–4 rough land units
   const basePopPerLand = 40 + Math.floor(Math.random() * 70); // 40–109
-  const population = land * basePopPerLand;
+  // Scale the camp population based on your current title rank so that later battles feel larger.
+  let popScale = 1;
+  try {
+    if (typeof titleInfo === "function") {
+      const ti = titleInfo();
+      if (ti && typeof ti.idx === "number") {
+        // Each rank adds ~40% more population (Elder 0 = 1.0×, Clan Leader 1 = 1.4×, etc.).
+        popScale = 1 + ti.idx * 0.4;
+      }
+    }
+  } catch(e) {}
+  const population = Math.round(land * basePopPerLand * popScale);
 
   const minMil = Math.max(10, Math.floor(population * 0.25));
   const maxMil = Math.max(minMil + 5, Math.floor(population * 0.6));
@@ -3529,9 +3823,11 @@ const totalPages = Math.max(1, Math.ceil(cards.length / PAGE_SIZE));
   '<div class="factionCardLeader">Leader: ', card.leader, "</div>",
   '<div class="factionCardType">', card.type, "</div>",
   '<div class="factionCardActions">',
-    '<button type="button" class="factionActionBtn" data-faction-action="trade"',    hasTroops ? "" : " disabled",  ">Trade</button>",
+    // Allow trading regardless of troop count; only attack/raid should be gated by available troops.
+    '<button type="button" class="factionActionBtn" data-faction-action="trade">Trade</button>',
     '<button type="button" class="factionActionBtn" data-faction-action="attack"',   hasTroops ? "" : " disabled", ">Attack</button>",
-    '<button type="button" class="factionActionBtn" data-faction-action="diplomacy"', hasTroops ? "" : " disabled", ">Diplomacy</button>",
+    // Diplomacy does not require troops. Always enable this button.
+    '<button type="button" class="factionActionBtn" data-faction-action="diplomacy">Diplomacy</button>',
     '<button type="button" class="factionActionBtn" data-faction-action="raid"',     hasTroops ? "" : " disabled", ">Raid</button>",
   "</div>",
   '<div class="factionCardStats">',
@@ -5279,6 +5575,9 @@ function captureTerritory(battleTier, kind, label){
   let pendingFactionCardBattle = null;
 
   let factionAttackMeta = null;
+  // Tracks pending faction raid context so we can award item spoils after a successful raid.
+  // This is set when the player chooses to raid a faction card and cleared after the battle concludes.
+  let factionRaidMeta = null;
 
   function battleSim(slot){
   const b = currentBattleSet()[slot];
@@ -6740,6 +7039,43 @@ function applyOfflineProgress(){
       S.population = beforePop + settlersGain;
     }
 
+    // Prepare to record resources and settlers generated while offline.
+    const offlineItemGain = {};
+    let offlineLandPop = 0;
+
+    // Offline resource production from land. Use landItemRates() to
+    // determine per‑second output, then apply the same dampening as gold.
+    try{
+      const itemRates = (typeof landItemRates === "function") ? landItemRates() : {};
+      for(const id in itemRates){
+        const gain = Math.floor(itemRates[id] * cappedSec * rateMult);
+        if(gain > 0){
+          if(!S.items || typeof S.items !== "object") S.items = {};
+          S.items[id] = (S.items[id] || 0) + gain;
+          offlineItemGain[id] = (offlineItemGain[id] || 0) + gain;
+        }
+      }
+    }catch(e){}
+
+    // Offline natural population growth from land. This uses landPopRate()
+    // multiplied by the offline duration and dampening, then applies to the
+    // main population (respecting the cap).
+    try{
+      if(typeof landPopRate === "function"){
+        const landPop = Math.floor(landPopRate() * cappedSec * rateMult);
+        if(landPop > 0){
+          const capPop = populationCap();
+          const popNow = S.population || 0;
+          const free = Math.max(0, capPop - popNow);
+          const toAdd = Math.min(landPop, free);
+          if(toAdd > 0){
+            S.population = popNow + toAdd;
+            offlineLandPop = toAdd;
+          }
+        }
+      }
+    }catch(e){}
+
     // ----- Living Realm Offline: build farms and villas while away -----
     // After collecting income and settlers, villagers may cultivate new farms and erect villas.
     // Use a simple time-slicing model: each farm takes ~2h of offline time and each villa ~8h.
@@ -6800,10 +7136,12 @@ function applyOfflineProgress(){
       villaRate,
       landBoost,
       land: S.land || 0,
-      territories: (typeof territoryCount === "function") ? territoryCount() : (S.land || 0)
-      ,
+      territories: (typeof territoryCount === "function") ? territoryCount() : (S.land || 0),
       farmsBuilt: offlineFarmsBuilt,
-      villasBuilt: offlineVillasBuilt
+      villasBuilt: offlineVillasBuilt,
+      // Resources and population produced while offline
+      itemsGained: offlineItemGain,
+      landPopGain: offlineLandPop
     };
 
     showOfflineOverlay(summary);
@@ -6879,6 +7217,32 @@ function applyOfflineProgress(){
         "👥 The village held steady; no new faces joined the firelight."
       ];
       familiesLine = pick(noFamPhrases);
+    }
+
+    // --- Offline land resource & settler lines ---
+    // Build a summary line for resources produced while the player was away.
+    let resourcesLine = null;
+    if(summary.itemsGained){
+      const ids = Object.keys(summary.itemsGained);
+      if(ids.length > 0){
+        const parts = [];
+        for(const id of ids){
+          const amount = summary.itemsGained[id];
+          if(amount > 0){
+            const def = (typeof ITEM_DEFS !== 'undefined' && ITEM_DEFS[id]) ? ITEM_DEFS[id] : { label: id, icon: '' };
+            parts.push(`${def.icon || ''} ${fmt(amount)} ${def.label}`);
+          }
+        }
+        if(parts.length > 0){
+          resourcesLine = `📦 While you were away, your lands produced ${parts.join(', ')}.`;
+        }
+      }
+    }
+    // Summary line for settlers produced by land while offline
+    let landPopLine = null;
+    const lp = summary.landPopGain || 0;
+    if(lp > 0){
+      landPopLine = `👥 ${fmt(lp)} settler${lp===1?'':'s'} were born or integrated on your estates.`;
     }
 
     // --- Offline construction lines (farms / villas) ---
@@ -6958,6 +7322,17 @@ function applyOfflineProgress(){
     const pFamilies = document.createElement("p");
     pFamilies.textContent = familiesLine;
     body.appendChild(pFamilies);
+    // Insert resource and land settler lines after families
+    if(resourcesLine){
+      const pRes = document.createElement("p");
+      pRes.textContent = resourcesLine;
+      body.appendChild(pRes);
+    }
+    if(landPopLine){
+      const pLP = document.createElement("p");
+      pLP.textContent = landPopLine;
+      body.appendChild(pLP);
+    }
 
     const pGold = document.createElement("p");
     pGold.textContent = goldLine;
@@ -7013,6 +7388,21 @@ function statsRows(){
     rows.push({ k: "Villas", v: S.villaCount });
     rows.push({ k: "Territories", v: territoryCount() });
     rows.push({ k: "Land", v: S.land || 0 });
+    // Captivi row: display how many captives you currently own. These
+    // prisoners increase your income but do not occupy housing.
+    rows.push({ k: "Captivi", v: S.captivi || 0 });
+
+    // Show land resources if any have been collected. Resources are grouped
+    // under their own header for clarity. Only display resources that the
+    // player actually owns (quantity > 0).
+    const itemIds = Object.keys(S.items || {}).filter(id => (S.items[id] || 0) > 0);
+    if(itemIds.length > 0){
+      rows.push({ type: "header", label: "Resources (from Land)" });
+      itemIds.sort().forEach(id => {
+        const def = ITEM_DEFS[id] || { label: id, icon: "" };
+        rows.push({ k: (def.icon ? def.icon + " " : "") + def.label, v: S.items[id] || 0 });
+      });
+    }
 
     // Legion
     rows.push({ type: "header", label: "Legion" });
@@ -7020,6 +7410,8 @@ function statsRows(){
     rows.push({ k: "Archers", v: S.archers || 0 });
     rows.push({ k: "Cavalry", v: S.cavalry || 0 });
     rows.push({ k: "Auxilia", v: S.auxilia || 0 });
+    // Captivi auxiliaries: captive infantry trained from prisoners
+    rows.push({ k: "Captivi Auxiliaries", v: S.captiviAux || 0 });
     rows.push({ k: "Equites", v: S.equites || 0 });
     rows.push({ k: "Veteran cohorts", v: S.veterans || 0 });
     rows.push({ k: "Legion attack", v: Math.round(leg.atk) });
@@ -7103,6 +7495,21 @@ handleRankUps();
     $("#renown").textContent = fmt(S.renown);
     $("#landHud").textContent = fmt(S.land || 0);
 
+    // Always re-render the inventory HUD and counts whenever state changes.
+    // This keeps the inventory tab in sync with current items even when
+    // viewing other sections. Only call renderInventory() once the trade
+    // items have been defined to avoid runtime errors caused by the
+    // temporal dead zone of const declarations. If tradeItems is
+    // undefined, skip the inventory render until later renders.
+    if (typeof tradeItems !== "undefined" && typeof renderInventory === "function") {
+      try {
+        renderInventory();
+      } catch (err) {
+        // Silently ignore errors during early load; inventory will render once
+        // all dependencies are available.
+      }
+    }
+
     const grossInc = incomePerSec();
     const upkeepNow = warriorUpkeepPerSec();
     const netInc = Math.max(0, grossInc - upkeepNow);
@@ -7112,11 +7519,17 @@ handleRankUps();
     // Compact income breakdown text under the village panel
     const farmBase = (S.farmCount || 0) * 0.75;
     const villaBase = (S.villaCount || 0) * 3.0;
+    const captiviBase = (S.captivi || 0) * 0.4;
     const bd = $("#incomeBreakdown");
     if(bd){
-      bd.textContent =
-        `Farms ${farmBase.toFixed(2)}/s • Villas ${villaBase.toFixed(2)}/s ` +
-        `• Upkeep -${upkeepNow.toFixed(2)}/s • Net ${netInc.toFixed(2)}/s`;
+      // Include captivi income breakdown if any captives are present. Captivi
+      // contribute 0.4 denarii per second each, similar to territory labourers.
+      let breakdown = `Farms ${farmBase.toFixed(2)}/s • Villas ${villaBase.toFixed(2)}/s`;
+      if((S.captivi||0) > 0){
+        breakdown += ` • Captivi ${captiviBase.toFixed(2)}/s`;
+      }
+      breakdown += ` • Upkeep -${upkeepNow.toFixed(2)}/s • Net ${netInc.toFixed(2)}/s`;
+      bd.textContent = breakdown;
     }
 
     // Renown soft-tech: passive decree unlocks from fame (no choices, pure dopamine)
@@ -7162,6 +7575,9 @@ handleRankUps();
       rows.push({ k: "Capacity", v: fmt(cap) });
       rows.push({ k: "Free citizens", v: fmt(freePop) });
       rows.push({ k: "Civilians (non-military)", v: fmt(civilians) });
+      // Display enslaved captives. Captivi do not count toward total population
+      // capacity or free citizens, but they generate passive income.
+      rows.push({ k: "Captivi", v: fmt(S.captivi || 0) });
 
       rows.push({ type: "header", label: "Military" });
       rows.push({ k: "Milites", v: fmt(warriors) });
@@ -7239,6 +7655,9 @@ handleRankUps();
 
     const ownedCav = $("#ownedCavalry");
     if(ownedCav) ownedCav.textContent = fmt(S.cavalry || 0);
+    // Captivi Auxiliaries: update owned count
+    const ownedCapt = $("#ownedCaptiviAux");
+    if(ownedCapt) ownedCapt.textContent = fmt(S.captiviAux || 0);
     $("#landLegion").textContent = fmt(S.land || 0);
     $("#landHud").textContent = fmt(S.land || 0);
 
@@ -7269,12 +7688,22 @@ handleRankUps();
 
     const rcCavEl = $("#recruitCavCost");
     if(rcCavEl) rcCavEl.textContent = `Cost ${fmt(cavalryRecruitCost())}`;
+    // Captivi Aux cost display
+    const rcCaptEl = $("#recruitCaptiviAuxCost");
+    if(rcCaptEl) rcCaptEl.textContent = `Cost ${fmt(captiviAuxRecruitCost())}`;
 
     const rgEl = $("#recruitGain");
     if(rgEl) rgEl.textContent = `+1 milites`;
 
     // Update Milites header icon depending on current rank.
     updateMilitesIcon();
+
+    // Unlock Captivi Auxiliaries recruitment when any captivi exist or some already recruited.
+    const btnCaptAux = $("#btnRecruitCaptiviAux");
+    if(btnCaptAux){
+      const unlocked = (S.captivi || 0) > 0 || (S.captiviAux || 0) > 0;
+      btnCaptAux.style.display = unlocked ? "" : "none";
+    }
 
     
     
@@ -7285,13 +7714,14 @@ if (!opts || !opts.skipBattles) {
     const tier = battleTierFromTitleIdx(idx);
 
     // Battles: requirement is "do you have any troops at all?"
-    const totalTroops =
+const totalTroops =
       (S.warriors || 0) +
       (S.archers  || 0) +
       (S.cavalry  || 0) +
       (S.auxilia  || 0) +
       (S.equites  || 0) +
-      (S.veterans || 0);
+      (S.veterans || 0) +
+      (S.captiviAux || 0);
     const hasTroops = totalTroops > 0;
 
     // Hook into the new faction card system (3 panels × 3 factions)
@@ -7335,7 +7765,8 @@ if (!opts || !opts.skipBattles) {
     if($("#landTotal")) $("#landTotal").textContent = fmt(S.land||0);
 
     // Land output summary
-    const landDen = landBaseIncome() + landWorkersIncome();
+    // Include base income, labourers and the flat tax per tile in the denarii calculation.
+    const landDen = landBaseIncome() + landWorkersIncome() + ((Array.isArray(S.controlledRegions) ? S.controlledRegions.length : 0) * LAND_TAX_RATE);
     const landPop = landBasePopCap();
     if($("#landOutputDen")) $("#landOutputDen").textContent = `+${fmt(landDen)} Denarii / tick`;
     if($("#landOutputPop")) $("#landOutputPop").textContent = `+${fmt(landPop)} Cap`;
@@ -7395,8 +7826,65 @@ if (!opts || !opts.skipBattles) {
         const maxWorkers = tiles * 5; // 5 labourers per tile
 
 
+        // Compute denarii output: base + labour + tax
         const workerYield = workers * 0.4; // each worker adds +0.4 denarii/s
-        const totalDen = info.den + workerYield;
+        const taxYield = tiles * LAND_TAX_RATE;
+        const totalDen = info.den + workerYield + taxYield;
+
+        // Build denarii breakdown string
+        let denDescParts = [];
+        if(info.den > 0) denDescParts.push(fmt(info.den) + " base");
+        if(workerYield > 0) denDescParts.push("+" + fmt(workerYield) + " labour");
+        if(taxYield > 0) denDescParts.push("+" + fmt(taxYield) + " tax");
+        const denDesc = denDescParts.length > 1 ? " (" + denDescParts.join(", ") + ")" : "";
+
+        // Compute resource outputs for this type (multiplied by worker bonus)
+        const outputs = LAND_ITEM_OUTPUTS[name] || {};
+        const workersForType = workers;
+        const maxW = maxWorkers;
+        let mult = 1;
+        if(maxW > 0){
+          // At full staffing (5 workers per tile) the multiplier reaches 2x
+          mult += Math.min(workersForType / maxW, 1);
+        }
+        const resourceParts = [];
+        // For each defined resource, compute the per‑second rate with the worker multiplier
+        for(const id in outputs){
+          const rate = outputs[id] * mult;
+          const def = ITEM_DEFS[id] || { label: id, icon: "" };
+          resourceParts.push(`${def.icon || ""} +${rate.toFixed(3)} ${def.label}/s`);
+        }
+        // Compute natural population growth from this land type. Each territory tile
+        // contributes to your population cap and passively generates new settlers.
+        // The growth rate is 0.0005 settlers per second per unit of pop cap. We
+        // multiply by the number of tiles to show an aggregate rate on the card.
+        {
+          const eff = LAND_TYPE_EFFECTS[name] || {};
+          const popPerSec = (eff.pop || 0) * tiles * 0.0005;
+          if(popPerSec > 0){
+            resourceParts.push(`👥 +${popPerSec.toFixed(3)} Pop/s`);
+          }
+        }
+
+        // Build progress bars for each resource (global fraction progress)
+        let progressHtml = "";
+        if(resourceParts.length > 0){
+          for(const id in outputs){
+            const def = ITEM_DEFS[id] || { icon: "", label: id };
+            const frac = (S.itemFrac && S.itemFrac[id]) || 0;
+            const perc = Math.max(0, Math.min(1, frac % 1)) * 100;
+            progressHtml += `
+              <div style="display:flex;align-items:center;gap:4px;margin-top:4px;">
+                <span>${def.icon || ""}</span>
+                <div style="flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;">
+                  <div style="width:${perc}%;height:4px;background:var(--accent);"></div>
+                </div>
+              </div>
+            `;
+          }
+        }
+
+        // Compose HTML for the territory card
         const card = document.createElement("div");
         card.className = "smallBtn territoryCard";
         card.innerHTML = `
@@ -7407,10 +7895,17 @@ if (!opts || !opts.skipBattles) {
             <div>Tiles: <b>${fmt(tiles)}</b></div>
             <div class="territoryYieldLine">
               These yield:
-              ${ (totalDen > 0) ? " &#x1F4B0; +" + fmt(totalDen) + " Denarii" : "" }
+              ${ (totalDen > 0) ? " &#x1F4B0; +" + fmt(totalDen) + " Denarii" + denDesc : "" }
               ${info.cap ? " &#x1F465; +" + fmt(info.cap) + " Cap" : ""}
-              ${workers ? (" (includes +" + fmt(workerYield) + " from labourers)") : ""}
             </div>
+            ${
+              (resourceParts.length > 0) ?
+              `<div class="territoryResLine">Resources: ${resourceParts.join(", ")}</div>` : ""
+            }
+            ${
+              (progressHtml.trim().length > 0) ?
+              `<div class="territoryProgressBars">${progressHtml}</div>` : ""
+            }
             <div class="territoryWorkersRow">
               <button
                 type="button"
@@ -7737,6 +8232,37 @@ $("#btnRecruitCavalry").addEventListener("click", (e)=>{
     toast("New cavalry unit recruited.");
     render({skipBattles:true});
   });
+
+  // Recruit Captivi Auxiliaries button. These captive infantry are trained from captured prisoners
+  // and do not consume civilian population. They require captivi as a prerequisite and cost less
+  // than standard milites to field.
+  $("#btnRecruitCaptiviAux").addEventListener("click", (e)=>{
+    const cost = captiviAuxRecruitCost();
+    if(S.gold < cost){
+      toast("Not enough denarii");
+      return;
+    }
+    if((S.captivi || 0) < 1){
+      toast("No captivi available — capture prisoners in battle to train these auxiliaries.");
+      return;
+    }
+    // Pay cost and consume one captivi.
+    S.gold -= cost;
+    S.captivi = (S.captivi || 0) - 1;
+    S.captiviAux = (S.captiviAux || 0) + 1;
+    // Recalculate legion strength; captivi auxiliaries don't use population.
+    recalcLegionStrength();
+    bumpObjective("recruit", 1);
+    const rect = e.currentTarget.getBoundingClientRect();
+    // Visual flourish when recruiting a captive unit.
+    sparkAt(
+      rect.left + rect.width * 0.6,
+      rect.top  + rect.height * 0.4,
+      0.3 + (S.captiviAux || 0) * 0.01
+    );
+    toast("Captivi auxiliary recruited.");
+    render({ skipBattles: true });
+  });
 // ---- Defensive/local skirmish popups ----
 
 // We piggyback off taps: occasionally, your lands are tested.
@@ -7773,7 +8299,7 @@ function maybeSpawnDefenceFromTap(){
   if(!S.introBattleDone) return;
 
   // Need at least some troops of any type to be eligible for a defence
-  const totalTroops = (S.warriors||0) + (S.archers||0) + (S.cavalry||0) + (S.auxilia||0) + (S.equites||0) + (S.veterans||0);
+const totalTroops = (S.warriors||0) + (S.archers||0) + (S.cavalry||0) + (S.auxilia||0) + (S.equites||0) + (S.veterans||0) + (S.captiviAux||0);
   if(totalTroops <= 0) return;
 
   if(Math.random() > defenceSpawnChance()) return;
@@ -8095,6 +8621,29 @@ function showBattleReport(rep){
     lines.push(`Troop losses: ${txt}`);
   } else {
     lines.push(`Troops lost: ${fmt(rep.losses || 0)}`);
+  }
+
+  // Show number of captivi captured, if any
+  if(rep && rep.captiviCaptured && rep.captiviCaptured > 0){
+    lines.push(`Captivi captured: +${fmt(rep.captiviCaptured)}`);
+  }
+
+  // If raid spoils were recorded, show them in the victory report.
+  if(rep && rep.win && rep.raidItems && typeof rep.raidItems === "object"){
+    const items = rep.raidItems;
+    const entries = [];
+    for(const key in items){
+      if(Object.prototype.hasOwnProperty.call(items, key)){
+        const count = items[key] || 0;
+        entries.push({ name: key, count });
+      }
+    }
+    if(entries.length > 0){
+      lines.push("Spoils:");
+      entries.sort((a,b)=>a.name.localeCompare(b.name)).forEach(({name,count})=>{
+        lines.push(`• ${name} ×${fmt(count)}`);
+      });
+    }
   }
 
   body.innerHTML = `
@@ -8626,6 +9175,17 @@ window.startIntroBattle = startIntroBattle;
 // Optional second arg opts: { defence: true } for pop-up defence battles
 function doBattle(slot, opts){
   opts = opts || {};
+  // Track any spoils awarded from faction raids. If this battle originates from a raid
+  // the awarding code below will populate this object with item name → count pairs.
+  let raidSpoils = null;
+  // Captivi captured during this battle. Each enemy kill has a 10% chance
+  // of yielding one captivi. We tally them here so they can be shown
+  // later in the battle report and added to your state.  This value is
+  // derived from the number of enemy casualties. If the simulation can't
+  // provide an exact enemy kill count, we'll approximate based on the
+  // total enemy numbers so that captives are still captured in meaningful
+  // battles.
+  let captiviCaptured = 0;
   const isDefence = !!opts.defence;
   const fromFactionCardAttack = !!(opts && opts.fromFactionCardAttack);
   const factionBattleMeta = (opts && opts.fromFactionCardMeta) || null;
@@ -8641,7 +9201,7 @@ function doBattle(slot, opts){
   const aux = (S.auxilia  || 0);
   const eq  = (S.equites  || 0);
   const vet = (S.veterans || 0);
-  const totalTroops = w + arc + cav + aux + eq + vet;
+const totalTroops = w + arc + cav + aux + eq + vet + (S.captiviAux || 0);
   if (!isDefence && totalTroops <= 0) {
     toast("You have no troops to muster.");
     return;
@@ -8860,6 +9420,7 @@ function doBattle(slot, opts){
       S.lifetimeGlory = (S.lifetimeGlory || 0) + gloryGain;
 
 bumpObjective("winBattle", 1);
+
       maybeBurst("battle");
 
       toast("Village defended!");
@@ -8974,6 +9535,57 @@ bumpObjective("winBattle", 1);
       bumpObjective("winBattle", 1);
       const objLandGain = landGain > 0 ? landGain : (sim.win ? 1 : 0);
       bumpObjective("gainLand", objLandGain);
+
+      // --- Faction raid spoils: award items if this battle was a successful raid ---
+      // If factionRaidMeta is set and this battle originated from a faction raid (not a full attack),
+      // grant additional item rewards based on the enemy force size. This reward is separate from
+      // gold/land/renown and encourages raiding smaller portions of enemy armies.
+      if (!isDefence && factionRaidMeta && factionRaidMeta.slot === slot && !fromFactionCardAttack && sim && sim.win) {
+        try {
+          // Ensure the player's items state is initialized.
+          if (typeof ensureTradeItemsState === "function") {
+            ensureTradeItemsState();
+          }
+        } catch(e){}
+        // If this was a faction raid and we preserved the original enemy headcount in
+        // factionRaidMeta, use that to compute spoils. Otherwise fall back to the
+        // simulated enemy count from this new battleSim() call.
+        let enemyCount;
+        if (factionRaidMeta && typeof factionRaidMeta === "object" && typeof factionRaidMeta.enemies === "number") {
+          enemyCount = Math.max(1, Math.round(factionRaidMeta.enemies));
+        } else {
+          enemyCount = (sim && typeof sim.enemies === "number") ? sim.enemies : 0;
+        }
+        // Drop rate: roughly one item per 20 enemies, at least one.
+        let dropCount = Math.max(1, Math.floor(enemyCount / 20));
+        const dropped = {};
+        if (Array.isArray(tradeItems) && tradeItems.length > 0) {
+          for (let i = 0; i < dropCount; i++) {
+            const it = tradeItems[Math.floor(Math.random() * tradeItems.length)];
+            if (!it || !it.id) continue;
+            S.items[it.id] = (S.items[it.id] || 0) + 1;
+            const n = it.name || it.id;
+            dropped[n] = (dropped[n] || 0) + 1;
+          }
+        }
+        // Record the spoils for later inclusion in the battle report
+        raidSpoils = Object.keys(dropped).length ? dropped : null;
+        // Build a friendly description of what was acquired
+        const parts = [];
+        for (const k in dropped) {
+          if (Object.prototype.hasOwnProperty.call(dropped, k)) {
+            parts.push(`${k} ×${fmt(dropped[k])}`);
+          }
+        }
+        if (parts.length > 0) {
+          logLine(`Raid spoils: ${parts.join(", ")}`, "good");
+          toast("Raid spoils acquired!");
+        } else {
+          logLine("Raid spoils: nothing of value was recovered.", "warn");
+        }
+        // Clear the raid meta so it doesn't trigger again.
+        factionRaidMeta = null;
+      }
 
       maybeBurst("battle");
 
@@ -9122,6 +9734,55 @@ bumpObjective("winBattle", 1);
   }
 
   // --- Legion morale & veterancy (hidden) ---
+  // Captivi capture: after the main battle resolution (whether win or loss), attempt to
+  // enslave some of the fallen enemies. Each enemy kill has a 10% chance of
+  // producing one captivi. This happens regardless of the outcome. The total
+  // captured count is recorded in the battle report via captiviCaptured.
+  // -----------------------------------------------------------------------
+  // Captivi capture logic
+  // Try to calculate the number of enemy casualties. In most auto‑battles
+  // this is provided via sim.enemyKills. However, in tactical or
+  // suppressed simulations this may be undefined or zero, which would
+  // prevent any captives from being taken even on decisive victories. To
+  // ensure captives are granted in all meaningful fights, we fall back on
+  // approximating the kills as a fraction of the total enemy force when
+  // enemyKills is absent or non‑positive. The fractions were chosen to
+  // reflect typical casualty rates: about 60% of the enemy wiped out on
+  // victory, or 30% on defeat. Feel free to tune these numbers if you
+  // adjust combat lethality elsewhere.
+  {
+    let kills = 0;
+    if(sim && typeof sim.enemyKills === "number" && sim.enemyKills > 0){
+      // Use the precise number of enemies killed when available.
+      kills = Math.max(0, Math.floor(sim.enemyKills));
+    } else if(sim && typeof sim.enemies === "number" && sim.enemies > 0){
+      // Approximate casualties based on the total enemy headcount and
+      // whether the player won. Victories produce more casualties.
+      const enemyCount = Math.floor(sim.enemies);
+      const ratio = sim.win ? 0.6 : 0.3;
+      kills = Math.max(0, Math.floor(enemyCount * ratio));
+    }
+    if(kills > 0){
+      let capturedCount = 0;
+      // Each enemy kill has a 30% chance of yielding a captivi rather than the
+      // previous 10%. Loop through all estimated kills and tally based on
+      // this probability. This better reflects the desired capture rate
+      // expressed by the player: roughly one captive per three enemies slain.
+      for(let iCapt = 0; iCapt < kills; iCapt++){
+        if(Math.random() < 0.30) capturedCount++;
+      }
+      captiviCaptured = capturedCount;
+      if(capturedCount > 0){
+        S.captivi = (S.captivi || 0) + capturedCount;
+        try {
+          logLine(`Captured ${fmt(capturedCount)} captivi.`, "good");
+          toast("Captivi captured!");
+        } catch(err){}
+      }
+    } else {
+      captiviCaptured = 0;
+    }
+  }
   const baseBefore = totalTroops || 0;
   const lossFracForMorale = baseBefore > 0 ? losses / baseBefore : 0;
   const fightSize = sim.enemies || 0;
@@ -9180,7 +9841,13 @@ bumpObjective("winBattle", 1);
     territoryNames: sim.win ? (capturedNames || []) : [],
     note: sim.win
       ? (isDefence ? "You hold the fields around your village." : "You held the field and counted the fallen.")
-      : "You retreat to lick your wounds."
+      : "You retreat to lick your wounds.",
+    // Include raid spoils (if any) so the battle report can display item gains.
+    raidItems: raidSpoils
+
+    ,
+    // Number of captivi enslaved from this battle. Displayed in the battle report.
+    captiviCaptured: captiviCaptured
   };
 
   
@@ -9613,6 +10280,18 @@ if(btnReset){
     const dt = (now - last)/1000;
     last = now;
 
+    // Land resources and population growth tick. Ensure inventory exists and
+    // accumulate resources and settlers from land on each passive tick.
+    if(typeof ensureTradeItemsState === "function"){
+      ensureTradeItemsState();
+    }
+    if(typeof passiveLandItemTick === "function"){
+      passiveLandItemTick(dt);
+    }
+    if(typeof passiveLandPopTick === "function"){
+      passiveLandPopTick(dt);
+    }
+
     // Passive income
     const inc = incomePerSec() * dt;
     if(inc > 0){
@@ -9754,6 +10433,11 @@ if(btnReset){
   logLine("A small village. A few denarii. A long road to the crown.", "warn");
   render();
   maybeShowIntro();
+  // The intro overlay is responsible for gating entry into the game by
+  // prompting the player for a name. Removing a previous fallback that
+  // automatically set a default name ensures the player goes through the
+  // intended naming flow. If the intro logic ever fails, debugging and
+  // fixing the underlying cause is preferable to silently bypassing it.
   
     /*
    * Tactical battle system — JRPG turns + attrition
@@ -9890,9 +10574,10 @@ if(btnReset){
       fromFactionCardMeta: s.factionCardMeta || null
     });
 
-    // Once resolved, clear any pending faction attack meta so it doesn't leak
-    // into unrelated battles.
+    // Once resolved, clear any pending faction attack or raid metadata so it doesn't leak
+    // into unrelated battles. This ensures future battles don't mistakenly award spoils.
     factionAttackMeta = null;
+    factionRaidMeta = null;
     currentTactical = null;
   }
 
@@ -10661,8 +11346,30 @@ if(btnReset){
 
     if(actionKey === "raid"){
       logLine(`You lead a raid against ${name}.`, "warn");
-      // Raid: engage roughly a quarter of the enemy strength.
-      startTacticalBattle(s, false, 0.25);
+      // Mark this faction raid so post-battle rewards can include item spoils.
+      // Capture additional context (card index and military size) so the reward logic
+      // can base item drops on the true enemy count. Without preserving the
+      // military value here, the later battle simulation would generate a new
+      // random enemy headcount for the underlying contract, resulting in very
+      // small spoils. Storing the card's military here ensures raid spoils scale
+      // correctly with faction strength.
+      try {
+        const idxVal = Number(cardIndex);
+        const meta = { slot: s };
+        if (!Number.isNaN(idxVal)) meta.cardIndex = idxVal;
+        // If we looked up this card earlier, include its military count so doBattle
+        // can reward spoils based on the actual faction army size rather than the
+        // random contract enemy headcount. pendingFactionCardBattle.enemies was
+        // consumed by battleSim, so we need to persist this here.
+        if (typeof pendingFactionCardBattle === 'object' && pendingFactionCardBattle && pendingFactionCardBattle.slot === s && typeof pendingFactionCardBattle.enemies === 'number') {
+          meta.enemies = Math.max(1, Math.round(pendingFactionCardBattle.enemies));
+        }
+        factionRaidMeta = meta;
+      } catch(e){
+        factionRaidMeta = { slot: s };
+      }
+      // Raid: engage a smaller fraction of the enemy strength (about one fifth).
+      startTacticalBattle(s, false, 0.20);
       return;
     }
     if(actionKey === "attack"){
@@ -10672,13 +11379,23 @@ if(btnReset){
       return;
     }
     if(actionKey === "trade"){
-      logLine(`You seek trade with ${name}.`, "info");
-      toast("Trade: prototype interaction only (no mechanical effect yet).");
+      // Instead of immediate resource exchange, open the trade overlay to select options.
+      showTradeOverlay(name);
       return;
     }
     if(actionKey === "diplomacy"){
-      logLine(`You send envoys to ${name}.`, "info");
-      toast("Diplomacy: prototype interaction only (no mechanical effect yet).");
+      // Diplomacy now opens an overlay with several options. Retrieve card data for context.
+      let cardData = null;
+      const idx = Number(cardIndex);
+      if (!Number.isNaN(idx) && typeof window !== "undefined" && Array.isArray(window.currentFactionCards)) {
+        for (const c of window.currentFactionCards) {
+          if (c && c.cardIndex === idx) {
+            cardData = c;
+            break;
+          }
+        }
+      }
+      showDiplomacyOverlay(cardData);
       return;
     }
   }
@@ -10691,7 +11408,7 @@ function startTacticalBattle(slot, defenceFlag, enemyScale){
   const eq  = Number(S.equites  || 0);
   const vet = Number(S.veterans || 0);
 
-  const totalTroops = mil + cav + arc + aux + eq + vet;
+const totalTroops = mil + cav + arc + aux + eq + vet + (S.captiviAux || 0);
 
   if(totalTroops <= 0){
     toast('You have no troops to muster.');
@@ -10918,6 +11635,7 @@ function actuallyStartTacticalBattle(){
       const descEl  = document.getElementById('tacOrdersDesc');
       const btnMed  = document.getElementById('tacOrdersMedics');
       const btnEng  = document.getElementById('tacOrdersEngineers');
+      const btnInv  = document.getElementById('tacOrdersInventory');
       const noteEl  = document.getElementById('tacOrdersNote');
 
       const sim  = s.sim || {};
@@ -10973,6 +11691,20 @@ function actuallyStartTacticalBattle(){
         }
       }
 
+      // Configure the Drop Items button. Always available during battle. When
+      // clicked, the tactical overlay is hidden and the inventory drop
+      // overlay is presented to the player.
+      if(btnInv){
+        btnInv.style.display = '';
+        btnInv.disabled = false;
+        btnInv.textContent = 'Drop Items';
+        btnInv.onclick = function(){
+          // Hide tactical orders overlay to avoid overlapping controls
+          overlay.style.display = 'none';
+          showBattleInventoryOverlay();
+        };
+      }
+
       overlay.style.display = 'flex';
     }catch(e){}
   }
@@ -11019,6 +11751,519 @@ function actuallyStartTacticalBattle(){
       showToast(`${s} Renown${label?(" • "+label):""}`, amount>=0 ? "good" : "bad");
     }catch(e){}
   }
+
+  // --- Trade and Diplomacy Popup Functions and Handlers ---
+  // Global state for trade/diplomacy overlays
+  let currentTradeFactionName = null;
+  let currentDiplomacyCardData = null;
+  let currentDiplomacyIntegrateParams = null;
+  let currentDiplomacyAllianceParams = null;
+
+  // Current tab within the trade overlay. Either "buy" or "sell".
+  // Default to the buy tab when opening the overlay.
+  let currentTradeTab = "buy";
+
+  // Price (in denarii) received when selling one captive. Captives are not part
+  // of the standard tradeItems array but are handled specially in the Sell tab.
+  const CAPTIVI_SELL_PRICE = 120;
+
+  function showTradeOverlay(fName){
+    currentTradeFactionName = fName || "neighboring faction";
+    const overlay = document.getElementById('tradeOverlay');
+    const titleEl = document.getElementById('tradeOverlayTitle');
+    if(titleEl) titleEl.textContent = 'Trade with ' + currentTradeFactionName;
+    if(overlay){
+      // Ensure trade items state and populate options before showing
+      try{
+        ensureTradeItemsState();
+        // Default to the buy tab whenever the overlay is opened
+        currentTradeTab = 'buy';
+        // Update tab button active states
+        updateTradeTabButtons();
+        // Render options for the default tab
+        renderTradeOptions();
+        // Attach click handlers to trade tab buttons on first open
+        const tabs = document.querySelectorAll('.tradeTabBtn');
+        tabs.forEach(btn => {
+          btn.onclick = function(){
+            const tab = btn.getAttribute('data-tab');
+            if(tab){ selectTradeTab(tab); }
+          };
+        });
+      }catch(e){}
+      // Display the overlay (set display to flex for centering)
+      overlay.style.display = 'flex';
+      overlay.classList.add('visible');
+    }
+  }
+  function closeTradeOverlay(){
+    const overlay = document.getElementById('tradeOverlay');
+    if(overlay){
+      overlay.classList.remove('visible');
+      // Hide the overlay by setting display:none
+      overlay.style.display = 'none';
+    }
+  }
+
+  /* Trade items definition and helpers */
+  // Define a roster of goods that can be traded. Each entry has a unique id,
+  // a display name, the denarii cost to purchase one unit and the denarii received
+  // when selling one unit. Prices are intentionally asymmetric to create a margin.
+  // Updated trade catalogue to include all tier‑1 resources and legacy goods.
+  tradeItems = [
+    { id: "grain",     name: "Grain",     buyPrice: 50,  sellPrice: 35 },
+    { id: "timber",    name: "Timber",    buyPrice: 80,  sellPrice: 55 },
+    { id: "stone",     name: "Stone",     buyPrice: 70,  sellPrice: 45 },
+    { id: "livestock", name: "Livestock", buyPrice: 200, sellPrice: 140 },
+    { id: "fish",      name: "Fish",      buyPrice: 40,  sellPrice: 28 },
+    { id: "ore",       name: "Ore",       buyPrice: 90,  sellPrice: 63 },
+    { id: "fruit",     name: "Fruit",     buyPrice: 70,  sellPrice: 49 },
+    { id: "goods",     name: "Goods",     buyPrice: 120, sellPrice: 85 },
+    { id: "luxe",      name: "Luxuries", buyPrice: 300, sellPrice: 200 },
+    { id: "iron",      name: "Iron",      buyPrice: 120, sellPrice: 85 },
+    { id: "wine",      name: "Wine",      buyPrice: 200, sellPrice: 140 },
+    { id: "horses",    name: "Horses",    buyPrice: 300, sellPrice: 210 }
+  ];
+
+  // Ensure the player's state has an inventory for all defined trade items.
+  function ensureTradeItemsState(){
+    if(!S.items || typeof S.items !== "object"){
+      S.items = {};
+    }
+    if(!S.itemFrac || typeof S.itemFrac !== "object"){
+      S.itemFrac = {};
+    }
+    for(const it of tradeItems){
+      if(typeof S.items[it.id] !== "number"){
+        S.items[it.id] = 0;
+      }
+      if(typeof S.itemFrac[it.id] !== "number"){
+        S.itemFrac[it.id] = 0;
+      }
+    }
+  }
+
+  // Render the list of trade options into the overlay. This builds a row for each
+  // defined item with separate buttons to sell and buy. Buttons reflect the
+  // current inventory count and available denarii by enabling/disabling.
+  function renderTradeOptions(){
+    // Ensure trade item state exists
+    ensureTradeItemsState();
+    const container = document.getElementById('tradeOptionsContainer');
+    const noteEl = document.getElementById('tradeOverlayNote');
+    if(!container) return;
+    // Compose contextual note showing available gold and current tab
+    const gold = S.gold || 0;
+    let note = `You have ${fmt(gold)} denarii.`;
+    if(currentTradeTab === 'buy'){
+      note += ' Select items to purchase.';
+    }else{
+      note += ' Select items to sell.';
+    }
+    if(noteEl) noteEl.textContent = note;
+    // Clear previous rows
+    container.innerHTML = '';
+    if(currentTradeTab === 'buy'){
+      // Display items for purchase
+      for(const item of tradeItems){
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.justifyContent = 'space-between';
+        // Left column: name and cost
+        const leftCol = document.createElement('div');
+        leftCol.style.display = 'flex';
+        leftCol.style.flexDirection = 'column';
+        // Determine the display label and icon from ITEM_DEFS. If a custom
+        // definition is missing, fall back to the provided name and no icon.
+        const def = (typeof ITEM_DEFS !== 'undefined' && ITEM_DEFS[item.id]) ? ITEM_DEFS[item.id] : { label: item.name, icon: '' };
+        const nameSpan = document.createElement('div');
+        nameSpan.textContent = `${def.icon || ''} ${def.label}`;
+        const descSpan = document.createElement('div');
+        descSpan.style.fontSize = '.8rem';
+        descSpan.style.color = 'var(--muted)';
+        descSpan.textContent = `Cost ${fmt(item.buyPrice)}`;
+        leftCol.appendChild(nameSpan);
+        leftCol.appendChild(descSpan);
+        // Right column: buy button and owned quantity
+        const rightCol = document.createElement('div');
+        rightCol.style.display = 'flex';
+        rightCol.style.flexDirection = 'column';
+        const btn = document.createElement('button');
+        btn.className = 'smallBtn';
+        btn.textContent = 'Buy';
+        btn.disabled = (gold < item.buyPrice);
+        btn.addEventListener('click', function(){
+          const currentGold = S.gold || 0;
+          if(currentGold < item.buyPrice){
+            toast(`Not enough denarii to buy ${item.name}.`);
+            return;
+          }
+          S.gold = currentGold - item.buyPrice;
+          S.items[item.id] = (S.items[item.id] || 0) + 1;
+          logLine(`You bought 1 ${item.name}.`, 'good');
+          toast(`-${fmt(item.buyPrice)} denarii`);
+          renderTradeOptions();
+          if(typeof render === 'function') render();
+        });
+        const qtySpan = document.createElement('div');
+        qtySpan.style.fontSize = '.8rem';
+        qtySpan.style.color = 'var(--muted)';
+        qtySpan.textContent = `Owned: ${fmt(S.items[item.id] || 0)}`;
+        rightCol.appendChild(btn);
+        rightCol.appendChild(qtySpan);
+        row.appendChild(leftCol);
+        row.appendChild(rightCol);
+        container.appendChild(row);
+      }
+    }else{
+      // Display items for sale, including captives
+      // Sell standard items
+      for(const item of tradeItems){
+        const qty = S.items[item.id] || 0;
+        if(qty <= 0) continue;
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.justifyContent = 'space-between';
+        // Left column: name and sale price
+        const leftCol = document.createElement('div');
+        leftCol.style.display = 'flex';
+        leftCol.style.flexDirection = 'column';
+        // Use ITEM_DEFS to display icon and proper label for the item.
+        const def = (typeof ITEM_DEFS !== 'undefined' && ITEM_DEFS[item.id]) ? ITEM_DEFS[item.id] : { label: item.name, icon: '' };
+        const nameSpan = document.createElement('div');
+        nameSpan.textContent = `${def.icon || ''} ${def.label}`;
+        const descSpan = document.createElement('div');
+        descSpan.style.fontSize = '.8rem';
+        descSpan.style.color = 'var(--muted)';
+        descSpan.textContent = `Sell for ${fmt(item.sellPrice)}`;
+        leftCol.appendChild(nameSpan);
+        leftCol.appendChild(descSpan);
+        // Right column: sell button and owned quantity
+        const rightCol = document.createElement('div');
+        rightCol.style.display = 'flex';
+        rightCol.style.flexDirection = 'column';
+        const btn = document.createElement('button');
+        btn.className = 'smallBtn';
+        btn.textContent = 'Sell';
+        btn.disabled = (qty <= 0);
+        btn.addEventListener('click', function(){
+          if((S.items[item.id] || 0) <= 0) return;
+          S.items[item.id] = (S.items[item.id] || 0) - 1;
+          S.gold = (S.gold || 0) + item.sellPrice;
+          logLine(`You sold 1 ${item.name}.`, 'good');
+          toast(`+${fmt(item.sellPrice)} denarii`);
+          renderTradeOptions();
+          if(typeof render === 'function') render();
+        });
+        const qtySpan = document.createElement('div');
+        qtySpan.style.fontSize = '.8rem';
+        qtySpan.style.color = 'var(--muted)';
+        qtySpan.textContent = `Owned: ${fmt(qty)}`;
+        rightCol.appendChild(btn);
+        rightCol.appendChild(qtySpan);
+        row.appendChild(leftCol);
+        row.appendChild(rightCol);
+        container.appendChild(row);
+      }
+      // Sell captives (captivi) if any
+      if((S.captivi || 0) > 0){
+        const qty = S.captivi || 0;
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.justifyContent = 'space-between';
+        const leftCol = document.createElement('div');
+        leftCol.style.display = 'flex';
+        leftCol.style.flexDirection = 'column';
+        const nameSpan = document.createElement('div');
+        // Use ITEM_DEFS.captivi if defined for icon and label; default fallback
+        const defCapt = (typeof ITEM_DEFS !== 'undefined' && ITEM_DEFS.captivi) ? ITEM_DEFS.captivi : { label: 'Captive', icon: '' };
+        nameSpan.textContent = `${defCapt.icon || ''} ${defCapt.label}`;
+        const descSpan = document.createElement('div');
+        descSpan.style.fontSize = '.8rem';
+        descSpan.style.color = 'var(--muted)';
+        descSpan.textContent = `Sell for ${fmt(CAPTIVI_SELL_PRICE)}`;
+        leftCol.appendChild(nameSpan);
+        leftCol.appendChild(descSpan);
+        const rightCol = document.createElement('div');
+        rightCol.style.display = 'flex';
+        rightCol.style.flexDirection = 'column';
+        const btn = document.createElement('button');
+        btn.className = 'smallBtn';
+        btn.textContent = 'Sell';
+        btn.disabled = (qty <= 0);
+        btn.addEventListener('click', function(){
+          if((S.captivi || 0) <= 0) return;
+          S.captivi = (S.captivi || 0) - 1;
+          S.gold = (S.gold || 0) + CAPTIVI_SELL_PRICE;
+          logLine(`You ransomed 1 captive.`, 'good');
+          toast(`+${fmt(CAPTIVI_SELL_PRICE)} denarii`);
+          renderTradeOptions();
+          if(typeof render === 'function') render();
+        });
+        const qtySpan = document.createElement('div');
+        qtySpan.style.fontSize = '.8rem';
+        qtySpan.style.color = 'var(--muted)';
+        qtySpan.textContent = `Owned: ${fmt(qty)}`;
+        rightCol.appendChild(btn);
+        rightCol.appendChild(qtySpan);
+        row.appendChild(leftCol);
+        row.appendChild(rightCol);
+        container.appendChild(row);
+      }
+    }
+  }
+
+  // Update the active state on trade tab buttons. Called whenever the current
+  // tab changes. Toggles the 'active' class based on currentTradeTab.
+  function updateTradeTabButtons(){
+    const tabs = document.querySelectorAll('.tradeTabBtn');
+    tabs.forEach(btn => {
+      const tab = btn.getAttribute('data-tab');
+      if(!tab) return;
+      if(tab === currentTradeTab){
+        btn.classList.add('active');
+      }else{
+        btn.classList.remove('active');
+      }
+    });
+  }
+
+  // Change the trade tab ("buy" or "sell") and refresh options. This should
+  // be called whenever a trade tab button is clicked. It sets the global
+  // currentTradeTab, updates button active states, and re-renders the list.
+  function selectTradeTab(tab){
+    if(!tab || tab === currentTradeTab) return;
+    currentTradeTab = tab;
+    updateTradeTabButtons();
+    renderTradeOptions();
+  }
+  function showDiplomacyOverlay(cardData){
+    currentDiplomacyCardData = cardData || {};
+    const overlay = document.getElementById('diplomacyOverlay');
+    const titleEl = document.getElementById('diplomacyOverlayTitle');
+    if(titleEl){
+      const nm = cardData && cardData.name ? cardData.name : 'neighboring faction';
+      titleEl.textContent = 'Diplomacy with ' + nm;
+    }
+    // Compute integration cost/gain
+    const popVal = cardData && typeof cardData.population === 'number' ? cardData.population : 0;
+    const landVal = cardData && typeof cardData.land === 'number' ? cardData.land : 0;
+    const renCost = Math.max(1, Math.round(popVal / 200)) + Math.max(0, Math.round(landVal / 2));
+    const goldCost = Math.max(0, Math.round(landVal * 5)) + Math.max(0, Math.round(popVal / 40));
+    const popGain = Math.max(0, Math.round(popVal * 0.3));
+    const landGain = Math.max(1, Math.round(landVal * 0.5));
+    currentDiplomacyIntegrateParams = { renCost, goldCost, popGain, landGain };
+    // Alliance parameters
+    const renCost2 = Math.max(1, Math.round(popVal / 250)) + Math.max(0, Math.round(landVal / 3));
+    const goldCost2 = Math.max(0, Math.round(popVal / 50));
+    const renGain2 = Math.max(1, Math.round(popVal / 100)) + Math.max(0, Math.round(landVal));
+    currentDiplomacyAllianceParams = { renCost: renCost2, goldCost: goldCost2, renGain: renGain2 };
+    // Update descriptions
+    const intDesc = document.getElementById('diplomacyIntegrateDesc');
+    if(intDesc){
+      intDesc.textContent = `Cost: ${fmt(renCost)} renown, ${fmt(goldCost)} denarii • Gain: +${fmt(popGain)} population, +${fmt(landGain)} land`;
+    }
+    const alliDesc = document.getElementById('diplomacyAllianceDesc');
+    if(alliDesc){
+      alliDesc.textContent = `Cost: ${fmt(renCost2)} renown, ${fmt(goldCost2)} denarii • Gain: +${fmt(renGain2)} renown`;
+    }
+    if(overlay){
+      // Display overlay by setting display:flex for center alignment
+      overlay.style.display = 'flex';
+      overlay.classList.add('visible');
+    }
+  }
+  function closeDiplomacyOverlay(){
+    const overlay = document.getElementById('diplomacyOverlay');
+    if(overlay){
+      overlay.classList.remove('visible');
+      overlay.style.display = 'none';
+    }
+  }
+
+
+  // Render the player's inventory tab. This function builds a list of items the
+  // player owns and provides drop buttons to discard individual units. It
+  // updates the inventory count in the header as well. Called by the main
+  // render() loop and also after drop actions.
+  function renderInventory(){
+    // Ensure there is an items state and trade items defined
+    ensureTradeItemsState();
+    const listEl = document.getElementById('inventoryList');
+    const countEl = document.getElementById('inventoryCount');
+    if(!listEl) return;
+    // Clear any existing rows
+    listEl.innerHTML = '';
+    let totalCount = 0;
+    for(const item of tradeItems){
+      const qty = S.items[item.id] || 0;
+      totalCount += qty;
+      // Row container for each item
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.justifyContent = 'space-between';
+      row.style.alignItems = 'center';
+      // Name and quantity
+      const label = document.createElement('div');
+      label.style.flex = '1';
+      label.textContent = `${item.name}: ${fmt(qty)}`;
+      // Drop button
+      const dropBtn = document.createElement('button');
+      dropBtn.className = 'smallBtn';
+      dropBtn.textContent = 'Drop';
+      dropBtn.disabled = (qty <= 0);
+      dropBtn.addEventListener('click', function(){
+        if((S.items[item.id] || 0) <= 0) return;
+        // Remove one item from inventory
+        S.items[item.id] = (S.items[item.id] || 0) - 1;
+        logLine(`You dropped 1 ${item.name}.`, 'warn');
+        toast(`Dropped 1 ${item.name}`);
+        // Refresh inventory list and overall UI
+        renderInventory();
+        if(typeof render === 'function') render();
+      });
+      // Append to row
+      row.appendChild(label);
+      row.appendChild(dropBtn);
+      listEl.appendChild(row);
+    }
+    if(countEl){
+      countEl.textContent = fmt(totalCount) + ' items';
+    }
+  }
+
+  // Build the battle inventory list inside the dedicated overlay. Used to
+  // allow players to drop items during tactical battles. Similar to
+  // renderInventory() but targets a different container and omits the
+  // inventory count update.
+  function renderBattleInventory(){
+    ensureTradeItemsState();
+    const listEl = document.getElementById('battleInventoryList');
+    if(!listEl) return;
+    listEl.innerHTML = '';
+    for(const item of tradeItems){
+      const qty = S.items[item.id] || 0;
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.justifyContent = 'space-between';
+      row.style.alignItems = 'center';
+      const label = document.createElement('div');
+      label.style.flex = '1';
+      label.textContent = `${item.name}: ${fmt(qty)}`;
+      const dropBtn = document.createElement('button');
+      dropBtn.className = 'smallBtn';
+      dropBtn.textContent = 'Drop';
+      dropBtn.disabled = (qty <= 0);
+      dropBtn.addEventListener('click', function(){
+        if((S.items[item.id] || 0) <= 0) return;
+        S.items[item.id] = (S.items[item.id] || 0) - 1;
+        logLine(`You dropped 1 ${item.name} during battle.`, 'warn');
+        toast(`Dropped 1 ${item.name}`);
+        renderBattleInventory();
+        if(typeof render === 'function') render();
+      });
+      row.appendChild(label);
+      row.appendChild(dropBtn);
+      listEl.appendChild(row);
+    }
+  }
+
+  // Show the battle inventory overlay. This will populate its list and
+  // display the overlay atop the battle screen.
+  function showBattleInventoryOverlay(){
+    const overlay = document.getElementById('battleInventoryOverlay');
+    if(!overlay) return;
+    renderBattleInventory();
+    overlay.style.display = 'flex';
+    overlay.classList.add('visible');
+  }
+
+  // Hide the battle inventory overlay.
+  function closeBattleInventoryOverlay(){
+    const overlay = document.getElementById('battleInventoryOverlay');
+    if(!overlay) return;
+    overlay.classList.remove('visible');
+    overlay.style.display = 'none';
+  }
+  
+
+  // Attach event handlers for diplomacy options
+  (function(){
+    const integrateBtn = document.getElementById('diplomacyIntegrateBtn');
+    const allianceBtn  = document.getElementById('diplomacyAllianceBtn');
+    if(integrateBtn){
+      integrateBtn.addEventListener('click', function(){
+        const params = currentDiplomacyIntegrateParams || {};
+        const renCost = params.renCost || 0;
+        const goldCost = params.goldCost || 0;
+        const popGain = params.popGain || 0;
+        const landGain = params.landGain || 0;
+        const nm = currentDiplomacyCardData && currentDiplomacyCardData.name ? currentDiplomacyCardData.name : 'the faction';
+        if((S.renown || 0) < renCost || (S.gold || 0) < goldCost){
+          toast(`Not enough renown (${fmt(renCost)}) or denarii (${fmt(goldCost)}) for integration.`);
+          closeDiplomacyOverlay();
+          return;
+        }
+        // Deduct cost
+        S.renown = (S.renown || 0) - renCost;
+        S.gold   = (S.gold || 0)   - goldCost;
+        // Apply population gain
+        if(popGain > 0){
+          const prevPop = S.population || 0;
+          let cap = Infinity;
+          try{
+            if(typeof populationCap === 'function') cap = populationCap();
+          }catch(e){}
+          let newPop = prevPop + popGain;
+          if(Number.isFinite(cap)){
+            newPop = Math.min(cap, newPop);
+          }
+          S.population = newPop;
+          S.populationUsed = (S.warriors||0)+(S.archers||0)+(S.cavalry||0)+(S.auxilia||0)+(S.equites||0)+(S.veterans||0);
+        }
+        // Apply land gain
+        if(landGain > 0){
+          S.land = (S.land || 0) + landGain;
+        }
+        logLine(`You negotiate peaceful integration with ${nm}.`, 'good');
+        toast(`Diplomacy complete: +${fmt(popGain)} population, +${fmt(landGain)} land, -${fmt(renCost)} renown, -${fmt(goldCost)} denarii.`);
+        closeDiplomacyOverlay();
+        if(typeof render === 'function') render();
+      });
+    }
+    if(allianceBtn){
+      allianceBtn.addEventListener('click', function(){
+        const params = currentDiplomacyAllianceParams || {};
+        const renCost = params.renCost || 0;
+        const goldCost = params.goldCost || 0;
+        const renGain = params.renGain || 0;
+        const nm = currentDiplomacyCardData && currentDiplomacyCardData.name ? currentDiplomacyCardData.name : 'the faction';
+        if((S.renown || 0) < renCost || (S.gold || 0) < goldCost){
+          toast(`Not enough renown (${fmt(renCost)}) or denarii (${fmt(goldCost)}) for forging an alliance.`);
+          closeDiplomacyOverlay();
+          return;
+        }
+        // Deduct cost
+        S.renown = (S.renown || 0) - renCost;
+        S.gold   = (S.gold || 0)   - goldCost;
+        // Apply renown gain
+        S.renown = (S.renown || 0) + renGain;
+        logLine(`You forge an alliance with ${nm}.`, 'good');
+        toast(`Diplomacy complete: -${fmt(renCost)} renown, -${fmt(goldCost)} denarii, +${fmt(renGain)} renown (net).`);
+        closeDiplomacyOverlay();
+        if(typeof render === 'function') render();
+      });
+    }
+  })();
+
+/*
+ * The debug block that automatically displayed the trade overlay on page load was
+ * removed. Trade and diplomacy overlays are now triggered solely via the
+ * faction card actions, so they won't open unexpectedly when the game loads.
+ */
 
 </script>
 
@@ -11107,6 +12352,76 @@ function actuallyStartTacticalBattle(){
     </div>
   </div>
 
+  <!-- Trade Overlay -->
+  <div id="tradeOverlay" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:2250;">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);" onclick="closeTradeOverlay()"></div>
+    <!--
+      The trade overlay card is intentionally wider/taller than the default cards
+      so that long lists of resources can fit comfortably. On smaller
+      devices the `min` call caps the width to the viewport. Increase the
+      maximum width and the scrollable height to accommodate many items.
+    -->
+    <div class="card" style="position:relative;width:min(560px, calc(100vw - 26px));border-radius:26px;overflow:hidden;">
+      <div class="sectionTitle" style="justify-content:space-between;">
+        <span id="tradeOverlayTitle" style="color:var(--accent);font-weight:900;">Trade</span>
+        <button class="tab" style="padding:8px 12px;" type="button" onclick="closeTradeOverlay()">Close</button>
+      </div>
+      <div class="cardBody" style="padding:14px;">
+        <!-- Trade note (shows gold available and contextual hints) -->
+        <div id="tradeOverlayNote" style="font-size:.80rem;color:var(--muted);margin-bottom:8px;"></div>
+        <!-- Tabbed controls: Buy and Sell -->
+        <div id="tradeTabRow" style="display:flex;gap:6px;margin-bottom:8px;">
+          <button type="button" class="smallBtn tradeTabBtn active" data-tab="buy">Buy</button>
+          <button type="button" class="smallBtn tradeTabBtn" data-tab="sell">Sell</button>
+        </div>
+        <!-- Scrollable list of options.  Increase the max-height for better
+             usability when many items are present. -->
+        <div id="tradeOptionsContainer" style="max-height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
+    </div>
+  </div>
+
+	  <!-- Diplomacy Overlay -->
+	  <div id="diplomacyOverlay" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:2260;">
+	    <div style="position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);" onclick="closeDiplomacyOverlay()"></div>
+	    <div class="card" style="position:relative;width:min(520px, calc(100vw - 26px));border-radius:26px;overflow:hidden;">
+	      <div class="sectionTitle" style="justify-content:space-between;">
+	        <span id="diplomacyOverlayTitle" style="color:var(--accent);font-weight:900;">Diplomacy</span>
+	        <button class="tab" style="padding:8px 12px;" type="button" onclick="closeDiplomacyOverlay()">Close</button>
+	      </div>
+	      <div class="cardBody" style="padding:14px;">
+	        <div style="font-size:.85rem;margin-bottom:8px;">Choose a diplomatic action:</div>
+	        <div style="display:flex;flex-direction:column;gap:8px;">
+	          <button type="button" class="smallBtn" id="diplomacyIntegrateBtn">
+	            <div class="t">Integrate peacefully</div>
+	            <div class="d" id="diplomacyIntegrateDesc">Integrate peacefully</div>
+	          </button>
+	          <button type="button" class="smallBtn" id="diplomacyAllianceBtn">
+	            <div class="t">Forge alliance</div>
+	            <div class="d" id="diplomacyAllianceDesc">Forge alliance</div>
+	          </button>
+	        </div>
+	      </div>
+	    </div>
+	  </div>
+
+	  <!-- Battle Inventory Overlay -->
+	  <div id="battleInventoryOverlay" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:2350;">
+	    <div style="position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);" onclick="closeBattleInventoryOverlay()"></div>
+	    <div class="card" style="position:relative;width:min(520px, calc(100vw - 26px));border-radius:26px;overflow:hidden;">
+	      <div class="sectionTitle" style="justify-content:space-between;">
+	        <span style="color:var(--accent);font-weight:900;">Battle Inventory</span>
+	        <button class="tab" style="padding:8px 12px;" type="button" onclick="closeBattleInventoryOverlay()">Close</button>
+	      </div>
+	      <div class="cardBody" style="padding:14px;">
+	        <p style="font-size:.80rem;margin-bottom:6px;color:var(--muted);">Drop items to remove them from your inventory.</p>
+	        <div id="battleInventoryList" style="display:flex;flex-direction:column;gap:10px;">
+	          <!-- Filled dynamically by renderBattleInventory() -->
+	        </div>
+	      </div>
+	    </div>
+	  </div>
+
 
   <!-- Battle Simulation Overlay -->
   <div id="battleSimOverlay" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:2050;">
@@ -11142,6 +12457,8 @@ function actuallyStartTacticalBattle(){
         </div>
         <button class="tab" id="tacOrdersMedics" type="button">Field Medics</button>
         <button class="tab" id="tacOrdersEngineers" type="button">Raise Field Works</button>
+        <!-- Allow players to drop items mid‑battle via an inventory overlay -->
+        <button class="tab" id="tacOrdersInventory" type="button">Drop Items</button>
       </div>
     </div>
   </div>
