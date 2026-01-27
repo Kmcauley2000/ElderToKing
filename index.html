@@ -1536,7 +1536,7 @@ header{
 
 .unitDoorArea{
   position:absolute;
-  right:60px;
+  right:90px;
   bottom:42px;
   width:32px;
   height:48px;
@@ -1998,7 +1998,7 @@ header{
           </div>
 
           <div class="unitDoorArea">
-            <img class="unitDoorImg" src="Sprites/barracksdooropen.png" data-door-state="closed">
+            <img class="unitDoorImg" src="Sprites/barracksdoorclosed.png" data-door-state="closed">
           </div>
 
         </div>
@@ -2031,7 +2031,7 @@ header{
           </div>
 
           <div class="unitDoorArea">
-            <img class="unitDoorImg" src="Sprites/barracksdooropen.png" data-door-state="closed">
+            <img class="unitDoorImg" src="Sprites/barracksdoorclosed.png" data-door-state="closed">
           </div>
 
         </div>
@@ -2069,7 +2069,7 @@ header{
           </div>
 
           <div class="unitDoorArea">
-            <img class="unitDoorImg" src="Sprites/barracksdooropen.png" data-door-state="closed">
+            <img class="unitDoorImg" src="Sprites/barracksdoorclosed.png" data-door-state="closed">
           </div>
 
         </div>
@@ -2105,7 +2105,7 @@ header{
           </div>
 
           <div class="unitDoorArea">
-            <img class="unitDoorImg" src="Sprites/barracksdooropen.png" data-door-state="closed">
+            <img class="unitDoorImg" src="Sprites/barracksdoorclosed.png" data-door-state="closed">
           </div>
 
         </div>
@@ -2567,14 +2567,15 @@ header{
   
 
 
+
 function playRecruitAnimation(unitKey, cardElement, buttonElement) {
   if (!cardElement) return;
   const door = cardElement.querySelector('.unitDoorImg');
   if (!door) return;
 
-  // Always start from a closed door state.
+  // Treat "barracksdoorclosed" as the visually closed state at rest.
   try{
-    door.src = "Sprites/barracksdooropen.png";
+    door.src = "Sprites/barracksdoorclosed.png";
   }catch(e){}
 
   const runner = document.createElement('img');
@@ -2585,11 +2586,10 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
   const cardRect = cardElement.getBoundingClientRect();
   const doorRect = door.getBoundingClientRect();
 
-  // Vertical alignment: keep the unit's feet slightly *below* the base of the door
-  // so they visually line up with the threshold.
+  // Vertical alignment: feet slightly below the base of the door so they sit on the same "ground" line.
   const runnerHeight = 24;
   const doorBottom = (doorRect.top - cardRect.top) + doorRect.height;
-  const alignedY = doorBottom - runnerHeight + 4;
+  const alignedY = doorBottom - runnerHeight + 6; // push down a touch
 
   let startX = 6;
   let startY = alignedY;
@@ -2598,40 +2598,38 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
     try {
       const btnRect = buttonElement.getBoundingClientRect();
       startX = (btnRect.right - cardRect.left) + 4;
-      // Y stays aligned with the door so the run finishes perfectly in line.
     } catch(e){}
   }
 
-  runner.style.left = startX + 'px';
-  runner.style.top = startY + 'px';
+  runner.style.left = startX + "px";
+  runner.style.top  = startY + "px";
 
-  // Target so the runner's front collides with the left edge of the door.
-  const runnerWidth = runner.offsetWidth || 24;
+  // Compute target so the runner "collides" with the doorway.
+  const runnerWidth = 24;
   const doorOffsetLeft = doorRect.left - cardRect.left;
-  const targetX = doorOffsetLeft - runnerWidth + 2; // slight overlap into the doorway
+  const targetX = doorOffsetLeft - runnerWidth + 4; // small overlap into doorway
 
-  // Reset transform first
-  runner.style.transform = 'translateX(0px)';
+  runner.style.transform = "translateX(0px)";
 
   requestAnimationFrame(() => {
     runner.style.transform = `translateX(${targetX - startX}px)`;
   });
 
-  // Open the door exactly as the runner "hits" it, then close again.
-  const travelMs = 1400; // match CSS transition ~1.4s
+  // Match CSS transition (1.4s) so door opens exactly on contact.
+  const travelMs = 1400;
   setTimeout(() => {
     try{
+      // Use "barracksdooropen" as the visually open state when the unit reaches it.
       door.src = "Sprites/barracksdooropen.png";
     }catch(e){}
     runner.remove();
     setTimeout(() => {
       try{
-        door.src = "Sprites/barracksdooropen.png";
+        door.src = "Sprites/barracksdoorclosed.png";
       }catch(e){}
     }, 260);
   }, travelMs);
 }
-
 
 function processRecruitQueue(){
     if(!Array.isArray(S.recruitQueue)) return false;
