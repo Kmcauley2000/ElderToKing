@@ -2566,10 +2566,16 @@ header{
   // during the call so the caller can decide whether to refresh the UI.
   
 
+
 function playRecruitAnimation(unitKey, cardElement, buttonElement) {
   if (!cardElement) return;
   const door = cardElement.querySelector('.unitDoorImg');
   if (!door) return;
+
+  // Always start from a closed door state.
+  try{
+    door.src = "Sprites/barracksdoorclosed.png";
+  }catch(e){}
 
   const runner = document.createElement('img');
   runner.src = `Sprites/${unitKey}.png`;
@@ -2577,22 +2583,31 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
   cardElement.appendChild(runner);
 
   const cardRect = cardElement.getBoundingClientRect();
+  const doorRect = door.getBoundingClientRect();
+
+  // Vertical alignment: keep the unit's feet roughly level with the base of the door.
+  const runnerHeight = runner.offsetHeight || 24;
+  const doorBottom = (doorRect.top - cardRect.top) + doorRect.height;
+  const alignedY = doorBottom - runnerHeight - 2;
+
   let startX = 6;
-  let startY = (cardElement.offsetHeight || 120) - 42;
+  let startY = alignedY;
 
   if (buttonElement) {
     try {
       const btnRect = buttonElement.getBoundingClientRect();
       startX = (btnRect.right - cardRect.left) + 4;
-      startY = (btnRect.top - cardRect.top) - 4;
+      // Y stays aligned with the door so the run finishes perfectly in line.
     } catch(e){}
   }
 
   runner.style.left = startX + 'px';
   runner.style.top = startY + 'px';
 
-  const doorRect = door.getBoundingClientRect();
-  const targetX = doorRect.left - cardRect.left - 6;
+  // Target so the runner's front collides with the left edge of the door.
+  const runnerWidth = runner.offsetWidth || 24;
+  const doorOffsetLeft = doorRect.left - cardRect.left;
+  const targetX = doorOffsetLeft - runnerWidth + 2; // slight overlap into the doorway
 
   // Reset transform first
   runner.style.transform = 'translateX(0px)';
@@ -2601,13 +2616,19 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
     runner.style.transform = `translateX(${targetX - startX}px)`;
   });
 
+  // Open the door exactly as the runner "hits" it, then close again.
+  const travelMs = 1400; // match CSS transition ~1.4s
   setTimeout(() => {
-    door.src = "Sprites/barracksdooropen.png";
+    try{
+      door.src = "Sprites/barracksdooropen.png";
+    }catch(e){}
     runner.remove();
     setTimeout(() => {
-      door.src = "Sprites/barracksdoorclosed.png";
-    }, 280);
-  }, 700);
+      try{
+        door.src = "Sprites/barracksdoorclosed.png";
+      }catch(e){}
+    }, 260);
+  }, travelMs);
 }
 
 
