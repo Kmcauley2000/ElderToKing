@@ -1550,11 +1550,11 @@ header{
 
 .unitRunner{
   position:absolute;
-  width:48px;
-  height:48px;
+  width:64px;
+  height:64px;
   image-rendering:pixelated;
   pointer-events:none;
-  transition:transform 2.1s linear;
+  transition:transform 3s linear;
 }
 
 .unitCard{
@@ -2569,6 +2569,7 @@ header{
 
 
 
+
 function playRecruitAnimation(unitKey, cardElement, buttonElement) {
   if (!cardElement) return;
   const door = cardElement.querySelector('.unitDoorImg');
@@ -2587,10 +2588,10 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
   const cardRect = cardElement.getBoundingClientRect();
   const doorRect = door.getBoundingClientRect();
 
-  // Double-size sprite (48px). Align feet slightly above previous line so they sit nicely against the door base.
-  const runnerHeight = 48;
+  // 64px sprite. Align so the feet hover just slightly above the base of the door.
+  const runnerHeight = 64;
   const doorBottom = (doorRect.top - cardRect.top) + doorRect.height;
-  const alignedY = doorBottom - runnerHeight + 2; // move up a bit versus last iteration
+  const alignedY = doorBottom - runnerHeight + 6;
 
   let startX = 6;
   let startY = alignedY;
@@ -2599,18 +2600,17 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
     try {
       const btnRect = buttonElement.getBoundingClientRect();
       startX = (btnRect.right - cardRect.left) + 4;
-      // keep Y aligned to door so units always run level with doorway
     } catch(e){}
   }
 
   runner.style.left = startX + "px";
   runner.style.top  = startY + "px";
 
-  // Compute target so the runner collides with the door then continues a little further "inside".
-  const runnerWidth = 48;
+  // Target: collide with doorway, then continue further "inside" (extra distance).
+  const runnerWidth = 64;
   const doorOffsetLeft = doorRect.left - cardRect.left;
-  const hitX = doorOffsetLeft - runnerWidth + 6;     // collision point at doorway
-  const targetX = hitX + 16;                         // continue a couple of "lines" further into the barracks
+  const hitX = doorOffsetLeft - runnerWidth + 6;
+  const targetX = hitX + 32; // extra travel past door
 
   runner.style.transform = "translateX(0px)";
 
@@ -2618,9 +2618,8 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
     runner.style.transform = `translateX(${targetX - startX}px)`;
   });
 
-  // Match slower CSS transition (≈50% slower). Open the door slightly before full travel and close after.
-  const travelMs = 2100;
-  const openAtMs = Math.max(400, Math.floor(travelMs * 0.6));
+  const travelMs = 3000;                 // 50% slower than before (~3s)
+  const openAtMs = Math.max(600, Math.floor(travelMs * 0.55));
 
   setTimeout(() => {
     try{
@@ -2633,7 +2632,7 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
       door.src = "Sprites/barracksdoorclosed.png";
     }catch(e){}
     runner.remove();
-  }, travelMs + 200);
+  }, travelMs + 250);
 }
 
 function processRecruitQueue(){
