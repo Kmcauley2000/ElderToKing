@@ -1536,7 +1536,7 @@ header{
 
 .unitDoorArea{
   position:absolute;
-  right:10px;
+  right:60px;
   bottom:42px;
   width:32px;
   height:48px;
@@ -1998,7 +1998,7 @@ header{
           </div>
 
           <div class="unitDoorArea">
-            <img class="unitDoorImg" src="Sprites/barracksdoorclosed.png" data-door-state="closed">
+            <img class="unitDoorImg" src="Sprites/barracksdooropen.png" data-door-state="closed">
           </div>
 
         </div>
@@ -2031,7 +2031,7 @@ header{
           </div>
 
           <div class="unitDoorArea">
-            <img class="unitDoorImg" src="Sprites/barracksdoorclosed.png" data-door-state="closed">
+            <img class="unitDoorImg" src="Sprites/barracksdooropen.png" data-door-state="closed">
           </div>
 
         </div>
@@ -2069,7 +2069,7 @@ header{
           </div>
 
           <div class="unitDoorArea">
-            <img class="unitDoorImg" src="Sprites/barracksdoorclosed.png" data-door-state="closed">
+            <img class="unitDoorImg" src="Sprites/barracksdooropen.png" data-door-state="closed">
           </div>
 
         </div>
@@ -2105,7 +2105,7 @@ header{
           </div>
 
           <div class="unitDoorArea">
-            <img class="unitDoorImg" src="Sprites/barracksdoorclosed.png" data-door-state="closed">
+            <img class="unitDoorImg" src="Sprites/barracksdooropen.png" data-door-state="closed">
           </div>
 
         </div>
@@ -2574,7 +2574,7 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
 
   // Always start from a closed door state.
   try{
-    door.src = "Sprites/barracksdoorclosed.png";
+    door.src = "Sprites/barracksdooropen.png";
   }catch(e){}
 
   const runner = document.createElement('img');
@@ -2626,7 +2626,7 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
     runner.remove();
     setTimeout(() => {
       try{
-        door.src = "Sprites/barracksdoorclosed.png";
+        door.src = "Sprites/barracksdooropen.png";
       }catch(e){}
     }, 260);
   }, travelMs);
