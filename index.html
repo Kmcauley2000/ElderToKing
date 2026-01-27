@@ -1553,7 +1553,8 @@ header{
   width:24px;
   height:24px;
   image-rendering:pixelated;
-  transition:transform 0.45s linear;
+  pointer-events:none;
+  transition:transform 0.7s linear;
 }
 
 .unitCard{
@@ -1997,7 +1998,7 @@ header{
           </div>
 
           <div class="unitDoorArea">
-            <img class="unitDoorImg" src="barracksdoorclosed.png" data-door-state="closed">
+            <img class="unitDoorImg" src="Sprites/barracksdoorclosed.png" data-door-state="closed">
           </div>
 
         </div>
@@ -2030,7 +2031,7 @@ header{
           </div>
 
           <div class="unitDoorArea">
-            <img class="unitDoorImg" src="barracksdoorclosed.png" data-door-state="closed">
+            <img class="unitDoorImg" src="Sprites/barracksdoorclosed.png" data-door-state="closed">
           </div>
 
         </div>
@@ -2068,7 +2069,7 @@ header{
           </div>
 
           <div class="unitDoorArea">
-            <img class="unitDoorImg" src="barracksdoorclosed.png" data-door-state="closed">
+            <img class="unitDoorImg" src="Sprites/barracksdoorclosed.png" data-door-state="closed">
           </div>
 
         </div>
@@ -2104,7 +2105,7 @@ header{
           </div>
 
           <div class="unitDoorArea">
-            <img class="unitDoorImg" src="barracksdoorclosed.png" data-door-state="closed">
+            <img class="unitDoorImg" src="Sprites/barracksdoorclosed.png" data-door-state="closed">
           </div>
 
         </div>
@@ -2564,24 +2565,33 @@ header{
   // entry removed.  This helper returns true if any units were delivered
   // during the call so the caller can decide whether to refresh the UI.
   
-function playRecruitAnimation(unitKey, cardElement) {
+
+function playRecruitAnimation(unitKey, cardElement, buttonElement) {
   if (!cardElement) return;
   const door = cardElement.querySelector('.unitDoorImg');
   if (!door) return;
 
   const runner = document.createElement('img');
-  runner.src = `Sprites/${unitKey}_small.png`;
+  runner.src = `Sprites/${unitKey}.png`;
   runner.className = 'unitRunner';
   cardElement.appendChild(runner);
 
-  const startX = 6;
-  const cardHeight = cardElement.offsetHeight || 120;
-  const startY = cardHeight - 42;
+  const cardRect = cardElement.getBoundingClientRect();
+  let startX = 6;
+  let startY = (cardElement.offsetHeight || 120) - 42;
+
+  if (buttonElement) {
+    try {
+      const btnRect = buttonElement.getBoundingClientRect();
+      startX = (btnRect.right - cardRect.left) + 4;
+      startY = (btnRect.top - cardRect.top) - 4;
+    } catch(e){}
+  }
+
   runner.style.left = startX + 'px';
   runner.style.top = startY + 'px';
 
   const doorRect = door.getBoundingClientRect();
-  const cardRect = cardElement.getBoundingClientRect();
   const targetX = doorRect.left - cardRect.left - 6;
 
   // Reset transform first
@@ -2592,13 +2602,14 @@ function playRecruitAnimation(unitKey, cardElement) {
   });
 
   setTimeout(() => {
-    door.src = "barracksdooropen.png";
+    door.src = "Sprites/barracksdooropen.png";
     runner.remove();
     setTimeout(() => {
-      door.src = "barracksdoorclosed.png";
-    }, 250);
-  }, 450);
+      door.src = "Sprites/barracksdoorclosed.png";
+    }, 280);
+  }, 700);
 }
+
 
 function processRecruitQueue(){
     if(!Array.isArray(S.recruitQueue)) return false;
@@ -2672,7 +2683,7 @@ function processRecruitQueue(){
           const btn = document.getElementById(btnId);
           const card = btn && btn.closest ? btn.closest(".unitCard") : null;
           if(card){
-            playRecruitAnimation(unitKey, card);
+            playRecruitAnimation(unitKey, card, btn);
           }
         }
       }
@@ -8717,6 +8728,14 @@ const totalTroops =
       recalcLegionStrength();
       bumpObjective("recruit", qty);
       logLine(`Recruited ${fmt(qty)} milites.`, "good");
+      try{
+        const btn = document.getElementById("btnRecruit");
+        const card = btn && btn.closest ? btn.closest(".unitCard") : null;
+        if(card && typeof playRecruitAnimation === "function"){
+          playRecruitAnimation("Milites", card, btn);
+        }
+      }catch(e){}
+
     }else{
       const trainPerUnitMs = trainingTimePerUnitMs("mil");
       const readyAt = Date.now() + qty * trainPerUnitMs;
@@ -8787,6 +8806,14 @@ const totalTroops =
       recalcLegionStrength();
       bumpObjective("recruit", qty);
       logLine("Recruited " + fmt(qty) + " archers.", "good");
+      try{
+        const btn = document.getElementById("btnRecruitArchers");
+        const card = btn && btn.closest ? btn.closest(".unitCard") : null;
+        if(card && typeof playRecruitAnimation === "function"){
+          playRecruitAnimation("Archers", card, btn);
+        }
+      }catch(e){}
+
     }else{
       const trainPerUnitMs = trainingTimePerUnitMs("arc");
       const readyAt = Date.now() + qty * trainPerUnitMs;
@@ -8855,6 +8882,14 @@ $("#btnRecruitCavalry").addEventListener("click", (e)=>{
       recalcLegionStrength();
       bumpObjective("recruit", qty);
       logLine("Recruited " + fmt(qty) + " cavalry.", "good");
+      try{
+        const btn = document.getElementById("btnRecruitCavalry");
+        const card = btn && btn.closest ? btn.closest(".unitCard") : null;
+        if(card && typeof playRecruitAnimation === "function"){
+          playRecruitAnimation("Cavalry", card, btn);
+        }
+      }catch(e){}
+
     }else{
       const trainPerUnitMs = trainingTimePerUnitMs("cav");
       const readyAt = Date.now() + qty * trainPerUnitMs;
@@ -8919,6 +8954,15 @@ $("#btnRecruitCavalry").addEventListener("click", (e)=>{
       recalcLegionStrength();
       bumpObjective("recruit", qty);
       logLine(`Recruited ${fmt(qty)} captivi auxiliaries.`, "good");
+      try{
+        const btn = document.getElementById("btnRecruitCaptiviAux");
+        const card = btn && btn.closest ? btn.closest(".unitCard") : null;
+        if(card && typeof playRecruitAnimation === "function"){
+          // Reuse Milites sprite unless you later add a dedicated CaptiviAux image
+          playRecruitAnimation("Milites", card, btn);
+        }
+      }catch(e){}
+
     }else{
       const trainPerUnitMs = trainingTimePerUnitMs("cap");
       const readyAt = Date.now() + qty * trainPerUnitMs;
