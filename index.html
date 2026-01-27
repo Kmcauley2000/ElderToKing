@@ -1538,8 +1538,8 @@ header{
   position:absolute;
   right:90px;
   bottom:40px;
-  width:48px;
-  height:72px;
+  width:44px;
+  height:66px;
 }
 
 .unitDoorImg{
@@ -2611,20 +2611,16 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
   const runnerWidth = 45;
   const doorOffsetLeft = doorRect.left - cardRect.left;
   const hitX = doorOffsetLeft - runnerWidth + 6;
-  const targetX = hitX + 60; // small extra distance inside
+  const targetX = hitX + 120; // extra distance inside
 
   runner.style.transform = "translateX(0px)";
 
-  const travelDist = targetX - startX;
-  const hitDist = hitX - startX;
-  const hitFrac = travelDist !== 0 ? Math.max(0, Math.min(1, hitDist / travelDist)) : 0.7;
-
   requestAnimationFrame(() => {
-    runner.style.transform = `translateX(${travelDist}px)`;
+    runner.style.transform = `translateX(${targetX - startX}px)`;
   });
 
   const travelMs = 2200;                   // sync with CSS 2.2s
-  const openAtMs = Math.round(travelMs * hitFrac);
+  const openAtMs = Math.floor(travelMs * 0.9); // open near the end of the run
 
   setTimeout(() => {
     try{
@@ -2637,7 +2633,7 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
       door.src = "Sprites/barracksdoorclosed.png";
     }catch(e){}
     runner.remove();
-  }, travelMs + 220);
+  }, travelMs + 200);
 }
 
 function processRecruitQueue(){
@@ -10048,7 +10044,7 @@ const totalTroops = w + arc + cav + aux + eq + vet + (S.captiviAux || 0);
     lossDetail = { mil:dMil, arc:dArc, cav:dCav, aux:dAux, eq:dEq, vet:dVet, cap:dCap };
 
   } else {
-    const allBefore = beforeWarriors + beforeArch + beforeCav + beforeAux + beforeEq + beforeVet + beforeCap;
+    const allBefore = beforeWarriors + beforeArch + beforeCav + beforeAux + beforeEq + beforeVet;
     const rawLosses = Math.max(0, Math.floor(sim.losses || 0));
     const totalLosses = Math.min(allBefore, rawLosses);
 
@@ -11433,11 +11429,13 @@ if(btnReset){
       arc: Math.max(0, norm(initPools.arc) - norm(endPools.arc)),
       aux: Math.max(0, norm(initPools.aux) - norm(endPools.aux)),
       eq:  Math.max(0, norm(initPools.eq)  - norm(endPools.eq)),
-      vet: Math.max(0, norm(initPools.vet) - norm(endPools.vet))
+      vet: Math.max(0, norm(initPools.vet) - norm(endPools.vet)),
+      // Captivi auxiliaries losses are tracked but do not draw from civilian population.
+      cap: Math.max(0, norm(initPools.cap) - norm(endPools.cap))
     };
 
     const totalLostAll =
-      detail.mil + detail.cav + detail.arc + detail.aux + detail.eq + detail.vet;
+      detail.mil + detail.cav + detail.arc + detail.aux + detail.eq + detail.vet + detail.cap;
 
     
     // Commander orders: field medics can soften the final toll of this battle.
