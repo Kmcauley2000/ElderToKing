@@ -2585,10 +2585,11 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
   const cardRect = cardElement.getBoundingClientRect();
   const doorRect = door.getBoundingClientRect();
 
-  // Vertical alignment: keep the unit's feet roughly level with the base of the door.
-  const runnerHeight = runner.offsetHeight || 24;
+  // Vertical alignment: keep the unit's feet slightly *below* the base of the door
+  // so they visually line up with the threshold.
+  const runnerHeight = 24;
   const doorBottom = (doorRect.top - cardRect.top) + doorRect.height;
-  const alignedY = doorBottom - runnerHeight - 2;
+  const alignedY = doorBottom - runnerHeight + 4;
 
   let startX = 6;
   let startY = alignedY;
