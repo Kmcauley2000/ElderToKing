@@ -1537,9 +1537,9 @@ header{
 .unitDoorArea{
   position:absolute;
   right:90px;
-  bottom:42px;
-  width:38px;
-  height:48px;
+  bottom:40px;
+  width:40px;
+  height:60px;
 }
 
 .unitDoorImg{
@@ -1551,10 +1551,10 @@ header{
 .unitRunner{
   position:absolute;
   width:45px;
-  height:64px;
+  height:45px;
   image-rendering:pixelated;
   pointer-events:none;
-  transition:transform 3s linear;
+  transition:transform 2.2s linear;
 }
 
 .unitCard{
@@ -2570,6 +2570,7 @@ header{
 
 
 
+
 function playRecruitAnimation(unitKey, cardElement, buttonElement) {
   if (!cardElement) return;
   const door = cardElement.querySelector('.unitDoorImg');
@@ -2588,10 +2589,10 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
   const cardRect = cardElement.getBoundingClientRect();
   const doorRect = door.getBoundingClientRect();
 
-  // 64px sprite. Align so the feet hover just slightly above the base of the door.
-  const runnerHeight = 64;
+  // 45px sprite. Align feet a little above previous so they sit nicely on the "floor" line of the door.
+  const runnerHeight = 45;
   const doorBottom = (doorRect.top - cardRect.top) + doorRect.height;
-  const alignedY = doorBottom - runnerHeight + 6;
+  const alignedY = doorBottom - runnerHeight + 4;
 
   let startX = 6;
   let startY = alignedY;
@@ -2599,18 +2600,18 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
   if (buttonElement) {
     try {
       const btnRect = buttonElement.getBoundingClientRect();
-      startX = (btnRect.right - cardRect.left) + 4;
+      startX = (btnRect.right - cardRect.left) + 6;
     } catch(e){}
   }
 
   runner.style.left = startX + "px";
   runner.style.top  = startY + "px";
 
-  // Target: collide with doorway, then continue further "inside" (extra distance).
-  const runnerWidth = 64;
+  // Target: collide with doorway, then travel a bit further inside.
+  const runnerWidth = 45;
   const doorOffsetLeft = doorRect.left - cardRect.left;
   const hitX = doorOffsetLeft - runnerWidth + 6;
-  const targetX = hitX + 32; // extra travel past door
+  const targetX = hitX + 24; // extra distance inside
 
   runner.style.transform = "translateX(0px)";
 
@@ -2618,8 +2619,8 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
     runner.style.transform = `translateX(${targetX - startX}px)`;
   });
 
-  const travelMs = 3000;                 // 50% slower than before (~3s)
-  const openAtMs = Math.max(600, Math.floor(travelMs * 0.55));
+  const travelMs = 2200;                   // sync with CSS 2.2s
+  const openAtMs = Math.floor(travelMs * 0.9); // open near the end of the run
 
   setTimeout(() => {
     try{
@@ -2632,7 +2633,7 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
       door.src = "Sprites/barracksdoorclosed.png";
     }catch(e){}
     runner.remove();
-  }, travelMs + 250);
+  }, travelMs + 200);
 }
 
 function processRecruitQueue(){
