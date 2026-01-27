@@ -197,7 +197,7 @@ body::after{
       display:none !important;
     }
 
-    /* Faction card layout within Legion view */
+    /* Settlement card layout within Legion view */
     .factionCardsWrap{
       margin-top:12px;
       display:flex;
@@ -284,7 +284,7 @@ body::after{
       background:var(--accent);
     }
 
-    /* Faction buttons: reuse the same gradient / border as smallBtn, but in a compact size */
+    /* Settlement buttons: reuse the same gradient / border as smallBtn, but in a compact size */
     .factionActionBtn,
     .factionPageBtn{
       border:1px solid rgba(244,170,92,.9);
@@ -383,6 +383,32 @@ body::after{
     }
 
     .smallBtn.battleCard .d::first-line{
+      font-weight:600;
+    }
+
+    /* Recruitment quantity selector styles */
+    #recruitQtyBar{
+      display:flex;
+      gap:6px;
+      margin-bottom:10px;
+    }
+    #recruitQtyBar .qtyBtn{
+      flex:1;
+      border:1px solid rgba(244,170,92,0.6);
+      border-radius:12px;
+      padding:6px 8px;
+      background:rgba(244,170,92,0.2);
+      color:var(--text);
+      font-family:var(--mono);
+      font-size:.78rem;
+      text-align:center;
+      cursor:pointer;
+      user-select:none;
+      transition:background .15s ease, border-color .15s ease;
+    }
+    #recruitQtyBar .qtyBtn.active{
+      border-color: rgba(255,255,255,0.9);
+      background: rgba(244,170,92,0.4);
       font-weight:600;
     }
 
@@ -1442,6 +1468,25 @@ header{
 
 
     .unitCard{
+  .unitTrainRow{
+    margin-top:8px;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+  .unitTrainRow .trainBtn{
+    width:100%;
+    font-weight:600;
+    padding:6px 10px;
+  }
+  .unitTrainRow .trainBtn[disabled]{
+    opacity:0.85;
+  }
+  .unitTrainRow .trainInfo{
+    font-size:0.78rem;
+    opacity:0.85;
+  }
+
       display:flex;
       flex-direction:column;
       align-items:flex-start;
@@ -1820,14 +1865,21 @@ header{
      Legion / army management UI card:
        - Recruit Milites, Archers, Cavalry (and special forces via glory)
        - Shows upkeep, glory, and land used by the legion
-       - Battle buttons (Bandits, Levy, Village Raid, Siege)
+       - Battle buttons (Village Skirmish, Levy, Settlement Raid, Siege)
      When changing battle entry points, recruitment buttons, or how
      the player sees their army, start here.
      =================================================================== -->
     <section class="card view" data-view="legion" hidden>
       <div class="sectionTitle"><span>⚔️</span><span class="milites-label"></span><span>Glory <b id="gloryNow">0</b></span></div>
       <div class="cardBody">
-        <button class="bigBtn unitCard" id="btnRecruit">
+        <!-- Recruitment quantity selector: choose how many units to recruit per tap. -->
+        <div id="recruitQtyBar" class="recruitQtyBar" style="display:flex;gap:6px;margin-bottom:10px;">
+          <button type="button" class="qtyBtn" data-qty="1">+1</button>
+          <button type="button" class="qtyBtn" data-qty="10">+10</button>
+          <button type="button" class="qtyBtn" data-qty="100">+100</button>
+          <button type="button" class="qtyBtn" data-qty="1000">+1K</button>
+        </div>
+        <div class="bigBtn unitCard">
           <div class="unitHeaderRow">
             <div class="unitHeader">
               <span class="unitName">Milites</span>
@@ -1845,8 +1897,18 @@ header{
             <span class="upkeep">• Upkeep: 1×</span>
             <span class="owned">• Owned: <b id="ownedMilites">0</b></span>
           </div>
-        </button>
-        <button class="bigBtn unitCard" id="btnRecruitArchers">
+        
+
+          <div class="unitTrainRow">
+
+            <button type="button" class="smallBtn trainBtn" id="btnRecruit">Train</button>
+
+            <span class="trainInfo" id="trainMilitesInfo"></span>
+
+          </div>
+
+        </div>
+        <div class="bigBtn unitCard">
           <div class="unitHeaderRow">
             <div class="unitHeader">
               <span class="unitName">Archers</span>
@@ -1864,9 +1926,19 @@ header{
             <span class="upkeep">• Upkeep: 0.8×</span>
             <span class="owned">• Owned: <b id="ownedArchers">0</b></span>
           </div>
-        </button>
+        
 
-        <button class="bigBtn unitCard" id="btnRecruitCavalry">
+          <div class="unitTrainRow">
+
+            <button type="button" class="smallBtn trainBtn" id="btnRecruitArchers">Train</button>
+
+            <span class="trainInfo" id="trainArchersInfo"></span>
+
+          </div>
+
+        </div>
+
+        <div class="bigBtn unitCard">
           <div class="unitHeaderRow">
             <div class="unitHeader">
               <span class="unitName">Cavalry</span>
@@ -1884,10 +1956,25 @@ header{
             <span class="upkeep">• Upkeep: 1.5×</span>
             <span class="owned">• Owned: <b id="ownedCavalry">0</b></span>
           </div>
-        </button>
+        
+
+
+          <div class="unitTrainRow">
+
+
+            <button type="button" class="smallBtn trainBtn" id="btnRecruitCavalry">Train</button>
+
+
+            <span class="trainInfo" id="trainCavalryInfo"></span>
+
+
+          </div>
+
+
+        </div>
 
         <!-- Captivi Auxiliaries recruitment card (unlocked when you first acquire captivi) -->
-        <button class="bigBtn unitCard" id="btnRecruitCaptiviAux">
+        <div class="bigBtn unitCard">
           <div class="unitHeaderRow">
             <div class="unitHeader">
               <span class="unitName">Captivi Auxiliaries</span>
@@ -1906,13 +1993,23 @@ header{
             <span class="upkeep">• Upkeep: 0.6×</span>
             <span class="owned">• Owned: <b id="ownedCaptiviAux">0</b></span>
           </div>
-        </button>
+        
 
-        <!-- [VIEW] LEGION – Neighboring Factions / Faction Cards -->
+          <div class="unitTrainRow">
+
+            <button type="button" class="smallBtn trainBtn" id="btnRecruitCaptiviAux">Train</button>
+
+            <span class="trainInfo" id="trainCaptiviAuxInfo"></span>
+
+          </div>
+
+        </div>
+
+        <!-- [VIEW] LEGION – Neighbouring Settlements / Settlement Cards -->
         <div id="factionCardsContainer" class="factionCardsWrap">
           <div class="sectionTitle" style="margin-top:10px;border-radius:14px 14px 0 0;">
-            <span>Neighboring Factions</span>
-            <span style="font-size:.72rem;color:var(--muted);">Scouts report nearby powers.</span>
+            <span>Neighbouring Settlements</span>
+            <span style="font-size:.72rem;color:var(--muted);">Scouts report neighbouring settlements.</span>
           </div>
           <div class="cardBody" style="padding:10px 12px;border-radius:0 0 14px 14px;border:1px solid rgba(244,170,92,0.32);border-top:none;background:linear-gradient(180deg,rgba(255,255,255,0.18),rgba(244,170,92,0.16));">
             <div id="factionCardsList" class="factionCardsGrid"></div>
@@ -1925,7 +2022,7 @@ header{
         </div>
         <div class="row2 battleRow">
           <button class="smallBtn battleCard" id="btnBattleBandits1">
-            <div class="t">Deal with local bandits</div>
+            <div class="t">Skirmish near border village</div>
             <div class="d" id="battleBandits1Desc">10–50 enemies • quick skirmish</div>
           </button>
           <button class="smallBtn battleCard" id="btnBattleLevy">
@@ -2190,6 +2287,33 @@ header{
     captivi: { label: "Captive", icon: "🔗" }
   };
 
+  // ---------------------------------------------------------------------------
+  // [SYS] RECRUITMENT QUANTITY & QUEUE
+  //
+  // Purpose:
+  //   - Allow the player to pick how many units to recruit at once via a simple
+  //     quantity selector (e.g. +1, +10, +100, +1K).
+  //   - Larger recruitment batches can optionally be delayed using a training
+  //     queue. Units queued for training will be delivered after a short
+  //     training time, allowing bigger army expansions without spamming the
+  //     recruit button.  A future monetisation hook could speed up queued
+  //     training.
+  //
+  // State:
+  //   - recruitQueue: Array of objects { type: "mil"|"arc"|"cav"|"cap", qty, readyAt }
+  //     representing units currently being trained. When readyAt <= now, the
+  //     units are added to the appropriate army count and the entry removed.
+  //   - recruitBatchSize: Local (non‑persisted) variable holding the current
+  //     quantity selected by the player. Defaults to 1.  The quantity selector
+  //     buttons update this variable when clicked.
+  //
+  // Hooks:
+  //   - Added recruitBatchSize at the top of the script.
+  //   - Added recruitQueue to defaultState() and normalizeState().
+  //   - Modified recruit handlers to multiply by recruitBatchSize and to
+  //     optionally queue large batches (>=10 units) for timed training.
+  //   - Added processing of the recruit queue in the passive tick.
+
   // Per‑territory resource outputs per second. A base rate is listed for each
   // resource; assignment of labourers increases output up to +100% at max
   // staffing (five labourers per tile).
@@ -2304,6 +2428,124 @@ header{
     }
   }
 
+
+  // Compute training time per unit (in milliseconds) for each recruitment type.
+  function trainingTimePerUnitMs(type){
+    switch(type){
+      case "mil": // Milites
+      case "arc": // Archers
+        return 4000; // 4s per infantry unit
+      case "cav": // Cavalry
+        return 6000; // 6s per cavalry unit (10 cavalry ≈ 1 minute)
+      case "cap": // Captivi Auxiliaries
+        return 3000; // 3s per auxiliary unit
+      default:
+        return 4000;
+    }
+  }
+
+  // Deliver units from the recruitment queue whose training time has
+  // completed.  Each queued entry has shape { type: "mil"|"arc"|"cav"|"cap", qty, readyAt }.
+  // When readyAt <= now, the queued units are added to your army and the
+  // entry removed.  This helper returns true if any units were delivered
+  // during the call so the caller can decide whether to refresh the UI.
+  function processRecruitQueue(){
+    if(!Array.isArray(S.recruitQueue)) return false;
+    const nowMs = Date.now();
+    let deliveredSomething = false;
+    for(let i = S.recruitQueue.length - 1; i >= 0; i--){
+      const job = S.recruitQueue[i];
+      if(!job || typeof job.qty !== 'number' || job.qty <= 0 || !job.type) continue;
+      if(job.readyAt <= nowMs){
+        // Deliver all units in this job
+        deliverRecruit(job.type, job.qty);
+        S.recruitQueue.splice(i, 1);
+        deliveredSomething = true;
+      }
+    }
+    return deliveredSomething;
+  }
+
+  // Deliver a specific number of trained units to your army.  Updates
+  // population used where appropriate, recalculates legion strength, and
+  // displays a toast and log message.  Accepts type keys "mil","arc",
+  // "cav", "cap" corresponding to milites, archers, cavalry, and captivi
+  // auxiliaries.
+  function deliverRecruit(type, qty){
+    qty = Math.max(1, Math.floor(qty));
+    let label = "";
+    if(type === "mil"){
+      S.warriors = (S.warriors || 0) + qty;
+      label = qty === 1 ? "milite" : "milites";
+      // Consumes civilian population
+      S.populationUsed = (S.warriors||0) + (S.archers||0) + (S.cavalry||0);
+    }else if(type === "arc"){
+      S.archers = (S.archers || 0) + qty;
+      label = qty === 1 ? "archer" : "archers";
+      S.populationUsed = (S.warriors||0) + (S.archers||0) + (S.cavalry||0);
+    }else if(type === "cav"){
+      S.cavalry = (S.cavalry || 0) + qty;
+      label = qty === 1 ? "cavalryman" : "cavalry";
+      S.populationUsed = (S.warriors||0) + (S.archers||0) + (S.cavalry||0);
+    }else if(type === "cap"){
+      S.captiviAux = (S.captiviAux || 0) + qty;
+      label = qty === 1 ? "captivi auxiliary" : "captivi auxiliaries";
+      // Captivi auxiliaries do not consume civilian population
+    }else{
+      return;
+    }
+    recalcLegionStrength();
+    bumpObjective("recruit", qty);
+    logLine(`Training completed: ${fmt(qty)} ${label}.`, "good");
+    toast(`+${fmt(qty)} ${label} ready`);
+  }
+
+  // Offline processing of the recruitment queue.  When the player returns
+  // after being away, training time continues to accumulate.  This helper
+  // consumes the elapsed time (in seconds) and delivers units that finish
+  // training during that period.  It also partially advances any ongoing
+  // batches based on the remaining time.  Training times per unit are
+  // defined here to match the active queue logic: 2000ms per milite,
+  // archer and cavalry unit, and 1500ms per captivi auxiliary.
+  function processRecruitQueueOffline(elapsedSec){
+    if(!Array.isArray(S.recruitQueue)) return;
+    let remainingMs = Math.max(0, elapsedSec * 1000);
+    const now = Date.now();
+    const newQueue = [];
+    for(const job of S.recruitQueue){
+      if(!job || !job.type || typeof job.qty !== 'number' || job.qty <= 0){
+        continue;
+      }
+      const tPer = trainingTimePerUnitMs(job.type);
+      let qty = Math.floor(job.qty);
+      // Use remaining offline time to finish units sequentially across jobs
+      if(remainingMs > 0){
+        const totalTime = qty * tPer;
+        if(remainingMs >= totalTime){
+          // Entire batch finishes
+          deliverRecruit(job.type, qty);
+          remainingMs -= totalTime;
+          continue; // skip adding to newQueue
+        }else{
+          // Partial completion
+          const finished = Math.floor(remainingMs / tPer);
+          if(finished > 0){
+            deliverRecruit(job.type, finished);
+            remainingMs -= finished * tPer;
+            qty -= finished;
+          }
+        }
+      }
+      // If some units remain, push updated job with new ready time
+      const remainingQty = Math.max(0, qty);
+      if(remainingQty > 0){
+        const nextReadyAt = now + remainingQty * tPer;
+        newQueue.push({ type: job.type, qty: remainingQty, readyAt: nextReadyAt });
+      }
+    }
+    S.recruitQueue = newQueue;
+  }
+
   // Define the title progression and the renown required to reach each rank.
   //
   // The original thresholds allowed players to race through the early ranks too
@@ -2375,6 +2617,7 @@ header{
     cavalry: 0,
     // Captivi auxiliaries: captive infantry trained from captivi, unlocked after first captivi captured
     captiviAux: 0,
+    captiviUnlocked: false,
     battlesWon: 0,
     battlesFought: 0,
     enemiesKilled: 0,
@@ -2405,7 +2648,7 @@ header{
     controlledRegions: [],
     territoryWorkers: {},
 
-    // Faction cards pagination state
+    // Settlement cards pagination state
     factionPage: 0,
 
 // village capacity
@@ -2434,6 +2677,18 @@ header{
         // Each time this reaches or exceeds 1, one settler is added (up to
         // the population cap) and the remainder stored for the next tick.
         populationFrac: 0,
+
+    // Queue of pending recruitments. Each entry has the shape:
+    // { type: "mil"|"arc"|"cav"|"cap", qty:Number, readyAt:Number }.
+    // Units in this queue are delivered when readyAt <= Date.now() in the
+    // passive tick. See passive queue processing logic for details.
+    recruitQueue: [],
+
+    // Persistently stored faction cards. Each entry represents an enemy
+    // faction card generated for the factions/legion screen. Cards
+    // remain until conquered (attacked and assimilated) at which point
+    // they are replaced with a new random faction of similar strength.
+    factionCards: [],
 
     // temple / prestige
     faith: 0,
@@ -2556,10 +2811,21 @@ header{
         if(typeof state.itemFrac[it.id] !== "number") state.itemFrac[it.id] = 0;
       }
     }
+
+    // Recruit queue: ensure the array exists for older saves. Entries must be
+    // objects with type, qty and readyAt properties.  If an old save has
+    // stored a non-array value here, reset it to an empty array.
+    if(!Array.isArray(state.recruitQueue)) state.recruitQueue = [];
     return state;
   }
 
   let S = normalizeState(load()) || defaultState();
+
+  // If this looks like a fresh realm (no troops or progress yet), clear any stale training queue.
+  if((S.warriors||0)===0 && (S.archers||0)===0 && (S.cavalry||0)===0 && (S.captiviAux||0)===0 && (S.renown||0)===0 && (S.glory||0)===0){
+    S.recruitQueue = [];
+  }
+
 
   // Offline tracking: if lastSeenAt is missing or zero, seed it from created time.
   if(!S.lastSeenAt || !Number.isFinite(S.lastSeenAt)){
@@ -3360,12 +3626,14 @@ function decreeMult(){
     return 320;
   }
 
-  // Base recruit cost for Captivi Auxiliaries. Captivi auxiliaries are cheaper than milites.
-  // The cost grows modestly with each additional captivi auxiliary to prevent runaway armies.
+  // Base recruit cost for Captivi Auxiliaries.  Captivi auxiliaries are
+  // intended to be cheap cannon‑fodder.  They cost a flat amount of gold per
+  // unit and do not scale in price as you field more of them.  Limiting the
+  // price prevents runaway cost growth and makes use of captivi as a
+  // meaningful resource sink.  Adjust the return value to rebalance their
+  // affordability relative to milites (100 denarii).
   function captiviAuxRecruitCost(){
-    const base = 150;
-    const owned = S.captiviAux || 0;
-    return Math.floor(base + owned * 8);
+    return 60;
   }
 
   function recruitStrengthGain(){
@@ -3387,9 +3655,11 @@ function recalcLegionStrength(){
     // Base per-unit stats.
     const MIL  = { atk: 7,  def: 5,  hp: 16 };
     const ARCH = { atk: 6,  def: 2,  hp: 12 };
-    const CAV  = { atk: 11, def: 4,  hp: 20 };
+    // Cavalry base stats are higher than basic infantry to better reflect their battlefield superiority.
+    const CAV  = { atk: 15, def: 5,  hp: 22 };
     const AUX  = { atk: 6,  def: 8,  hp: 20 };
-    const EQ   = { atk: 13, def: 4,  hp: 18 };
+    // Equites (elite cavalry) have superior attack and defence compared to standard cavalry.
+    const EQ   = { atk: 18, def: 5,  hp: 20 };
     const VET  = { atk: 9,  def: 10, hp: 24 };
     // Stats for captivi auxiliaries: weaker but cheaper infantry.
     const CAPAUX = { atk: 5, def: 3, hp: 12 };
@@ -3633,7 +3903,7 @@ function battleTierFromTitleIdx(idx){
   }
 
 
-  function battleFactionMetaForTier(tier, kind, min, max){
+  function battleSettlementMetaForTier(tier, kind, min, max){
     const maxEnemies = max || min || 0;
     let scale;
     if(maxEnemies <= 40)      scale = "Small";
@@ -3646,13 +3916,13 @@ function battleTierFromTitleIdx(idx){
     let order = "Disciplined";
 
     if(tier <= 1){
-      icon = "🗡";
-      name = "Bandits";
-      order = "Disorganized";
+      icon = "🏘";
+      name = "Border Village";
+      order = "Local militia";
     }else if(tier === 2){
-      icon = "⚔️";
-      name = "Clan Raiders";
-      order = "Loose warbands";
+      icon = "🏘";
+      name = "Hill Village";
+      order = "Loose militia";
     }else if(tier === 3){
       icon = "⚔️";
       name = "Levy of Local Lord";
@@ -3690,15 +3960,19 @@ function battleTierFromTitleIdx(idx){
   
 
 
-function renderFactionCardsFromCurrentBattles(bs, tier, hasTroops){
+function renderSettlementCardsFromCurrentBattles(bs, tier, hasTroops){
     const listEl = $("#factionCardsList");
     if(!listEl) return;
 
     const PAGE_SIZE = 3;
     const MAX_VISIBLE = 9;
 
-    const cards = [];
-    if (typeof window !== "undefined") window.currentFactionCards = cards;
+    // Persist faction cards across renders.  We reuse the saved list from state
+    // if available, and only generate new cards to fill any empty slots.  This
+    // prevents the faction list from constantly shuffling.  When a faction is
+    // conquered, its card is removed from S.factionCards and the next render
+    // will fill the missing slot with a new random bandit camp.
+    let cards = [];
     const baseCount = Array.isArray(bs) ? bs.length : 0;
     if(!baseCount){
       listEl.innerHTML = "";
@@ -3717,74 +3991,114 @@ function renderFactionCardsFromCurrentBattles(bs, tier, hasTroops){
       return;
     }
 
-    for(let i=0;i<MAX_VISIBLE;i++){
-  const slot = i % baseCount;
-  const base = bs[slot];
-  if(!base) continue;
-
-  // Procedurally generate a plausible bandit camp around this slot.
-  const banditAdjectives = [
-    "Marsh", "Ridge", "Red", "Black", "Broken", "Silver", "Dust", "Thorn",
-    "Iron", "Shadow", "Grim", "Blood", "Pale", "Drift", "Fog", "Stone"
-  ];
-  const banditNouns = [
-    "Knives", "Riders", "Bandits", "Company", "Raiders", "Brothers",
-    "Brigands", "Outriders", "Host", "Marauders", "Reavers", "Lancers"
-  ];
-  const campNouns = [
-    "Camp", "Hideout", "Den", "Lair", "Hold", "Warren", "Encampment", "Nest"
-  ];
-  const leaderFirst = [
-    "Hostor", "Marro", "Len", "Sar", "Vessa", "Karro", "Ilma", "Thane",
-    "Risa", "Jor", "Tarin", "Edda", "Fenn", "Ost", "Garron", "Lysa"
-  ];
-  const leaderLast = [
-    "One-Eye", "the Fox", "Skull", "Ironhand", "Redcloak", "the Quiet",
-    "Longknife", "Blackbriar", "Crow", "Grim", "Storm", "the Lean",
-    "Stoneblood", "Riftwalker", "Speartooth", "of the Marsh"
-  ];
-
-  function pick(arr){
-    return arr[Math.floor(Math.random() * arr.length)];
-  }
-
-  const banditName = pick(banditAdjectives) + " " + pick(banditNouns);
-  const campName = pick(campNouns);
-  const fullName = banditName + " " + campName;
-
-  const land = 1 + Math.floor(Math.random() * 4); // 1–4 rough land units
-  const basePopPerLand = 40 + Math.floor(Math.random() * 70); // 40–109
-  // Scale the camp population based on your current title rank so that later battles feel larger.
-  let popScale = 1;
-  try {
-    if (typeof titleInfo === "function") {
-      const ti = titleInfo();
-      if (ti && typeof ti.idx === "number") {
-        // Each rank adds ~40% more population (Elder 0 = 1.0×, Clan Leader 1 = 1.4×, etc.).
-        popScale = 1 + ti.idx * 0.4;
-      }
+    // Reuse persisted faction cards and generate new ones to fill any missing slots up to MAX_VISIBLE.
+    if(Array.isArray(S.factionCards)){
+      cards = S.factionCards.slice();
+    } else {
+      cards = [];
     }
-  } catch(e) {}
-  const population = Math.round(land * basePopPerLand * popScale);
+    // Generator to create a new random bandit camp for a given index
+    function generateSettlementCard(i){
+      const slot = i % baseCount;
+      const base = bs[slot];
+      if(!base) return null;
 
-  const minMil = Math.max(10, Math.floor(population * 0.25));
-  const maxMil = Math.max(minMil + 5, Math.floor(population * 0.6));
-  const military = minMil + Math.floor(Math.random() * (maxMil - minMil + 1));
+      const roots = [
+        "Ridge", "River", "Oak", "Willow", "Stone", "Golden", "Hill", "Vale",
+        "Harbor", "Bridge", "Market", "Field", "Grove", "Spring", "Fort", "Port"
+      ];
+      const villageSuffixes = [
+        "Village", "Hamlet", "Farmstead", "Crossing", "Holdfast", "Hillstead"
+      ];
+      const townSuffixes = [
+        "Town", "Market", "Forum", "Harbour", "Colonia", "Municipium"
+      ];
+      const leaderFirst = [
+        "Gaius","Marcus","Lucius","Titus","Publius","Sextus","Decimus","Aulus",
+        "Flavia","Livia","Claudia","Julia","Tullia","Marcellus","Varro","Severus"
+      ];
+      const leaderLast  = [
+        "Varro","Maximus","Severus","Brutus","Cassius","Longinus","Scipio",
+        "Drusus","Sabinus","Flaccus","Germanicus","Aquila","Felix","Verrens",
+        "Rusticus","Agricola"
+      ];
 
-  const leader = pick(leaderFirst) + " " + pick(leaderLast);
+      function pick(arr){ return arr[Math.floor(Math.random() * arr.length)]; }
 
-  cards.push({
-    cardIndex: i,
-    battleSlot: slot,
-    name: fullName,
-    icon: "⚔️",
-    leader: leader,
-    type: "Bandit camp",
-    land: land,
-    population: population,
-    military: military
-  });
-}
+      const land = 1 + Math.floor(Math.random() * 4);
+      const basePopPerLand = 40 + Math.floor(Math.random() * 70);
+      let popScale = 1;
+      try {
+        if(typeof titleInfo === "function"){
+          const ti = titleInfo(S.rank || 0);
+          if(ti && typeof ti.idx === "number"){
+            popScale = 1 + ti.idx * 0.4;
+          }
+        }
+      } catch(e){}
+
+      const population = Math.round(land * basePopPerLand * popScale);
+      const minMil = Math.max(10, Math.floor(population * 0.25));
+      const maxMil = Math.max(minMil + 5, Math.floor(population * 0.6));
+      const military = minMil + Math.floor(Math.random() * (maxMil - minMil + 1));
+
+      const isVillage = population < 220;
+      const rootName = pick(roots);
+      const suffix   = isVillage ? pick(villageSuffixes) : pick(townSuffixes);
+      const fullName = rootName + " " + suffix;
+      const leader   = pick(leaderFirst) + " " + pick(leaderLast);
+      const type     = isVillage ? "Village" : "Town";
+
+      // Determine emblem based on settlement flavour
+      let emblem = "🏘";
+      if(isVillage){
+        if(/Farmstead|Field|Grove|Vale|Spring/i.test(fullName)){
+          emblem = "🌾"; // farm village
+        }else if(/Port|Harbor|Harbour|Bridge|Crossing|River/i.test(fullName)){
+          emblem = "⚓"; // river/port village
+        }else if(/Hill|Ridge/i.test(fullName)){
+          emblem = "⛰"; // hill village
+        }else{
+          emblem = "🏘"; // generic village
+        }
+      }else{
+        if(/Market/i.test(fullName)){
+          emblem = "⚖"; // market town
+        }else if(/Forum|Colonia|Municipium/i.test(fullName)){
+          emblem = "⛪"; // temple/administrative town
+        }else if(/Port|Harbor|Harbour/i.test(fullName)){
+          emblem = "⚓"; // port town
+        }else if(/Hill|Ridge/i.test(fullName)){
+          emblem = "⛰"; // hill town
+        }else{
+          emblem = "🏛"; // generic town
+        }
+      }
+
+      const icon = emblem;
+
+      return {
+        cardIndex: i,
+        battleSlot: slot,
+        name: fullName,
+        icon: icon,
+        leader: leader,
+        type: type,
+        land: land,
+        population: population,
+        military: military
+      };
+    }
+
+
+    // Fill missing slots
+    for(let i = cards.length; i < MAX_VISIBLE; i++){
+      const nc = generateSettlementCard(i);
+      if(nc) cards.push(nc);
+    }
+    if(cards.length > MAX_VISIBLE){ cards = cards.slice(0, MAX_VISIBLE); }
+    S.factionCards = cards;
+    if(typeof window !== 'undefined') window.currentSettlementCards = cards;
 
 const totalPages = Math.max(1, Math.ceil(cards.length / PAGE_SIZE));
     if(typeof S.factionPage !== "number" || !Number.isFinite(S.factionPage)){
@@ -3810,9 +4124,7 @@ const totalPages = Math.max(1, Math.ceil(cards.length / PAGE_SIZE));
         el.setAttribute("data-battle-slot", String(card.battleSlot));
         el.setAttribute("data-faction-index", String(card.cardIndex));
 
-        const iconHtml = (card.type === "Bandit camp")
-          ? '<img src="Sprites/Bandits.png" class="tacLossIcon" alt="Bandits">'
-          : (card.icon || "⚔️");
+        const iconHtml = (card.icon || "⚔️");
 
         el.innerHTML = [
   '<div class="factionCardHeader">',
@@ -3825,13 +4137,12 @@ const totalPages = Math.max(1, Math.ceil(cards.length / PAGE_SIZE));
   '<div class="factionCardActions">',
     // Allow trading regardless of troop count; only attack/raid should be gated by available troops.
     '<button type="button" class="factionActionBtn" data-faction-action="trade">Trade</button>',
-    '<button type="button" class="factionActionBtn" data-faction-action="attack"',   hasTroops ? "" : " disabled", ">Attack</button>",
+    '<button type="button" class="factionActionBtn" data-faction-action="attack"',   hasTroops ? "" : " disabled", ">Conquer</button>",
     // Diplomacy does not require troops. Always enable this button.
     '<button type="button" class="factionActionBtn" data-faction-action="diplomacy">Diplomacy</button>',
-    '<button type="button" class="factionActionBtn" data-faction-action="raid"',     hasTroops ? "" : " disabled", ">Raid</button>",
+    '<button type="button" class="factionActionBtn" data-faction-action="raid"',     hasTroops ? "" : " disabled", ">Pillage</button>",
   "</div>",
   '<div class="factionCardStats">',
-    '<div class="factionCardStat"><span>Land</span><b>', fmt(card.land), "</b></div>",
     '<div class="factionCardStat"><span>Population</span><b>', fmt(card.population), "</b></div>",
     '<div class="factionCardStat"><span>Military</span><b>', fmt(card.military), "</b></div>",
   "</div>"
@@ -4055,9 +4366,10 @@ const BATTLE_ARCHETYPES = {
     "Domitia","Flaminia","Claudiana","Tarquitia","Valeria","Aemilia","Cornelia","Fabia"
   ];
 
-  // Faction "classes" stay extremely short and minimal for card readability.
+  // Settlement "classes" stay extremely short and minimal for card readability.
+  // Early neighbouring settlements: small villages and tribal hamlets.
   const HOUSE_CLASSES_TRIBAL = [
-    "Bandits","Rustlers","Hill Raiders","Cattle-Thieves","Marsh Bandits"
+    "Village","Hill Village","Forest Village","River Village","Frontier Village"
   ];
   const HOUSE_CLASSES_MARCHER = [
     "Levies","Banners","Marchers","Retinue","Shieldmen"
@@ -5572,7 +5884,7 @@ function captureTerritory(battleTier, kind, label){
   }
 
 
-  let pendingFactionCardBattle = null;
+  let pendingSettlementCardBattle = null;
 
   let factionAttackMeta = null;
   // Tracks pending faction raid context so we can award item spoils after a successful raid.
@@ -5582,9 +5894,9 @@ function captureTerritory(battleTier, kind, label){
   function battleSim(slot){
   const b = currentBattleSet()[slot];
   let enemyCount;
-  if (pendingFactionCardBattle && typeof pendingFactionCardBattle === "object" && pendingFactionCardBattle.slot === slot && typeof pendingFactionCardBattle.enemies === "number" && pendingFactionCardBattle.enemies > 0){
-    enemyCount = Math.max(1, Math.round(pendingFactionCardBattle.enemies));
-    pendingFactionCardBattle = null;
+  if (pendingSettlementCardBattle && typeof pendingSettlementCardBattle === "object" && pendingSettlementCardBattle.slot === slot && typeof pendingSettlementCardBattle.enemies === "number" && pendingSettlementCardBattle.enemies > 0){
+    enemyCount = Math.max(1, Math.round(pendingSettlementCardBattle.enemies));
+    pendingSettlementCardBattle = null;
   } else {
     enemyCount = rnd(b.enemyMin, b.enemyMax);
   }
@@ -5608,9 +5920,11 @@ function captureTerritory(battleTier, kind, label){
   // Base per-unit stats
   const MIL  = { atk: 7,  def: 5,  hp: 16 };
   const ARCH = { atk: 6,  def: 2,  hp: 12 };
-  const CAV  = { atk: 11, def: 4,  hp: 20 };
+  // Cavalry are significantly stronger than basic infantry, reflecting their shock power.
+  const CAV  = { atk: 15, def: 5,  hp: 22 };
   const AUX  = { atk: 6,  def: 8,  hp: 20 };
-  const EQ   = { atk: 13, def: 4,  hp: 18 };
+  // Equites (elite cavalry) are even more formidable than standard cavalry.
+  const EQ   = { atk: 18, def: 5,  hp: 20 };
   const VET  = { atk: 9,  def: 10, hp: 24 };
 
   let baseAtk = warriors * MIL.atk  + archers * ARCH.atk + cav * CAV.atk + aux * AUX.atk + equites * EQ.atk + veterans * VET.atk;
@@ -7020,6 +7334,13 @@ function applyOfflineProgress(){
     const rateMult = 0.85;
     const goldGain = Math.floor(netRate * cappedSec * rateMult);
 
+    // Process training queue progress while offline before applying other gains.
+    try{
+      if(typeof processRecruitQueueOffline === "function"){
+        processRecruitQueueOffline(cappedSec);
+      }
+    }catch(e){}
+
     // Offline settlers based on migration rate, clamped to pop cap.
     const cap = populationCap();
     const beforePop = S.population || 0;
@@ -7693,7 +8014,7 @@ handleRankUps();
     if(rcCaptEl) rcCaptEl.textContent = `Cost ${fmt(captiviAuxRecruitCost())}`;
 
     const rgEl = $("#recruitGain");
-    if(rgEl) rgEl.textContent = `+1 milites`;
+    if(rgEl) updateRecruitGainLabel();
 
     // Update Milites header icon depending on current rank.
     updateMilitesIcon();
@@ -7701,8 +8022,13 @@ handleRankUps();
     // Unlock Captivi Auxiliaries recruitment when any captivi exist or some already recruited.
     const btnCaptAux = $("#btnRecruitCaptiviAux");
     if(btnCaptAux){
-      const unlocked = (S.captivi || 0) > 0 || (S.captiviAux || 0) > 0;
-      btnCaptAux.style.display = unlocked ? "" : "none";
+      // For existing saves without the flag, having any captivi or auxiliaries present also unlocks the card.
+      const flag = !!S.captiviUnlocked;
+      const hasCaptivi = (S.captivi || 0) > 0 || (S.captiviAux || 0) > 0;
+      const unlocked = flag || hasCaptivi;
+      const card = btnCaptAux.closest(".unitCard");
+      if(card) card.style.display = unlocked ? "" : "none";
+      else btnCaptAux.style.display = unlocked ? "" : "none";
     }
 
     
@@ -7725,8 +8051,8 @@ const totalTroops =
     const hasTroops = totalTroops > 0;
 
     // Hook into the new faction card system (3 panels × 3 factions)
-    if (typeof renderFactionCardsFromCurrentBattles === "function") {
-      renderFactionCardsFromCurrentBattles(bs, tier, hasTroops);
+    if (typeof renderSettlementCardsFromCurrentBattles === "function") {
+      renderSettlementCardsFromCurrentBattles(bs, tier, hasTroops);
     }
 
     // Old battle buttons (kept only for save compatibility; hidden in CSS)
@@ -8108,159 +8434,272 @@ const totalTroops =
     render();
   });
   $("#btnRecruit").addEventListener("click", (e)=>{
-  const c = recruitCost();
-  if(S.gold < c){
-    toast("Not enough denarii");
-    return;
-  }
-
-  // You can only recruit if you have an unassigned settler to train.
-  // (Population is filled slowly up to the cap by "settlers".)
-  const pop = S.population || 0;
-  const warriors = S.warriors || 0;
-  const cavalry = S.cavalry || 0;
-  const labourers = (typeof totalTypeWorkers === "function") ? totalTypeWorkers() : 0;
-
-  // Population is: warriors + cavalry + labourers + free civilians.
-  const civilians = Math.max(0, pop - warriors - cavalry - labourers);
-
-  if(civilians < 1){
-    toast("No free settlers — build housing and wait for more to arrive");
-    return;
-  }
-
-  // Pay the cost and convert 1 civilian into a milites.
-  S.gold -= c;
-  S.warriors = warriors + 1;
-  S.populationUsed = (S.warriors||0) + (S.archers||0) + (S.cavalry||0); // keep pop-used in sync with milites
-
-  recalcLegionStrength();
-
-  // Recruiting progresses recruit-related objectives.
-  bumpObjective("recruit", 1);
-
-  // Nice but safe coin spark (no undefined payout!)
-  const rect = e.currentTarget.getBoundingClientRect();
-  const goldness = clamp(0.35 + (S.warriors || 0) * 0.015, 0.35, 0.9);
-  sparkAt(
-    rect.left + rect.width * 0.80,
-    rect.top  + rect.height * 0.45,
-    goldness
-  );
-
-  toast("Recruited");
-  logLine(`A milites joins your banner. (Milites: ${fmt(S.warriors)})`, "good");
-
-  render({skipBattles:true});
-});
-
-  
-  $("#btnRecruitArchers").addEventListener("click", (e)=>{
-    const c = archerRecruitCost();
-    if(S.gold < c){
+    // Recruit milites in batches using the current batch size.
+    const desired = currentRecruitBatchSize();
+    // Prevent spam for this unit type: only one Milites batch may run at a time.
+    if(Array.isArray(S.recruitQueue) && S.recruitQueue.some(job => job && job.type === "mil")){
+      toast("Milites training already in progress — wait for this batch to finish.");
+      return;
+    }
+    const maxTrainable = computeMaxTrainable("mil");
+    if(maxTrainable <= 0){
+      toast("Not enough population or denarii to train milites.");
+      return;
+    }
+    const qty = getEffectiveTrainQty("mil");
+    if(qty <= 0){
+      toast("Not enough population or denarii to train milites.");
+      return;
+    }
+    const unitCost = recruitCost();
+    const totalCost = unitCost * qty;
+    if((S.gold || 0) < totalCost){
       toast("Not enough denarii");
       return;
     }
+    S.gold -= totalCost;
 
+    // Safety clamp in case population changed between render and click
     const pop = S.population || 0;
     const warriors = S.warriors || 0;
-    const archers = S.archers || 0;
-    const cavalry = S.cavalry || 0;
+    const archersNow = S.archers || 0;
+    const cavalryNow = S.cavalry || 0;
     const labourers = (typeof totalTypeWorkers === "function") ? totalTypeWorkers() : 0;
-
-    const civilians = Math.max(0, pop - warriors - archers - cavalry - labourers);
-    if(civilians < 1){
-      toast("No free settlers — build housing and wait for more to arrive");
-      return;
+    const freeCivilians = Math.max(0, pop - warriors - archersNow - cavalryNow - labourers);
+    if(freeCivilians < qty){
+      const maxByPop = Math.max(0, freeCivilians);
+      if(maxByPop <= 0){
+        toast("No free settlers — build housing and wait for more to arrive");
+        return;
+      }
     }
 
-    S.gold -= c;
-    S.archers = archers + 1;
-    S.populationUsed = (S.warriors||0) + (S.archers||0) + (S.cavalry||0);
+    if(qty <= 1){
+      S.warriors = (S.warriors || 0) + qty;
+      S.populationUsed = (S.warriors || 0) + (S.archers || 0) + (S.cavalry || 0);
+      recalcLegionStrength();
+      bumpObjective("recruit", qty);
+      logLine(`Recruited ${fmt(qty)} milites.`, "good");
+    }else{
+      const trainPerUnitMs = trainingTimePerUnitMs("mil");
+      const readyAt = Date.now() + qty * trainPerUnitMs;
+      if(!Array.isArray(S.recruitQueue)) S.recruitQueue = [];
+      S.recruitQueue.push({ type: "mil", qty: qty, readyAt: readyAt });
+      const totalSec = Math.round((qty * trainPerUnitMs) / 1000);
+      toast(`Training ${fmt(qty)} milites (ready in ${totalSec}s)`);
+      logLine(`Training ${fmt(qty)} milites.`, "good");
+    }
 
-    recalcLegionStrength();
-    bumpObjective("recruit", 1);
+    // Visual flourish on recruitment card
+    const rect = e.currentTarget.getBoundingClientRect();
+    const goldness = clamp(0.35 + ((S.warriors || 0)) * 0.015, 0.35, 0.9);
+    sparkAt(
+      rect.left + rect.width * 0.80,
+      rect.top  + rect.height * 0.45,
+      goldness
+    );
+    if(typeof updateRecruitTrainingUI === "function") updateRecruitTrainingUI();
+    render({skipBattles:true});
+  });
+
+  
+  $("#btnRecruitArchers").addEventListener("click", (e)=>{
+    // Recruit archers using quantity selection and training queue
+    const desired = currentRecruitBatchSize();
+    // Prevent spam for this unit type: only one Archers batch may run at a time.
+    if(Array.isArray(S.recruitQueue) && S.recruitQueue.some(job => job && job.type === "arc")){
+      toast("Archers training already in progress — wait for this batch to finish.");
+      return;
+    }
+    const maxTrainable = computeMaxTrainable("arc");
+    if(maxTrainable <= 0){
+      toast("Not enough population or denarii to train archers.");
+      return;
+    }
+    const qty = getEffectiveTrainQty("arc");
+    if(qty <= 0){
+      toast("Not enough population or denarii to train archers.");
+      return;
+    }
+    const unitCost = archerRecruitCost();
+    const totalCost = unitCost * qty;
+    if((S.gold || 0) < totalCost){
+      toast("Not enough denarii");
+      return;
+    }
+    S.gold -= totalCost;
+
+    // Safety clamp for population
+    const pop = S.population || 0;
+    const warriors = S.warriors || 0;
+    const archersNow = S.archers || 0;
+    const cavalryNow = S.cavalry || 0;
+    const labourers = (typeof totalTypeWorkers === "function") ? totalTypeWorkers() : 0;
+    const freeCivilians = Math.max(0, pop - warriors - archersNow - cavalryNow - labourers);
+    if(freeCivilians < qty){
+      const maxByPop = Math.max(0, freeCivilians);
+      if(maxByPop <= 0){
+        toast("No free settlers — build housing and wait for more to arrive");
+        return;
+      }
+    }
+
+    if(qty <= 1){
+      S.archers = (S.archers || 0) + qty;
+      S.populationUsed = (S.warriors||0) + (S.archers||0) + (S.cavalry||0);
+      recalcLegionStrength();
+      bumpObjective("recruit", qty);
+      logLine("Recruited " + fmt(qty) + " archers.", "good");
+    }else{
+      const trainPerUnitMs = trainingTimePerUnitMs("arc");
+      const readyAt = Date.now() + qty * trainPerUnitMs;
+      if(!Array.isArray(S.recruitQueue)) S.recruitQueue = [];
+      S.recruitQueue.push({ type: "arc", qty: qty, readyAt: readyAt });
+      const totalSec = Math.round((qty * trainPerUnitMs)/1000);
+      toast("Training " + fmt(qty) + " archers (ready in " + totalSec + "s)");
+      logLine("Training " + fmt(qty) + " archers.", "good");
+    }
 
     const rect = e.currentTarget.getBoundingClientRect();
-    const goldness = clamp(0.3 + (S.archers || 0) * 0.012, 0.3, 0.8);
+    const goldness = clamp(0.3 + ((S.archers||0)) * 0.012, 0.3, 0.8);
     sparkAt(
       rect.left + rect.width * 0.7,
       rect.top  + rect.height * 0.4,
       goldness
     );
-
-    toast("Archers recruited.");
+    if(typeof updateRecruitTrainingUI === "function") updateRecruitTrainingUI();
     render({skipBattles:true});
   });
 
 $("#btnRecruitCavalry").addEventListener("click", (e)=>{
-    const c = cavalryRecruitCost();
-    if(S.gold < c){
+    // Recruit cavalry using quantity selection and training queue
+    const desired = currentRecruitBatchSize();
+    // Prevent spam for this unit type: only one Cavalry batch may run at a time.
+    if(Array.isArray(S.recruitQueue) && S.recruitQueue.some(job => job && job.type === "cav")){
+      toast("Cavalry training already in progress — wait for this batch to finish.");
+      return;
+    }
+    const maxTrainable = computeMaxTrainable("cav");
+    if(maxTrainable <= 0){
+      toast("Not enough population or denarii to train cavalry.");
+      return;
+    }
+    const qty = getEffectiveTrainQty("cav");
+    if(qty <= 0){
+      toast("Not enough population or denarii to train cavalry.");
+      return;
+    }
+    const unitCost = cavalryRecruitCost();
+    const totalCost = unitCost * qty;
+    if((S.gold || 0) < totalCost){
       toast("Not enough denarii");
       return;
     }
+    S.gold -= totalCost;
 
-    // Same free population rule: must have an unassigned settler.
+    // Safety clamp for population
     const pop = S.population || 0;
     const warriors = S.warriors || 0;
-    const cavalry = S.cavalry || 0;
+    const archersNow = S.archers || 0;
+    const cavalryNow = S.cavalry || 0;
     const labourers = (typeof totalTypeWorkers === "function") ? totalTypeWorkers() : 0;
-
-    const civilians = Math.max(0, pop - warriors - cavalry - labourers);
-    if(civilians < 1){
-      toast("No free settlers — build housing and wait for more to arrive");
-      return;
+    const freeCivilians = Math.max(0, pop - warriors - archersNow - cavalryNow - labourers);
+    if(freeCivilians < qty){
+      const maxByPop = Math.max(0, freeCivilians);
+      if(maxByPop <= 0){
+        toast("No free settlers — build housing and wait for more to arrive");
+        return;
+      }
     }
 
-    // Pay cost and convert 1 civilian into a cavalry unit.
-    S.gold -= c;
-    S.cavalry = cavalry + 1;
-    S.populationUsed = (S.warriors||0) + (S.archers||0) + (S.cavalry||0);
-
-    recalcLegionStrength();
-    bumpObjective("recruit", 1);
+    if(qty <= 1){
+      S.cavalry = (S.cavalry || 0) + qty;
+      S.populationUsed = (S.warriors||0) + (S.archers||0) + (S.cavalry||0);
+      recalcLegionStrength();
+      bumpObjective("recruit", qty);
+      logLine("Recruited " + fmt(qty) + " cavalry.", "good");
+    }else{
+      const trainPerUnitMs = trainingTimePerUnitMs("cav");
+      const readyAt = Date.now() + qty * trainPerUnitMs;
+      if(!Array.isArray(S.recruitQueue)) S.recruitQueue = [];
+      S.recruitQueue.push({ type: "cav", qty: qty, readyAt: readyAt });
+      const totalSec = Math.round((qty * trainPerUnitMs)/1000);
+      toast("Training " + fmt(qty) + " cavalry (ready in " + totalSec + "s)");
+      logLine("Training " + fmt(qty) + " cavalry.", "good");
+    }
 
     const rect = e.currentTarget.getBoundingClientRect();
-    const goldness = clamp(0.45 + (S.cavalry || 0) * 0.018, 0.45, 0.92);
+    const goldness = clamp(0.45 + ((S.cavalry||0)) * 0.018, 0.45, 0.92);
     sparkAt(
       rect.left + rect.width * 0.6,
       rect.top  + rect.height* 0.4,
       1,
       (S.tribute || 0) * (goldness)
     );
-
-    toast("New cavalry unit recruited.");
+    if(typeof updateRecruitTrainingUI === "function") updateRecruitTrainingUI();
     render({skipBattles:true});
   });
 
-  // Recruit Captivi Auxiliaries button. These captive infantry are trained from captured prisoners
-  // and do not consume civilian population. They require captivi as a prerequisite and cost less
-  // than standard milites to field.
+  // Recruit Captivi Auxiliaries button.  These captive infantry are trained from
+  // captured prisoners and do not consume civilian population.  They require
+  // captivi as a prerequisite and cost a flat, low amount of gold.  Large
+  // batches (≥10 units) are queued and take time to train.  Quantity is
+  // determined by the recruitBatchSize selection.
   $("#btnRecruitCaptiviAux").addEventListener("click", (e)=>{
-    const cost = captiviAuxRecruitCost();
-    if(S.gold < cost){
+    // Captivi Auxiliaries ignore civilian population but consume captivi.
+    const desired = currentRecruitBatchSize();
+    // Prevent spam for this unit type: only one Captivi Auxiliaries batch may run at a time.
+    if(Array.isArray(S.recruitQueue) && S.recruitQueue.some(job => job && job.type === "cap")){
+      toast("Captivi Auxiliaries training already in progress — wait for this batch to finish.");
+      return;
+    }
+    const maxTrainable = computeMaxTrainable("cap");
+    if(maxTrainable <= 0){
+      toast("No captivi or denarii available — capture prisoners and earn more gold to train these auxiliaries.");
+      return;
+    }
+    const qty = getEffectiveTrainQty("cap");
+    if(qty <= 0){
+      toast("No captivi or denarii available — capture prisoners and earn more gold to train these auxiliaries.");
+      return;
+    }
+    const unitCost = captiviAuxRecruitCost();
+    const totalCost = unitCost * qty;
+    if((S.gold || 0) < totalCost){
       toast("Not enough denarii");
       return;
     }
-    if((S.captivi || 0) < 1){
-      toast("No captivi available — capture prisoners in battle to train these auxiliaries.");
+    const availableCaptivi = S.captivi || 0;
+    if(availableCaptivi < qty){
+      toast("Not enough captivi to train that many auxiliaries.");
       return;
     }
-    // Pay cost and consume one captivi.
-    S.gold -= cost;
-    S.captivi = (S.captivi || 0) - 1;
-    S.captiviAux = (S.captiviAux || 0) + 1;
-    // Recalculate legion strength; captivi auxiliaries don't use population.
-    recalcLegionStrength();
-    bumpObjective("recruit", 1);
-    const rect = e.currentTarget.getBoundingClientRect();
-    // Visual flourish when recruiting a captive unit.
+    S.gold -= totalCost;
+    S.captivi = availableCaptivi - qty;
+
+    if(qty <= 1){
+      S.captiviAux = (S.captiviAux || 0) + qty;
+      recalcLegionStrength();
+      bumpObjective("recruit", qty);
+      logLine(`Recruited ${fmt(qty)} captivi auxiliaries.`, "good");
+    }else{
+      const trainPerUnitMs = trainingTimePerUnitMs("cap");
+      const readyAt = Date.now() + qty * trainPerUnitMs;
+      if(!Array.isArray(S.recruitQueue)) S.recruitQueue = [];
+      S.recruitQueue.push({ type: "cap", qty: qty, readyAt: readyAt });
+      const totalSec = Math.round((qty * trainPerUnitMs)/1000);
+      toast(`Training ${fmt(qty)} captivi auxiliaries (ready in ${totalSec}s)`);
+      logLine(`Training ${fmt(qty)} captivi auxiliaries.`, "good");
+    }
+
+    // Visual flourish on recruitment card
+    const rectEl = e.currentTarget.getBoundingClientRect();
     sparkAt(
-      rect.left + rect.width * 0.6,
-      rect.top  + rect.height * 0.4,
-      0.3 + (S.captiviAux || 0) * 0.01
+      rectEl.left + rectEl.width * 0.6,
+      rectEl.top  + rectEl.height * 0.4,
+      0.3 + ((S.captiviAux || 0) * 0.01)
     );
-    toast("Captivi auxiliary recruited.");
+    if(typeof updateRecruitTrainingUI === "function") updateRecruitTrainingUI();
     render({ skipBattles: true });
   });
 // ---- Defensive/local skirmish popups ----
@@ -8617,6 +9056,7 @@ function showBattleReport(rep){
     add("Auxilia",  "aux");
     add("Equites",  "eq");
     add("Veterans", "vet");
+    add("Captivi Auxiliaries", "cap");
     const txt = bits.length ? bits.join(', ') : "no losses";
     lines.push(`Troop losses: ${txt}`);
   } else {
@@ -8668,14 +9108,14 @@ function closeBattleReport(){
 window.closeBattleReport = closeBattleReport;
 window.showBattleReport = showBattleReport;
 
-// --- Faction assimilation popup (after faction-card battles) ---
-function showFactionAssimilationPopup(meta, gained){
+// --- Settlement assimilation popup (after faction-card battles) ---
+function showSettlementAssimilationPopup(meta, gained){
   const overlay = document.getElementById("factionAssimOverlay");
   const body = document.getElementById("factionAssimBody");
   const title = document.getElementById("factionAssimTitle");
   if(!overlay || !body || !title) return;
 
-  const name = meta && meta.name ? meta.name : "A rival faction";
+  const name = meta && meta.name ? meta.name : "A neighbouring settlement";
   const popGain = gained && typeof gained.population === "number" ? gained.population : 0;
   const territories = gained && Array.isArray(gained.territories) ? gained.territories : [];
   const landCount = gained && typeof gained.landCount === "number"
@@ -8734,13 +9174,13 @@ function showFactionAssimilationPopup(meta, gained){
   overlay.classList.add("visible");
 }
 
-function closeFactionAssimilation(){
+function closeSettlementAssimilation(){
   const overlay = document.getElementById("factionAssimOverlay");
   if(!overlay) return;
   overlay.classList.remove("visible");
   setTimeout(()=>{ overlay.style.display = "none"; }, 200);
 }
-window.closeFactionAssimilation = closeFactionAssimilation;
+window.closeSettlementAssimilation = closeSettlementAssimilation;
 
 
 // --- Battle Simulation (cinematic log before the report) ---
@@ -9187,8 +9627,8 @@ function doBattle(slot, opts){
   // battles.
   let captiviCaptured = 0;
   const isDefence = !!opts.defence;
-  const fromFactionCardAttack = !!(opts && opts.fromFactionCardAttack);
-  const factionBattleMeta = (opts && opts.fromFactionCardMeta) || null;
+  const fromSettlementCardAttack = !!(opts && opts.fromSettlementCardAttack);
+  const factionBattleMeta = (opts && opts.fromSettlementCardMeta) || null;
 
   const now = Date.now(); // cooldown disabled
   const b = currentBattleSet()[slot];
@@ -9226,6 +9666,8 @@ const totalTroops = w + arc + cav + aux + eq + vet + (S.captiviAux || 0);
   const beforeAux      = S.auxilia || 0;
   const beforeEq       = S.equites || 0;
   const beforeVet      = S.veterans|| 0;
+  // Captivi auxiliaries count separately for casualties – they don't consume population
+  const beforeCap      = S.captiviAux || 0;
   const startGold = S.gold;
   const startLand = S.land||0;
   const startRenown = S.renown||0;
@@ -9257,16 +9699,18 @@ const totalTroops = w + arc + cav + aux + eq + vet + (S.captiviAux || 0);
     const dAux = Math.max(0, Math.min(beforeAux,      Math.floor(lossDetailOverride.aux || 0)));
     const dEq  = Math.max(0, Math.min(beforeEq,       Math.floor(lossDetailOverride.eq  || 0)));
     const dVet = Math.max(0, Math.min(beforeVet,      Math.floor(lossDetailOverride.vet || 0)));
+    const dCap = Math.max(0, Math.min(beforeCap,      Math.floor(lossDetailOverride.cap || 0)));
 
-    S.warriors = Math.max(0, beforeWarriors - dMil);
-    S.archers  = Math.max(0, beforeArch     - dArc);
-    S.cavalry  = Math.max(0, beforeCav      - dCav);
-    S.auxilia  = Math.max(0, beforeAux      - dAux);
-    S.equites  = Math.max(0, beforeEq       - dEq);
-    S.veterans = Math.max(0, beforeVet      - dVet);
+    S.warriors    = Math.max(0, beforeWarriors - dMil);
+    S.archers     = Math.max(0, beforeArch     - dArc);
+    S.cavalry     = Math.max(0, beforeCav      - dCav);
+    S.auxilia     = Math.max(0, beforeAux      - dAux);
+    S.equites     = Math.max(0, beforeEq       - dEq);
+    S.veterans    = Math.max(0, beforeVet      - dVet);
+    S.captiviAux  = Math.max(0, beforeCap      - dCap);
 
-    losses = dMil + dArc + dCav + dAux + dEq + dVet;
-    lossDetail = { mil:dMil, arc:dArc, cav:dCav, aux:dAux, eq:dEq, vet:dVet };
+    losses = dMil + dArc + dCav + dAux + dEq + dVet + dCap;
+    lossDetail = { mil:dMil, arc:dArc, cav:dCav, aux:dAux, eq:dEq, vet:dVet, cap:dCap };
 
   } else {
     const allBefore = beforeWarriors + beforeArch + beforeCav + beforeAux + beforeEq + beforeVet;
@@ -9280,17 +9724,21 @@ const totalTroops = w + arc + cav + aux + eq + vet + (S.captiviAux || 0);
         cav: beforeCav,
         aux: beforeAux,
         eq:  beforeEq,
-        vet: beforeVet
+        vet: beforeVet,
+        cap: beforeCap
       };
 
       // Frontline + cavalry take more of the hammering; archers are more exposed; vets & aux a bit less.
+      // Captivi auxiliaries are poorly armed meathields: they take substantially
+      // higher losses (exposure >1) and soak damage ahead of your core infantry.
       const exposure = {
         mil: 1.0,
         arc: 1.25,
         cav: 1.05,
         aux: 0.95,
         eq:  1.10,
-        vet: 0.80
+        vet: 0.80,
+        cap: 1.35
       };
 
       let split;
@@ -9318,21 +9766,33 @@ const totalTroops = w + arc + cav + aux + eq + vet + (S.captiviAux || 0);
       const dAux = Math.max(0, Math.floor(ld.aux || 0));
       const dEq  = Math.max(0, Math.floor(ld.eq  || 0));
       const dVet = Math.max(0, Math.floor(ld.vet || 0));
+      const dCap = Math.max(0, Math.floor(ld.cap || 0));
 
-      S.warriors = Math.max(0, beforeWarriors - dMil);
-      S.archers  = Math.max(0, beforeArch     - dArc);
-      S.cavalry  = Math.max(0, beforeCav      - dCav);
-      S.auxilia  = Math.max(0, beforeAux      - dAux);
-      S.equites  = Math.max(0, beforeEq       - dEq);
-      S.veterans = Math.max(0, beforeVet      - dVet);
+      S.warriors   = Math.max(0, beforeWarriors - dMil);
+      S.archers    = Math.max(0, beforeArch     - dArc);
+      S.cavalry    = Math.max(0, beforeCav      - dCav);
+      S.auxilia    = Math.max(0, beforeAux      - dAux);
+      S.equites    = Math.max(0, beforeEq       - dEq);
+      S.veterans   = Math.max(0, beforeVet      - dVet);
+      S.captiviAux = Math.max(0, beforeCap      - dCap);
 
-      losses = dMil + dArc + dCav + dAux + dEq + dVet;
-      lossDetail = { mil:dMil, arc:dArc, cav:dCav, aux:dAux, eq:dEq, vet:dVet };
+      losses = dMil + dArc + dCav + dAux + dEq + dVet + dCap;
+      lossDetail = { mil:dMil, arc:dArc, cav:dCav, aux:dAux, eq:dEq, vet:dVet, cap:dCap };
     }
   }
 
-  // Deaths remove population permanently.
-  S.population = Math.max(0, (S.population||0) - losses);
+  // Deaths remove population permanently.  Only casualties from
+  // population‑drawn troops (mil, arc, cav, aux, eq, vet) reduce the
+  // civilian population; captivi auxiliaries do not come from your
+  // civilian pool.  Compute population losses accordingly.
+  if(lossDetail && typeof lossDetail === 'object'){
+    const ld = lossDetail;
+    const popLoss = (ld.mil||0) + (ld.arc||0) + (ld.cav||0) + (ld.aux||0) + (ld.eq||0) + (ld.vet||0);
+    S.population = Math.max(0, (S.population||0) - popLoss);
+  }else{
+    // Fallback if we don't have a breakdown: assume all losses were milites
+    S.population = Math.max(0, (S.population||0) - losses);
+  }
 
   // Special case: if you would be left with exactly 1 milite,
   // treat this as your last soldier falling and apply a harsher consequence.
@@ -9536,11 +9996,11 @@ bumpObjective("winBattle", 1);
       const objLandGain = landGain > 0 ? landGain : (sim.win ? 1 : 0);
       bumpObjective("gainLand", objLandGain);
 
-      // --- Faction raid spoils: award items if this battle was a successful raid ---
+      // --- Settlement raid spoils: award items if this battle was a successful raid ---
       // If factionRaidMeta is set and this battle originated from a faction raid (not a full attack),
       // grant additional item rewards based on the enemy force size. This reward is separate from
       // gold/land/renown and encourages raiding smaller portions of enemy armies.
-      if (!isDefence && factionRaidMeta && factionRaidMeta.slot === slot && !fromFactionCardAttack && sim && sim.win) {
+      if (!isDefence && factionRaidMeta && factionRaidMeta.slot === slot && !fromSettlementCardAttack && sim && sim.win) {
         try {
           // Ensure the player's items state is initialized.
           if (typeof ensureTradeItemsState === "function") {
@@ -9597,11 +10057,11 @@ bumpObjective("winBattle", 1);
       let assimilatedPopGain = 0;
       let assimilatedTerritories = [];
 
-      if (fromFactionCardAttack && factionBattleMeta && sim.win && !isDefence) {
+      if (fromSettlementCardAttack && factionBattleMeta && sim.win && !isDefence) {
         const rawPop = typeof factionBattleMeta.population === "number" ? factionBattleMeta.population : 0;
         const rawLand = typeof factionBattleMeta.land === "number" ? factionBattleMeta.land : 0;
         const popGain = Math.max(0, Math.round(rawPop));
-        const landTilesFromFaction = Math.max(0, Math.round(rawLand));
+        const landTilesFromSettlement = Math.max(0, Math.round(rawLand));
 
         // Population: try to add as much as possible, respecting population cap if present.
         if (popGain > 0) {
@@ -9627,12 +10087,12 @@ bumpObjective("winBattle", 1);
 
         // Land: roll additional territories using the same tier/archetype as the battle,
         // but the amount is driven by the faction card's land value.
-        if (landTilesFromFaction > 0) {
+        if (landTilesFromSettlement > 0) {
           const tier = sim.tier;
           const arch = battleArchetypeFor(tier, slot);
           const kind = arch && arch.kind ? arch.kind : "";
           const extraTerritories = [];
-          for (let i = 0; i < landTilesFromFaction; i++) {
+          for (let i = 0; i < landTilesFromSettlement; i++) {
             const terr = captureTerritory(tier, kind, b && b.label);
             if (terr) extraTerritories.push(terr);
           }
@@ -9651,14 +10111,14 @@ bumpObjective("winBattle", 1);
         }
 
         if (assimilatedPopGain > 0 || (assimilatedTerritories && assimilatedTerritories.length > 0)) {
-          const fname = factionBattleMeta.name || "A rival faction";
+          const fname = factionBattleMeta.name || "A neighbouring settlement";
           logLine(fname + " has been broken; their people and lands are folded into your realm.", "good");
-          toast("Faction defeated: their lands and people are yours.");
+          toast("Settlement defeated: their lands and people are yours.");
 
           try {
-            if (typeof showFactionAssimilationPopup === "function") {
+            if (typeof showSettlementAssimilationPopup === "function") {
               setTimeout(function(){
-                showFactionAssimilationPopup(
+                showSettlementAssimilationPopup(
                   { name: fname },
                   {
                     population: assimilatedPopGain,
@@ -9670,6 +10130,20 @@ bumpObjective("winBattle", 1);
             }
           } catch(e){}
         }
+
+        // Remove the conquered faction card from the persistent list.  We
+        // identify the card by its name stored in factionBattleMeta.  After
+        // removal the render function will create a new random card for the
+        // now-empty slot.  Without this, the faction list would always
+        // refresh instead of only replacing the conquered faction.
+        try {
+          if(Array.isArray(S.factionCards) && factionBattleMeta && typeof factionBattleMeta.name === "string"){
+            const idxToRemove = S.factionCards.findIndex(c => c && c.name === factionBattleMeta.name);
+            if(idxToRemove >= 0){
+              S.factionCards.splice(idxToRemove, 1);
+            }
+          }
+        } catch(e){}
       }
 
       toast("Victory!");
@@ -9777,6 +10251,12 @@ bumpObjective("winBattle", 1);
         try {
           logLine(`Captured ${fmt(capturedCount)} captivi.`, "good");
           toast("Captivi captured!");
+          if(!S.captiviUnlocked){
+            S.captiviUnlocked = true;
+            if(typeof showCaptiviUnlockPopup === "function"){
+              showCaptiviUnlockPopup();
+            }
+          }
         } catch(err){}
       }
     } else {
@@ -9879,7 +10359,7 @@ $("#btnBattleVillageRaid").addEventListener("click", ()=> startTacticalBattle(2)
 $("#btnBattleSiege").addEventListener("click", ()=> startTacticalBattle(3));
 
 
-// Faction card actions & pager
+// Settlement card actions & pager
 const factionList = $("#factionCardsList");
 if(factionList){
   factionList.addEventListener("click", (ev)=>{
@@ -9892,7 +10372,7 @@ if(factionList){
     const slot = card.getAttribute("data-battle-slot");
     const index = card.getAttribute("data-faction-index");
     const action = btn.getAttribute("data-faction-action");
-    handleFactionCardAction(slot, action, index);
+    handleSettlementCardAction(slot, action, index);
   });
 }
 
@@ -10424,6 +10904,19 @@ if(btnReset){
     if((S.population||0) < (S.warriors||0)) S.warriors = S.population;
     S.populationUsed = (S.warriors||0) + (S.archers||0) + (S.cavalry||0);
 
+    // --- Deliver queued recruits ---
+    // Check the recruitment queue and deliver any units whose training time has
+    // elapsed.  If any units are delivered, re-render the UI to show updated
+    // army counts.  This needs to run in the passive tick so that queued
+    // batches finish even when the player is idle.
+    if(typeof processRecruitQueue === "function"){
+      const delivered = processRecruitQueue();
+      if(delivered){
+        // Skip battle view update but refresh legion counts and stats.
+        render({ skipBattles: true });
+      }
+    }
+
 
     render({ skipBattles: true });
   }, 650);
@@ -10570,8 +11063,8 @@ if(btnReset){
       overrideWin: didWin,
       suppressSim: true,
       defence: s.defence,
-      fromFactionCardAttack: !!s.fromFactionAttack,
-      fromFactionCardMeta: s.factionCardMeta || null
+      fromSettlementCardAttack: !!s.fromSettlementAttack,
+      fromSettlementCardMeta: s.factionCardMeta || null
     });
 
     // Once resolved, clear any pending faction attack or raid metadata so it doesn't leak
@@ -10589,17 +11082,20 @@ if(btnReset){
     const aux = Number(S.auxilia  || 0);
     const eq  = Number(S.equites  || 0);
     const vet = Number(S.veterans || 0);
+    const cap = Number(S.captiviAux || 0);
 
-    const total = Math.max(1, mil + cav + arc + aux + eq + vet);
+    const total = Math.max(1, mil + cav + arc + aux + eq + vet + cap);
 
     // Frontline heavies and veterans push quality up.
+    // Captivi auxiliaries are poor quality troops and lower the average when present.
     const weighted =
       mil * 1.00 +
       cav * 1.25 +
       arc * 1.05 +
       aux * 1.10 +
       eq  * 1.35 +
-      vet * 1.30;
+      vet * 1.30 +
+      cap * 0.85;
 
     let q = weighted / total;
 
@@ -11165,7 +11661,8 @@ if(btnReset){
         arc: { label: "Archers",  icon: "Sprites/Archers.png" },
         aux: { label: "Auxilia",  icon: null },
         eq:  { label: "Equites",  icon: null },
-        vet: { label: "Veterans", icon: null }
+        vet: { label: "Veterans", icon: null },
+        cap: { label: "Captivi Auxiliaries", icon: null }
       };
       for(const k in map){
         const n = losses[k] || 0;
@@ -11186,7 +11683,7 @@ if(btnReset){
         if(!Object.prototype.hasOwnProperty.call(losses, k)) continue;
         const n = losses[k] || 0;
         if(n > 0){
-          // For now enemies share the bandit sprite; can be expanded per-type later.
+          // For now enemies share the generic enemy sprite; can be expanded per-type later.
           const iconHtml = `<img src="Sprites/Bandits.png" class="tacLossIcon" alt="${k}">`;
           parts.push(`${iconHtml}${fmt(n)} ${k}`);
         }
@@ -11273,7 +11770,7 @@ if(btnReset){
 
 
   
-  function handleFactionCardAction(slot, action, cardIndex){
+  function handleSettlementCardAction(slot, action, cardIndex){
     const sRaw = Number(slot);
     const actionKey = String(action || "").toLowerCase();
     if(Number.isNaN(sRaw) || sRaw < 0) return;
@@ -11297,8 +11794,8 @@ if(btnReset){
 // Look up the selected faction card so we can use its name and Military size.
 (function(){
   const idx = Number(cardIndex);
-  if (!Number.isNaN(idx) && typeof window !== "undefined" && Array.isArray(window.currentFactionCards)) {
-    const cards = window.currentFactionCards;
+  if (!Number.isNaN(idx) && typeof window !== "undefined" && Array.isArray(window.currentSettlementCards)) {
+    const cards = window.currentSettlementCards;
     let cardData = null;
     for (let i = 0; i < cards.length; i++) {
       const c = cards[i];
@@ -11312,12 +11809,12 @@ if(btnReset){
         name = cardData.name;
       }
       if (typeof cardData.military === "number" && cardData.military > 0) {
-        pendingFactionCardBattle = {
+        pendingSettlementCardBattle = {
           slot: s,
           enemies: Math.max(1, Math.round(cardData.military))
         };
       } else {
-        pendingFactionCardBattle = null;
+        pendingSettlementCardBattle = null;
       }
 
       // If this action is a direct attack, remember full faction stats for assimilation.
@@ -11334,11 +11831,11 @@ if(btnReset){
         factionAttackMeta = null;
       }
     } else {
-      pendingFactionCardBattle = null;
+      pendingSettlementCardBattle = null;
       factionAttackMeta = null;
     }
   } else {
-    pendingFactionCardBattle = null;
+    pendingSettlementCardBattle = null;
     factionAttackMeta = null;
   }
 })();
@@ -11359,10 +11856,10 @@ if(btnReset){
         if (!Number.isNaN(idxVal)) meta.cardIndex = idxVal;
         // If we looked up this card earlier, include its military count so doBattle
         // can reward spoils based on the actual faction army size rather than the
-        // random contract enemy headcount. pendingFactionCardBattle.enemies was
+        // random contract enemy headcount. pendingSettlementCardBattle.enemies was
         // consumed by battleSim, so we need to persist this here.
-        if (typeof pendingFactionCardBattle === 'object' && pendingFactionCardBattle && pendingFactionCardBattle.slot === s && typeof pendingFactionCardBattle.enemies === 'number') {
-          meta.enemies = Math.max(1, Math.round(pendingFactionCardBattle.enemies));
+        if (typeof pendingSettlementCardBattle === 'object' && pendingSettlementCardBattle && pendingSettlementCardBattle.slot === s && typeof pendingSettlementCardBattle.enemies === 'number') {
+          meta.enemies = Math.max(1, Math.round(pendingSettlementCardBattle.enemies));
         }
         factionRaidMeta = meta;
       } catch(e){
@@ -11387,8 +11884,8 @@ if(btnReset){
       // Diplomacy now opens an overlay with several options. Retrieve card data for context.
       let cardData = null;
       const idx = Number(cardIndex);
-      if (!Number.isNaN(idx) && typeof window !== "undefined" && Array.isArray(window.currentFactionCards)) {
-        for (const c of window.currentFactionCards) {
+      if (!Number.isNaN(idx) && typeof window !== "undefined" && Array.isArray(window.currentSettlementCards)) {
+        for (const c of window.currentSettlementCards) {
           if (c && c.cardIndex === idx) {
             cardData = c;
             break;
@@ -11407,8 +11904,9 @@ function startTacticalBattle(slot, defenceFlag, enemyScale){
   const aux = Number(S.auxilia  || 0);
   const eq  = Number(S.equites  || 0);
   const vet = Number(S.veterans || 0);
+  const cap = Number(S.captiviAux || 0);
 
-const totalTroops = mil + cav + arc + aux + eq + vet + (S.captiviAux || 0);
+const totalTroops = mil + cav + arc + aux + eq + vet + cap;
 
   if(totalTroops <= 0){
     toast('You have no troops to muster.');
@@ -11434,18 +11932,18 @@ const totalTroops = mil + cav + arc + aux + eq + vet + (S.captiviAux || 0);
   // carry that metadata forward so we can assimilate their land & population
   // once the battle is resolved.
   const isDef = !!defenceFlag;
-  const fromFactionAttack = !isDef && factionAttackMeta && typeof factionAttackMeta === "object" && factionAttackMeta.slot === slot;
-  const factionMeta = fromFactionAttack ? factionAttackMeta : null;
+  const fromSettlementAttack = !isDef && factionAttackMeta && typeof factionAttackMeta === "object" && factionAttackMeta.slot === slot;
+  const factionMeta = fromSettlementAttack ? factionAttackMeta : null;
 
   pendingTactical = {
     slot,
     defenceFlag: !!defenceFlag,
-    mil, cav, arc, aux, eq, vet,
+    mil, cav, arc, aux, eq, vet, cap,
     totalTroops,
     sim,
     enemies,
     enemyBuilt,
-    fromFactionAttack: !!fromFactionAttack,
+    fromSettlementAttack: !!fromSettlementAttack,
     factionCardMeta: factionMeta
   };
 
@@ -11455,7 +11953,9 @@ const totalTroops = mil + cav + arc + aux + eq + vet + (S.captiviAux || 0);
   if(preOverlay && summaryEl){
     const pool = enemyBuilt.pool || {};
     const roleMap = {
-      "Bandits": "infantry",
+      "Bandits": "infantry",           // legacy saves
+      "Border Village": "infantry",
+      "Hill Village": "infantry",
       "Levies": "infantry",
       "Town Militia": "infantry",
       "Raiders": "infantry",
@@ -11509,15 +12009,16 @@ function actuallyStartTacticalBattle(){
   if(!cfg) return;
   pendingTactical = null;
 
-  const {
+    const {
     slot,
     defenceFlag,
     mil, cav, arc, aux, eq, vet,
+      cap,
     totalTroops,
     sim,
     enemies,
     enemyBuilt,
-    fromFactionAttack,
+    fromSettlementAttack,
     factionCardMeta
   } = cfg;
 
@@ -11528,7 +12029,7 @@ function actuallyStartTacticalBattle(){
   let legionMorale = typeof S.legionMorale === "number" ? S.legionMorale : 1;
   legionMorale = clamp(legionMorale, 0.6, 1.4);
 
-  currentTactical = {
+    currentTactical = {
     slot: slot,
     sim: sim,
     // total headcount pools (for percentages / bars)
@@ -11544,13 +12045,14 @@ function actuallyStartTacticalBattle(){
       arc: arc,
       aux: aux,
       eq:  eq,
-      vet: vet
+      vet: vet,
+      cap: cap
     },
     events: [],
     finished: false,
     round: 0,
     defence: !!defenceFlag,
-    fromFactionAttack: !!fromFactionAttack,
+    fromSettlementAttack: !!fromSettlementAttack,
     factionCardMeta: factionCardMeta || null,
     // quality + morale for attrition math
     qualityYou: tacticalQualityForPlayer(),
@@ -11564,7 +12066,8 @@ function actuallyStartTacticalBattle(){
       arc: arc,
       aux: aux,
       eq:  eq,
-      vet: vet
+      vet: vet,
+      cap: cap
     },
     playerExposure: {
       mil: 1.0,
@@ -11572,7 +12075,12 @@ function actuallyStartTacticalBattle(){
       arc: 1.25,
       aux: 0.95,
       eq:  1.1,
-      vet: 0.8
+        vet: 0.8,
+        // Captivi auxiliaries are poorly armed meathields: they take
+        // substantially higher losses (exposure >1) and soak damage ahead
+        // of your core infantry.  A higher weight here causes the split
+        // algorithm to assign a larger share of casualties to them.
+        cap: 1.35
     },
     enemyPools: enemyBuilt.pool,
     enemyExposure: enemyBuilt.exposure
@@ -11721,7 +12229,20 @@ function actuallyStartTacticalBattle(){
   }
 
 // Land tier unlock popup helpers
-  function showLandTierUnlockPopup(tier, names){
+  
+  function showCaptiviUnlockPopup(){
+    const overlay = document.getElementById('captiviUnlockOverlay');
+    const textEl  = document.getElementById('captiviUnlockText');
+    const btn     = document.getElementById('captiviUnlockOkBtn');
+    if(!overlay || !textEl || !btn) return;
+    textEl.textContent = "You have captured captivi in battle. You can now train Captivi Auxiliaries and use captives in the economy.";
+    overlay.style.display = 'flex';
+    btn.onclick = function(){
+      overlay.style.display = 'none';
+    };
+  }
+
+function showLandTierUnlockPopup(tier, names){
     const overlay = document.getElementById('landTierOverlay');
     const listEl  = document.getElementById('landTierList');
     const textEl  = document.getElementById('landTierText');
@@ -11754,7 +12275,7 @@ function actuallyStartTacticalBattle(){
 
   // --- Trade and Diplomacy Popup Functions and Handlers ---
   // Global state for trade/diplomacy overlays
-  let currentTradeFactionName = null;
+  let currentTradeSettlementName = null;
   let currentDiplomacyCardData = null;
   let currentDiplomacyIntegrateParams = null;
   let currentDiplomacyAllianceParams = null;
@@ -11767,11 +12288,167 @@ function actuallyStartTacticalBattle(){
   // of the standard tradeItems array but are handled specially in the Sell tab.
   const CAPTIVI_SELL_PRICE = 120;
 
+  // Recruitment: current quantity selected when tapping a unit card.  The
+  // buttons in the recruitment quantity bar update this variable.  By
+  // default the player recruits a single unit at a time.
+  let recruitBatchSize = 1;
+  
+  function formatCooldown(totalSeconds){
+    totalSeconds = Math.max(0, Math.floor(totalSeconds));
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    if(m <= 0){
+      return s + "s";
+    }
+    if(m < 60){
+      return m + "m " + s.toString().padStart(2,"0") + "s";
+    }
+    const h = Math.floor(m / 60);
+    const remM = m % 60;
+    return h + "h " + remM.toString().padStart(2,"0") + "m";
+  }
+
+function currentRecruitBatchSize(){
+    return (recruitBatchSize && recruitBatchSize > 0) ? recruitBatchSize : 1;
+  }
+  function updateRecruitGainLabel(){
+    const el = document.getElementById('recruitGain');
+    if(!el) return;
+    const qty = currentRecruitBatchSize();
+    el.textContent = `+${fmt(qty)} milites`;
+  }
+  function computeMaxTrainable(type){
+    const gold = S.gold || 0;
+    if(type === "cap"){
+      const unitCost = captiviAuxRecruitCost();
+      const availableCaptivi = S.captivi || 0;
+      const maxByCaptivi = availableCaptivi;
+      const maxByGold = unitCost > 0 ? Math.floor(gold / unitCost) : availableCaptivi;
+      return Math.max(0, Math.min(maxByCaptivi, maxByGold));
+    }
+    const pop = S.population || 0;
+    const warriors = S.warriors || 0;
+    const archersNow = S.archers || 0;
+    const cavalryNow = S.cavalry || 0;
+    const labourers = (typeof totalTypeWorkers === "function") ? totalTypeWorkers() : 0;
+    const freeCivilians = Math.max(0, pop - warriors - archersNow - cavalryNow - labourers);
+    let unitCost = 0;
+    if(type === "mil") unitCost = recruitCost();
+    else if(type === "arc") unitCost = archerRecruitCost();
+    else if(type === "cav") unitCost = cavalryRecruitCost();
+    else return 0;
+    const maxByPop = freeCivilians;
+    const maxByGold = unitCost > 0 ? Math.floor(gold / unitCost) : freeCivilians;
+    return Math.max(0, Math.min(maxByPop, maxByGold));
+  }
+  function getEffectiveTrainQty(type){
+    const maxTrainable = computeMaxTrainable(type);
+    if(maxTrainable <= 0) return 0;
+    const desired = currentRecruitBatchSize();
+    const d = (desired && desired > 0) ? desired : 1;
+    return Math.max(1, Math.min(maxTrainable, Math.floor(d)));
+  }
+  function updateRecruitTrainingUI(){
+    try{
+      const queue = Array.isArray(S.recruitQueue) ? S.recruitQueue : [];
+      const now = Date.now();
+      const infoByType = { mil:null, arc:null, cav:null, cap:null };
+      for(const job of queue){
+        if(!job || !job.type || typeof job.qty !== "number" || job.qty <= 0) continue;
+        const t = job.type;
+        if(!Object.prototype.hasOwnProperty.call(infoByType, t)) continue;
+        const remainingMs = Math.max(0, (job.readyAt || now) - now);
+        const remainingSec = Math.ceil(remainingMs / 1000);
+        const existing = infoByType[t];
+        if(!existing){
+          infoByType[t] = { qty: job.qty, remainingSec: remainingSec };
+        }else{
+          existing.qty += job.qty;
+          if(remainingSec > existing.remainingSec){
+            existing.remainingSec = remainingSec;
+          }
+        }
+      }
+      function apply(type, btnId, infoId, singular, plural){
+        const btn = document.getElementById(btnId);
+        const infoEl = document.getElementById(infoId);
+        if(!btn || !infoEl) return;
+        const info = infoByType[type];
+        if(info){
+          // This unit type is currently training: button becomes the visible countdown.
+          btn.disabled = true;
+          const label = info.qty === 1 ? singular : plural;
+          btn.textContent = `Training ${fmt(info.qty)} ${label} (${formatCooldown(info.remainingSec)})`;
+          infoEl.textContent = "";
+          return;
+        }
+        const qty = getEffectiveTrainQty(type);
+        if(qty <= 0){
+          btn.disabled = true;
+          let reasonText = "Cannot train";
+          // Give clearer feedback when population is the limiting factor
+          if(type === "mil" || type === "arc" || type === "cav"){
+            const pop = S.population || 0;
+            const warriors = S.warriors || 0;
+            const archersNow = S.archers || 0;
+            const cavalryNow = S.cavalry || 0;
+            const labourers = (typeof totalTypeWorkers === "function") ? totalTypeWorkers() : 0;
+            const freeCivilians = Math.max(0, pop - warriors - archersNow - cavalryNow - labourers);
+            if(freeCivilians <= 0){
+              reasonText = "No population";
+              infoEl.textContent = "No free citizens available — build housing or wait for more settlers.";
+            }else if((S.gold || 0) <= 0){
+              reasonText = "No denarii";
+              infoEl.textContent = "You need more denarii to train this unit.";
+            }else{
+              infoEl.textContent = "";
+            }
+          }else if(type === "cap"){
+            if((S.captivi || 0) <= 0){
+              reasonText = "No captivi";
+              infoEl.textContent = "Capture captivi in battle to train these auxiliaries.";
+            }else if((S.gold || 0) <= 0){
+              reasonText = "No denarii";
+              infoEl.textContent = "You need more denarii to train these auxiliaries.";
+            }else{
+              infoEl.textContent = "";
+            }
+          }else{
+            infoEl.textContent = "";
+          }
+          btn.textContent = reasonText;
+          return;
+        }
+        btn.disabled = false;
+        btn.textContent = qty === 1 ? "Train 1" : `Train ${fmt(qty)}`;
+        infoEl.textContent = "";
+      }
+      apply("mil", "btnRecruit", "trainMilitesInfo", "milite", "milites");
+      apply("arc", "btnRecruitArchers", "trainArchersInfo", "archer", "archers");
+      apply("cav", "btnRecruitCavalry", "trainCavalryInfo", "cavalryman", "cavalry");
+      apply("cap", "btnRecruitCaptiviAux", "trainCaptiviAuxInfo", "captivi auxiliary", "captivi auxiliaries");
+    }catch(e){}
+  }
+
+
+
+
+function currentRecruitBatchSize(){
+    return (recruitBatchSize && recruitBatchSize > 0) ? recruitBatchSize : 1;
+  }
+  function updateRecruitGainLabel(){
+    const el = document.getElementById('recruitGain');
+    if(!el) return;
+    const qty = currentRecruitBatchSize();
+    el.textContent = `+${fmt(qty)} milites`;
+  }
+
+
   function showTradeOverlay(fName){
-    currentTradeFactionName = fName || "neighboring faction";
+    currentTradeSettlementName = fName || "neighboring faction";
     const overlay = document.getElementById('tradeOverlay');
     const titleEl = document.getElementById('tradeOverlayTitle');
-    if(titleEl) titleEl.textContent = 'Trade with ' + currentTradeFactionName;
+    if(titleEl) titleEl.textContent = 'Trade with ' + currentTradeSettlementName;
     if(overlay){
       // Ensure trade items state and populate options before showing
       try{
@@ -12040,6 +12717,37 @@ function actuallyStartTacticalBattle(){
     updateTradeTabButtons();
     renderTradeOptions();
   }
+
+  // ---------------------------------------------------------------------------
+  // Recruitment quantity button wiring
+  //
+  // When the Legion view is loaded, wire up the quantity selector buttons so
+  // that clicking on +1/+10/+100/+1K sets the global recruitBatchSize.  The
+  // active button is highlighted via the .active class.  This IIFE runs
+  // immediately after script load and will have access to the static DOM
+  // because the legion view exists in the page even if it's hidden.
+  (function initRecruitQty(){
+    const bar = document.getElementById('recruitQtyBar');
+    if(!bar) return;
+    const buttons = bar.querySelectorAll('.qtyBtn');
+    buttons.forEach(btn => {
+      btn.addEventListener('click', ()=>{
+        const val = parseInt(btn.getAttribute('data-qty')) || 1;
+        recruitBatchSize = val;
+        buttons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        if(typeof updateRecruitGainLabel === "function") updateRecruitGainLabel();
+        if(typeof updateRecruitTrainingUI === "function") updateRecruitTrainingUI();
+      });
+    });
+    // Initialise the active state to match the default recruitBatchSize
+    buttons.forEach(btn => {
+      const val = parseInt(btn.getAttribute('data-qty')) || 1;
+      if(val === recruitBatchSize) btn.classList.add('active');
+    });
+    if(typeof updateRecruitGainLabel === "function") updateRecruitGainLabel();
+    if(typeof updateRecruitTrainingUI === "function") updateRecruitTrainingUI();
+  })();
   function showDiplomacyOverlay(cardData){
     currentDiplomacyCardData = cardData || {};
     const overlay = document.getElementById('diplomacyOverlay');
@@ -12265,6 +12973,14 @@ function actuallyStartTacticalBattle(){
  * faction card actions, so they won't open unexpectedly when the game loads.
  */
 
+
+  // Live update for training countdowns on legion cards.
+  setInterval(()=>{
+    try{
+      if(typeof updateRecruitTrainingUI === "function") updateRecruitTrainingUI();
+    }catch(e){}
+  }, 1000);
+
 </script>
 
   
@@ -12323,6 +13039,21 @@ function actuallyStartTacticalBattle(){
   </div>
 
 
+  <!-- Captivi Unlock Overlay -->
+  <div id="captiviUnlockOverlay" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:1900;">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.55);"></div>
+    <div class="card" style="position:relative;max-width:420px;width:92%;max-height:80vh;overflow:auto;z-index:10;">
+      <div class="sectionTitle"><span>Captivi Unlocked</span><span></span></div>
+      <div class="cardBody">
+        <p id="captiviUnlockText" style="font-size:.85rem;margin:0 0 8px;">
+          You have captured captivi in battle. You can now train Captivi Auxiliaries and use captives in the economy.
+        </p>
+        <button class="primaryBtn" id="captiviUnlockOkBtn" type="button">Continue</button>
+      </div>
+    </div>
+  </div>
+
+
   <!-- Battle Report Overlay -->
   <div id="battleOverlay" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:2100;">
     <div style="position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);" onclick="closeBattleReport()"></div>
@@ -12338,13 +13069,13 @@ function actuallyStartTacticalBattle(){
   </div>
 
 
-  <!-- Faction Assimilation Overlay -->
+  <!-- Settlement Assimilation Overlay -->
   <div id="factionAssimOverlay" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:2200;">
-    <div style="position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);" onclick="closeFactionAssimilation()"></div>
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);" onclick="closeSettlementAssimilation()"></div>
     <div class="card" style="position:relative;width:min(520px, calc(100vw - 26px));border-radius:26px;overflow:hidden;">
       <div class="sectionTitle" style="justify-content:space-between;">
-        <span id="factionAssimTitle" style="color:var(--accent);font-weight:900;">Faction Defeated</span>
-        <button class="tab" style="padding:8px 12px;" type="button" onclick="closeFactionAssimilation()">Close</button>
+        <span id="factionAssimTitle" style="color:var(--accent);font-weight:900;">Settlement Subjugated</span>
+        <button class="tab" style="padding:8px 12px;" type="button" onclick="closeSettlementAssimilation()">Close</button>
       </div>
       <div class="cardBody" style="padding:14px;">
         <div id="factionAssimBody"></div>
@@ -12520,7 +13251,7 @@ ttleBar"> <img id="battleSimYourBarImg" class="battleBarSprite" src="Sprites/pla
         </div>
         <div id="tacEvents" class="simEvents" style="margin-top:8px;min-height:60px;max-height:160px;overflow-y:auto;"></div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
-          <button class="tab" id="tacBtnAttack" type="button" style="flex:1 1 auto;">Attack</button>
+          <button class="tab" id="tacBtnAttack" type="button" style="flex:1 1 auto;">Conquer</button>
           <button class="tab" id="tacCloseBtn" type="button" style="flex:1 1 auto;">Retreat</button>
         </div>
       </div>
