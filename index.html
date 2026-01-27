@@ -757,6 +757,68 @@ body::after{
 
 
     
+
+/* Settlement subjugation splash styles */
+.assimSplash{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:4px 0 10px;
+  padding:10px 12px;
+  border-radius:18px;
+  border:1px solid rgba(158,104,54,.7);
+  background:radial-gradient(circle at 0 0, rgba(244,208,111,.35), rgba(244,208,111,.08)),
+             linear-gradient(180deg,#fbf4e7,#f4e3cf);
+  box-shadow:0 12px 28px rgba(0,0,0,.35);
+}
+.assimSplashIcon{
+  font-size:1.9rem;
+  line-height:1;
+  filter:drop-shadow(0 4px 10px rgba(0,0,0,.35));
+}
+.assimSplashText{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.assimSplashTitle{
+  font-family:var(--mono);
+  font-size:.95rem;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--accent);
+}
+.assimSplashSubtitle{
+  font-family:var(--sans);
+  font-size:.8rem;
+  color:var(--muted);
+}
+.assimDetails{
+  font-family:var(--sans);
+  font-size:.82rem;
+  line-height:1.4;
+}
+.primaryContinueBtn{
+  min-width:160px;
+  padding:10px 28px;
+  border-radius:999px;
+  border:none;
+  font-family:var(--sans);
+  font-weight:600;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  font-size:.8rem;
+  color:#42210b;
+  background:linear-gradient(180deg,#f8e3ba,#f1c37d);
+  box-shadow:0 10px 22px rgba(0,0,0,.35),0 0 0 1px rgba(158,104,54,.65);
+  cursor:pointer;
+}
+.primaryContinueBtn:active{
+  transform:translateY(1px);
+  box-shadow:0 6px 14px rgba(0,0,0,.4),0 0 0 1px rgba(158,104,54,.85);
+}
+
+
 /* Battle simulation overlay transitions */
 #battleSimOverlay{
   position:fixed;
@@ -1467,7 +1529,34 @@ header{
 }
 
 
-    .unitCard{
+    
+.unitCard{
+  position:relative;
+}
+
+.unitDoorArea{
+  position:absolute;
+  right:10px;
+  bottom:10px;
+  width:32px;
+  height:48px;
+}
+
+.unitDoorImg{
+  width:100%;
+  height:100%;
+  image-rendering:pixelated;
+}
+
+.unitRunner{
+  position:absolute;
+  width:24px;
+  height:24px;
+  image-rendering:pixelated;
+  transition:transform 0.45s linear;
+}
+
+.unitCard{
   .unitTrainRow{
     margin-top:8px;
     display:flex;
@@ -1907,6 +1996,10 @@ header{
 
           </div>
 
+          <div class="unitDoorArea">
+            <img class="unitDoorImg" src="barracksdoorclosed.png" data-door-state="closed">
+          </div>
+
         </div>
         <div class="bigBtn unitCard">
           <div class="unitHeaderRow">
@@ -1934,6 +2027,10 @@ header{
 
             <span class="trainInfo" id="trainArchersInfo"></span>
 
+          </div>
+
+          <div class="unitDoorArea">
+            <img class="unitDoorImg" src="barracksdoorclosed.png" data-door-state="closed">
           </div>
 
         </div>
@@ -1970,6 +2067,9 @@ header{
 
           </div>
 
+          <div class="unitDoorArea">
+            <img class="unitDoorImg" src="barracksdoorclosed.png" data-door-state="closed">
+          </div>
 
         </div>
 
@@ -2001,6 +2101,10 @@ header{
 
             <span class="trainInfo" id="trainCaptiviAuxInfo"></span>
 
+          </div>
+
+          <div class="unitDoorArea">
+            <img class="unitDoorImg" src="barracksdoorclosed.png" data-door-state="closed">
           </div>
 
         </div>
@@ -2129,6 +2233,16 @@ header{
 
         <div id="territoryList" style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
           <!-- Filled by render() with cards for each territory -->
+        </div>
+
+        <div id="subjugatedSettlementsContainer" class="factionCardsWrap" style="margin-top:10px;">
+          <div class="sectionTitle" style="border-radius:14px 14px 0 0;">
+            <span>Subjugated Settlements</span>
+            <span style="font-size:.72rem;color:var(--muted);">Occupied villages and towns paying tribute.</span>
+          </div>
+          <div class="cardBody" style="padding:10px 12px;border-radius:0 0 14px 14px;background:linear-gradient(180deg,rgba(255,255,255,0.12),rgba(190,160,120,0.12));">
+            <div id="subjugatedSettlementsList" class="factionCardsGrid"></div>
+          </div>
         </div>
       </div>
     </section>
@@ -2449,7 +2563,44 @@ header{
   // When readyAt <= now, the queued units are added to your army and the
   // entry removed.  This helper returns true if any units were delivered
   // during the call so the caller can decide whether to refresh the UI.
-  function processRecruitQueue(){
+  
+function playRecruitAnimation(unitKey, cardElement) {
+  if (!cardElement) return;
+  const door = cardElement.querySelector('.unitDoorImg');
+  if (!door) return;
+
+  const runner = document.createElement('img');
+  runner.src = `Sprites/${unitKey}_small.png`;
+  runner.className = 'unitRunner';
+  cardElement.appendChild(runner);
+
+  const startX = 6;
+  const cardHeight = cardElement.offsetHeight || 120;
+  const startY = cardHeight - 42;
+  runner.style.left = startX + 'px';
+  runner.style.top = startY + 'px';
+
+  const doorRect = door.getBoundingClientRect();
+  const cardRect = cardElement.getBoundingClientRect();
+  const targetX = doorRect.left - cardRect.left - 6;
+
+  // Reset transform first
+  runner.style.transform = 'translateX(0px)';
+
+  requestAnimationFrame(() => {
+    runner.style.transform = `translateX(${targetX - startX}px)`;
+  });
+
+  setTimeout(() => {
+    door.src = "barracksdooropen.png";
+    runner.remove();
+    setTimeout(() => {
+      door.src = "barracksdoorclosed.png";
+    }, 250);
+  }, 450);
+}
+
+function processRecruitQueue(){
     if(!Array.isArray(S.recruitQueue)) return false;
     const nowMs = Date.now();
     let deliveredSomething = false;
@@ -2498,6 +2649,35 @@ header{
     bumpObjective("recruit", qty);
     logLine(`Training completed: ${fmt(qty)} ${label}.`, "good");
     toast(`+${fmt(qty)} ${label} ready`);
+
+    // Door + runner animation on the matching recruitment card (purely visual).
+    try{
+      if(typeof document !== "undefined" && typeof playRecruitAnimation === "function"){
+        let btnId = null;
+        let unitKey = null;
+        if(type === "mil"){
+          btnId = "btnRecruit";
+          unitKey = "Milites";
+        }else if(type === "arc"){
+          btnId = "btnRecruitArchers";
+          unitKey = "Archers";
+        }else if(type === "cav"){
+          btnId = "btnRecruitCavalry";
+          unitKey = "Cavalry";
+        }else if(type === "cap"){
+          btnId = "btnRecruitCaptiviAux";
+          unitKey = "Milites"; // reuse Milites sprite for captivi auxiliaries, or adjust if a dedicated sprite exists
+        }
+        if(btnId && unitKey){
+          const btn = document.getElementById(btnId);
+          const card = btn && btn.closest ? btn.closest(".unitCard") : null;
+          if(card){
+            playRecruitAnimation(unitKey, card);
+          }
+        }
+      }
+    }catch(e){}
+
   }
 
   // Offline processing of the recruitment queue.  When the player returns
@@ -2638,7 +2818,11 @@ header{
 
     // land & politics
     land: 0,
-    
+    // Subjugated settlements and land specialisation
+    subjugatedSettlements: [],
+    landFarmland: 0,
+    landUrban: 0,
+
     landAgriculture: 0,
     landMilitary: 0,
     landHousing: 0,
@@ -2816,6 +3000,12 @@ header{
     // objects with type, qty and readyAt properties.  If an old save has
     // stored a non-array value here, reset it to an empty array.
     if(!Array.isArray(state.recruitQueue)) state.recruitQueue = [];
+
+    // Subjugated settlements & land specialisation: normalise for older saves.
+    if(!Array.isArray(state.subjugatedSettlements)) state.subjugatedSettlements = [];
+    if(typeof state.landFarmland !== "number") state.landFarmland = 0;
+    if(typeof state.landUrban !== "number") state.landUrban = 0;
+
     return state;
   }
 
@@ -4178,6 +4368,49 @@ const totalPages = Math.max(1, Math.ceil(cards.length / PAGE_SIZE));
   //  - "siege"     → always territorial, heavier land
 
   
+
+function renderSubjugatedSettlementsList(){
+  const listEl = $("#subjugatedSettlementsList");
+  if(!listEl) return;
+  listEl.innerHTML = "";
+  const subs = Array.isArray(S.subjugatedSettlements) ? S.subjugatedSettlements : [];
+  if(!subs.length){
+    const empty = document.createElement("div");
+    empty.className = "smallBtn factionCard";
+    empty.textContent = "No subjugated settlements yet.";
+    listEl.appendChild(empty);
+    return;
+  }
+  for(const s of subs){
+    if(!s) continue;
+    const el = document.createElement("div");
+    el.className = "smallBtn factionCard";
+
+    const type = (s.type === "Town") ? "Town" : "Village";
+    const icon = type === "Town" ? "⚓" : "🌾";
+    const typeLabel = type === "Town" ? "Subjugated Town" : "Subjugated Village";
+    const pop = typeof s.population === "number" ? s.population : 0;
+    const income = typeof s.income === "number" ? s.income : 0;
+    const loyalty = typeof s.loyalty === "number" ? s.loyalty : 0;
+
+    el.innerHTML = [
+      '<div class="factionCardHeader">',
+        '<div>',
+          '<div class="factionCardTitle">', icon, " ", (s.name || "Unknown settlement"), "</div>",
+          '<div class="factionCardType">', typeLabel, "</div>",
+        "</div>",
+        '<div class="factionCardLeader">Loyalty: ', Math.round(loyalty), "</div>",
+      "</div>",
+      '<div class="factionCardStats">',
+        '<div class="factionCardStat"><span>Pop</span><b>', fmt(pop), "</b></div>",
+        '<div class="factionCardStat"><span>Tribute</span><b>+', fmt(Math.round(income)), " denarii/tick</b></div>",
+      "</div>"
+    ].join("");
+
+    listEl.appendChild(el);
+  }
+}
+
 const BATTLE_ARCHETYPES = {
     1: [
       {
@@ -8261,6 +8494,10 @@ const totalTroops =
         listEl.appendChild(card);
       });
 
+      if (typeof renderSubjugatedSettlementsList === "function") {
+        renderSubjugatedSettlementsList();
+      }
+
       // Wire up worker +/- buttons after all cards are in the DOM
       $$(".terrWorkerBtn").forEach(btn=>{
         btn.addEventListener("click", (e)=>{
@@ -9116,6 +9353,7 @@ function showSettlementAssimilationPopup(meta, gained){
   if(!overlay || !body || !title) return;
 
   const name = meta && meta.name ? meta.name : "A neighbouring settlement";
+  const settlementType = meta && meta.type ? meta.type : null;
   const popGain = gained && typeof gained.population === "number" ? gained.population : 0;
   const territories = gained && Array.isArray(gained.territories) ? gained.territories : [];
   const landCount = gained && typeof gained.landCount === "number"
@@ -9129,8 +9367,13 @@ function showSettlementAssimilationPopup(meta, gained){
   if(popGain > 0){
     lines.push(
       `<div style="margin-bottom:4px;">` +
-        `<span>Population assimilated: </span>` +
+        `<span>Population under occupation: </span>` +
         `<strong style="color:var(--good);">+${fmt(popGain)}</strong>` +
+      `</div>`
+    );
+    lines.push(
+      `<div style="margin-top:2px;font-size:.8rem;color:var(--muted);">` +
+        `This settlement is now occupied and subjugated, contributing regular tribute to your realm.` +
       `</div>`
     );
   }
@@ -9169,7 +9412,25 @@ function showSettlementAssimilationPopup(meta, gained){
     lines.push(`<div style="margin-top:6px;">Your standard now flies over their holdings.</div>`);
   }
 
-  body.innerHTML = lines.join("");
+  const typeLabel = settlementType === "Town"
+    ? "Subjugated Town"
+    : (settlementType === "Village" ? "Subjugated Village" : "Subjugated Settlement");
+
+  const icon = settlementType === "Town" ? "⚓" : "🌾";
+
+  const detailHtml = lines.join("");
+
+  body.innerHTML = [
+    '<div class="assimSplash">',
+      '<div class="assimSplashIcon">', icon, '</div>',
+      '<div class="assimSplashText">',
+        '<div class="assimSplashTitle">', name, '</div>',
+        '<div class="assimSplashSubtitle">', typeLabel, '</div>',
+      '</div>',
+    '</div>',
+    '<div class="assimDetails">', detailHtml, '</div>'
+  ].join("");
+
   overlay.style.display = "flex";
   overlay.classList.add("visible");
 }
@@ -9626,6 +9887,7 @@ function doBattle(slot, opts){
   // total enemy numbers so that captives are still captured in meaningful
   // battles.
   let captiviCaptured = 0;
+  let settlementOutcomeMessage = null;
   const isDefence = !!opts.defence;
   const fromSettlementCardAttack = !!(opts && opts.fromSettlementCardAttack);
   const factionBattleMeta = (opts && opts.fromSettlementCardMeta) || null;
@@ -10001,6 +10263,8 @@ bumpObjective("winBattle", 1);
       // grant additional item rewards based on the enemy force size. This reward is separate from
       // gold/land/renown and encourages raiding smaller portions of enemy armies.
       if (!isDefence && factionRaidMeta && factionRaidMeta.slot === slot && !fromSettlementCardAttack && sim && sim.win) {
+        // Pillaged outcome: the settlement is scattered instead of occupied.
+        settlementOutcomeMessage = "Population scattered. The settlement no longer exists as a political entity.";
         try {
           // Ensure the player's items state is initialized.
           if (typeof ensureTradeItemsState === "function") {
@@ -10063,6 +10327,61 @@ bumpObjective("winBattle", 1);
         const popGain = Math.max(0, Math.round(rawPop));
         const landTilesFromSettlement = Math.max(0, Math.round(rawLand));
 
+        // Create a long-term subjugated settlement record and immediate occupation rewards.
+        try {
+          const settlementType = (factionBattleMeta && factionBattleMeta.type === "Town") ? "Town" : "Village";
+          const basePop = Math.max(0, Math.round(rawPop));
+          if(basePop > 0){
+            if(!Array.isArray(S.subjugatedSettlements)) S.subjugatedSettlements = [];
+            const settlementName = (factionBattleMeta && factionBattleMeta.name) ? factionBattleMeta.name : "A neighbouring settlement";
+            const existing = S.subjugatedSettlements.find && S.subjugatedSettlements.find(s => s && s.name === settlementName);
+            if(!existing){
+              const baseIncomePerPop = settlementType === "Town" ? 0.08 : 0.04;
+              const income = baseIncomePerPop * basePop;
+              S.subjugatedSettlements.push({
+                name: settlementName,
+                type: settlementType,
+                population: basePop,
+                loyalty: 50,
+                income: income
+              });
+              if(settlementType === "Village"){
+                S.landFarmland = (S.landFarmland || 0) + 1;
+              }else{
+                S.landUrban = (S.landUrban || 0) + 1;
+              }
+            }
+          }
+        } catch(e){}
+
+        // Immediate occupation rewards: extra gold and captivi from the conquered population.
+        try{
+          const basePopForReward = Math.max(0, Math.round(rawPop));
+          if(basePopForReward > 0){
+            const baseGold = 40;
+            const extraGold = baseGold + basePopForReward * 0.5;
+            S.gold += extraGold;
+            if(typeof S.lifetimeGold === "number") S.lifetimeGold += extraGold;
+            if(typeof bumpEarnedDenarii === "function"){
+              bumpEarnedDenarii(extraGold);
+            }
+            const capRate = 0.05 + Math.random() * 0.05;
+            const extraCaptives = Math.max(0, Math.floor(basePopForReward * capRate));
+            if(extraCaptives > 0){
+              S.captivi = (S.captivi || 0) + extraCaptives;
+              captiviCaptured += extraCaptives;
+              try{
+                if(!S.captiviUnlocked){
+                  S.captiviUnlocked = true;
+                  if(typeof showCaptiviUnlockPopup === "function"){
+                    showCaptiviUnlockPopup();
+                  }
+                }
+              }catch(err){}
+            }
+          }
+        }catch(e){}
+
         // Population: try to add as much as possible, respecting population cap if present.
         if (popGain > 0) {
           const prevPop = S.population || 0;
@@ -10111,15 +10430,21 @@ bumpObjective("winBattle", 1);
         }
 
         if (assimilatedPopGain > 0 || (assimilatedTerritories && assimilatedTerritories.length > 0)) {
-          const fname = factionBattleMeta.name || "A neighbouring settlement";
-          logLine(fname + " has been broken; their people and lands are folded into your realm.", "good");
-          toast("Settlement defeated: their lands and people are yours.");
+          const fname = (factionBattleMeta && factionBattleMeta.name) ? factionBattleMeta.name : "A neighbouring settlement";
+          const kindLabel = (factionBattleMeta && factionBattleMeta.type === "Town") ? "town" : "village";
+          const occupiedText = `${fname} is now a subjugated ${kindLabel} paying regular tribute.`;
+          logLine(occupiedText, "good");
+          settlementOutcomeMessage = occupiedText;
+          toast("Settlement occupied and subjugated.");
 
           try {
             if (typeof showSettlementAssimilationPopup === "function") {
               setTimeout(function(){
                 showSettlementAssimilationPopup(
-                  { name: fname },
+                  {
+                    name: fname,
+                    type: (factionBattleMeta && factionBattleMeta.type) || null
+                  },
                   {
                     population: assimilatedPopGain,
                     landCount: assimilatedTerritories ? assimilatedTerritories.length : 0,
@@ -10156,6 +10481,9 @@ bumpObjective("winBattle", 1);
 
       const lines = [];
       lines.push("Battle Victory!");
+      if(settlementOutcomeMessage){
+        lines.push(settlementOutcomeMessage);
+      }
 
       if(landGain > 0 && capturedNames.length){
         lines.push("Captured:");
@@ -10772,11 +11100,24 @@ if(btnReset){
       passiveLandPopTick(dt);
     }
 
-    // Passive income
-    const inc = incomePerSec() * dt;
+    // Passive income (village, land, and subjugated settlements)
+    let incomeBase = incomePerSec();
+    let tributePerSec = 0;
+    if(Array.isArray(S.subjugatedSettlements) && S.subjugatedSettlements.length){
+      for(const st of S.subjugatedSettlements){
+        if(!st || typeof st.income !== "number") continue;
+        tributePerSec += st.income;
+        // Optional tiny unrest chance if loyalty is low.
+        if(typeof st.loyalty !== "number") st.loyalty = 50;
+        if(st.loyalty < 30 && Math.random() < dt * 0.001){
+          st.loyalty = Math.max(0, st.loyalty - 1);
+        }
+      }
+    }
+    const inc = (incomeBase + tributePerSec) * dt;
     if(inc > 0){
       S.gold += inc;
-      S.lifetimeGold += inc;
+      if(typeof S.lifetimeGold === "number") S.lifetimeGold += inc;
     }
 
     // Objectives: passive income counts toward "Earn denarii"
@@ -11824,7 +12165,8 @@ if(btnReset){
           cardIndex: idx,
           name: cardData.name || name,
           land: typeof cardData.land === "number" ? cardData.land : 0,
-          population: typeof cardData.population === "number" ? cardData.population : 0
+          population: typeof cardData.population === "number" ? cardData.population : 0,
+          type: cardData.type || null
         };
       } else if (actionKey !== "raid") {
         // For non-attack, non-raid actions, clear any stale attack meta.
@@ -13058,12 +13400,14 @@ function currentRecruitBatchSize(){
   <div id="battleOverlay" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:2100;">
     <div style="position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);" onclick="closeBattleReport()"></div>
     <div id="battleCard" class="card" style="position:relative;width:min(560px, calc(100vw - 26px));border-radius:26px;overflow:hidden;">
-      <div class="sectionTitle" style="justify-content:space-between;">
+      <div class="sectionTitle" style="justify-content:center;">
         <span id="battleTitle" style="color:var(--accent);font-weight:900;">Battle Report</span>
-        <button class="tab" style="padding:8px 12px;" onclick="closeBattleReport()">Close</button>
       </div>
-      <div class="cardBody" style="padding:14px;">
+      <div class="cardBody" style="padding:14px 14px 18px;">
         <div id="battleBody"></div>
+        <div style="margin-top:18px;display:flex;justify-content:center;">
+          <button type="button" class="primaryContinueBtn" onclick="closeBattleReport()">Continue</button>
+        </div>
       </div>
     </div>
   </div>
@@ -13073,12 +13417,14 @@ function currentRecruitBatchSize(){
   <div id="factionAssimOverlay" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:2200;">
     <div style="position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);" onclick="closeSettlementAssimilation()"></div>
     <div class="card" style="position:relative;width:min(520px, calc(100vw - 26px));border-radius:26px;overflow:hidden;">
-      <div class="sectionTitle" style="justify-content:space-between;">
+      <div class="sectionTitle" style="justify-content:center;">
         <span id="factionAssimTitle" style="color:var(--accent);font-weight:900;">Settlement Subjugated</span>
-        <button class="tab" style="padding:8px 12px;" type="button" onclick="closeSettlementAssimilation()">Close</button>
       </div>
-      <div class="cardBody" style="padding:14px;">
+      <div class="cardBody" style="padding:14px 14px 18px;">
         <div id="factionAssimBody"></div>
+        <div style="margin-top:18px;display:flex;justify-content:center;">
+          <button type="button" class="primaryContinueBtn" onclick="closeSettlementAssimilation()">Continue</button>
+        </div>
       </div>
     </div>
   </div>
