@@ -2589,7 +2589,7 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
   const cardRect = cardElement.getBoundingClientRect();
   const doorRect = door.getBoundingClientRect();
 
-  // 45px sprite. Align feet with the door's floor line so they stay vertically aligned.
+  // Align the runner's feet with the door's floor line (no vertical drift).
   const runnerHeight = 45;
   const doorBottom = (doorRect.top - cardRect.top) + doorRect.height;
   const alignedY = doorBottom - runnerHeight + 4;
@@ -2607,24 +2607,24 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
   runner.style.left = startX + "px";
   runner.style.top  = startY + "px";
 
-  // Target: collide with doorway, then travel a little further inside.
+  // Target: collide with doorway, then run noticeably further inside.
   const runnerWidth = 45;
   const doorOffsetLeft = doorRect.left - cardRect.left;
   const doorCenterX = doorOffsetLeft + (doorRect.width * 0.5);
-  const hitX = doorCenterX - runnerWidth;           // point where the runner is at the doorway
-  const overshootPx = 10;                           // small overshoot inside the doorway
-  const targetX = hitX + overshootPx;               // final position just inside the doorway
+  const hitX = doorCenterX - runnerWidth;           // where the runner is at the doorway
+  const overshootPx = 70;                           // run roughly "7 lines" further past the door
+  const targetX = hitX + overshootPx;               // final position well inside the doorway
 
-  const travelMs = 4000;                            // keep movement speed exactly as before
+  const travelMs = 4000;                            // keep overall movement duration the same
   let totalDistance = targetX - startX;
   if (totalDistance === 0) totalDistance = 1;
 
   const distanceToDoor = hitX - startX;
-  let openAtMs = travelMs * (distanceToDoor / totalDistance);
+  let openAtMsRaw = travelMs * (distanceToDoor / totalDistance);
 
-  // Clamp and bias so the door opens just as the unit reaches it.
-  if (!Number.isFinite(openAtMs)) openAtMs = travelMs * 0.6;
-  openAtMs = Math.max(0, Math.min(travelMs, openAtMs - 80));
+  // Clamp and bias so the door opens just after the unit reaches it (no early pop).
+  if (!Number.isFinite(openAtMsRaw)) openAtMsRaw = travelMs * 0.6;
+  let openAtMs = Math.max(0, Math.min(travelMs, openAtMsRaw + 40));
 
   // Runner movement.
   runner.style.transform = "translateX(0px)";
@@ -2639,8 +2639,8 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
     }catch(e){}
   }, openAtMs);
 
-  // Let the unit move slightly past the doorway, then disappear.
-  const vanishMs = travelMs - 80;
+  // Let the unit move clearly inside the doorway, then disappear.
+  const vanishMs = Math.min(travelMs, openAtMs + 320);
   setTimeout(() => {
     try{
       runner.remove();
