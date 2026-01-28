@@ -2612,7 +2612,7 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
   const doorOffsetLeft = doorRect.left - cardRect.left;
   const doorCenterX = doorOffsetLeft + (doorRect.width * 0.5);
   const hitX = doorCenterX - runnerWidth;           // where the runner is at the doorway
-  const overshootPx = 50;                           // run roughly "7 lines" further past the door
+  const overshootPx = 20;                           // run roughly "7 lines" further past the door
   const targetX = hitX + overshootPx;               // final position well inside the doorway
 
   const travelMs = 4000;                            // keep overall movement duration the same
