@@ -1536,7 +1536,7 @@ header{
 
 .unitDoorArea{
   position:absolute;
-  right:90px;
+  right:30px;
   bottom:40px;
   width:44px;
   height:66px;
@@ -2589,7 +2589,7 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
   const cardRect = cardElement.getBoundingClientRect();
   const doorRect = door.getBoundingClientRect();
 
-  // 45px sprite. Align feet a little above previous so they sit nicely on the "floor" line of the door.
+  // 45px sprite. Align feet with the door's floor line so they stay vertically aligned.
   const runnerHeight = 45;
   const doorBottom = (doorRect.top - cardRect.top) + doorRect.height;
   const alignedY = doorBottom - runnerHeight + 4;
@@ -2607,33 +2607,52 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
   runner.style.left = startX + "px";
   runner.style.top  = startY + "px";
 
-  // Target: collide with doorway, then travel a bit further inside.
+  // Target: collide with doorway, then travel a little further inside.
   const runnerWidth = 45;
   const doorOffsetLeft = doorRect.left - cardRect.left;
-  const hitX = doorOffsetLeft - runnerWidth + 6;
-  const targetX = hitX; // stop at the doorway
+  const doorCenterX = doorOffsetLeft + (doorRect.width * 0.5);
+  const hitX = doorCenterX - runnerWidth;           // point where the runner is at the doorway
+  const overshootPx = 10;                           // small overshoot inside the doorway
+  const targetX = hitX + overshootPx;               // final position just inside the doorway
 
+  const travelMs = 4000;                            // keep movement speed exactly as before
+  let totalDistance = targetX - startX;
+  if (totalDistance === 0) totalDistance = 1;
+
+  const distanceToDoor = hitX - startX;
+  let openAtMs = travelMs * (distanceToDoor / totalDistance);
+
+  // Clamp and bias so the door opens just as the unit reaches it.
+  if (!Number.isFinite(openAtMs)) openAtMs = travelMs * 0.6;
+  openAtMs = Math.max(0, Math.min(travelMs, openAtMs - 80));
+
+  // Runner movement.
   runner.style.transform = "translateX(0px)";
-
   requestAnimationFrame(() => {
-    runner.style.transform = `translateX(${targetX - startX}px)`;
+    runner.style.transform = `translateX(${totalDistance}px)`;
   });
 
-  const travelMs = 4000;                   // sync with CSS 2.2s
-  const openAtMs = Math.floor(travelMs * 0.95); // open near the end of the run
-
+  // Open the door as the runner arrives.
   setTimeout(() => {
     try{
       door.src = "Sprites/barracksdooropen.png";
     }catch(e){}
   }, openAtMs);
 
+  // Let the unit move slightly past the doorway, then disappear.
+  const vanishMs = travelMs - 80;
+  setTimeout(() => {
+    try{
+      runner.remove();
+    }catch(e){}
+  }, vanishMs);
+
+  // Close the door immediately after the unit has gone inside.
   setTimeout(() => {
     try{
       door.src = "Sprites/barracksdoorclosed.png";
     }catch(e){}
-    runner.remove();
-  }, travelMs + 200);
+  }, vanishMs + 40);
 }
 
 function processRecruitQueue(){
