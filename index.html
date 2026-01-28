@@ -2271,22 +2271,23 @@ header{
           <!-- Filled with grouped land types, e.g. "3 Riverlands (Income), 2 Farmlands (Cap)" -->
         </div>
 
+        <!-- Province card: aggregated conquered settlements -->
+        <div id="subjugatedSettlementsContainer" class="factionCardsWrap" style="margin:10px 0;">
+          <div class="sectionTitle" style="border-radius:14px 14px 0 0;">
+            <span>Province</span>
+            <span style="font-size:.72rem;color:var(--muted);">Aggregated rule over conquered lands.</span>
+          </div>
+          <div class="cardBody" style="padding:10px 12px;border-radius:0 0 14px 14px;background:linear-gradient(180deg,rgba(255,255,255,0.12),rgba(190,160,120,0.12));">
+            <div id="subjugatedSettlementsList" class="factionCardsGrid"></div>
+          </div>
+        </div>
+
         <div id="territoryEmpty" style="margin:4px 0 0;font-size:.78rem;color:var(--muted);">
           You control no named territories yet. Win a battle to seize your first lands.
         </div>
 
         <div id="territoryList" style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
           <!-- Filled by render() with cards for each territory -->
-        </div>
-
-        <div id="subjugatedSettlementsContainer" class="factionCardsWrap" style="margin-top:10px;">
-          <div class="sectionTitle" style="border-radius:14px 14px 0 0;">
-            <span>Subjugated Settlements</span>
-            <span style="font-size:.72rem;color:var(--muted);">Occupied villages and towns paying tribute.</span>
-          </div>
-          <div class="cardBody" style="padding:10px 12px;border-radius:0 0 14px 14px;background:linear-gradient(180deg,rgba(255,255,255,0.12),rgba(190,160,120,0.12));">
-            <div id="subjugatedSettlementsList" class="factionCardsGrid"></div>
-          </div>
         </div>
       </div>
     </section>
