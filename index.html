@@ -2267,12 +2267,8 @@ header{
           Output: <b id="landOutputDen">+0 Denarii / tick</b>, <b id="landOutputPop">+0 Cap</b>
         </div>
 
-        <div id="landSummaryBlock" style="margin:8px 0 6px;font-size:.78rem;color:var(--muted);display:none;">
-          <!-- Filled with grouped land types, e.g. "3 Riverlands (Income), 2 Farmlands (Cap)" -->
-        </div>
-
-        <!-- Province card: aggregated conquered settlements -->
-        <div id="subjugatedSettlementsContainer" class="factionCardsWrap" style="margin:10px 0;">
+        <!-- Province card placed at the top of the land view -->
+        <div id="subjugatedSettlementsContainer" class="factionCardsWrap" style="margin-top:10px;">
           <div class="sectionTitle" style="border-radius:14px 14px 0 0;">
             <span>Province</span>
             <span style="font-size:.72rem;color:var(--muted);">Aggregated rule over conquered lands.</span>
@@ -2282,9 +2278,15 @@ header{
           </div>
         </div>
 
+        <div id="landSummaryBlock" style="margin:8px 0 6px;font-size:.78rem;color:var(--muted);display:none;">
+          <!-- Filled with grouped land types, e.g. "3 Riverlands (Income), 2 Farmlands (Cap)" -->
+        </div>
+
         <div id="territoryEmpty" style="margin:4px 0 0;font-size:.78rem;color:var(--muted);">
           You control no named territories yet. Win a battle to seize your first lands.
         </div>
+
+        
 
         <div id="territoryList" style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
           <!-- Filled by render() with cards for each territory -->
@@ -2934,7 +2936,26 @@ function processRecruitQueue(){
 
     // land & politics
     land: 0,
-    // Subjugated settlements and land specialisation
+
+    // Province aggregation (replaces per‑settlement cards)
+    // When conquering a settlement, its population and income are merged into this
+    // single province rather than creating individual subjugated settlement cards.
+    province: {
+      name: "First Province",
+      settlementCount: 0,
+      totalPopulation: 0,
+      tributePerSec: 0,
+      captiviPerSec: 0,
+      workersPerSec: 0,
+      culture: 0,
+      stability: 50,
+      pietyPerSec: 0,
+      traits: []
+    },
+
+    // Legacy subjugated settlements and land specialisation
+    // Retained for backwards compatibility with old saves. New conquests will
+    // merge into the single province instead of this array.
     subjugatedSettlements: [],
     landFarmland: 0,
     landUrban: 0,
@@ -3121,6 +3142,64 @@ function processRecruitQueue(){
     if(!Array.isArray(state.subjugatedSettlements)) state.subjugatedSettlements = [];
     if(typeof state.landFarmland !== "number") state.landFarmland = 0;
     if(typeof state.landUrban !== "number") state.landUrban = 0;
+
+    // --- Province migration (old saves) ---
+    // Ensure the province object exists and fold any legacy subjugated settlements into it.
+    if(!state.province || typeof state.province !== "object"){
+      state.province = {
+        name: "First Province",
+        settlementCount: 0,
+        totalPopulation: 0,
+        tributePerSec: 0,
+        captiviPerSec: 0,
+        workersPerSec: 0,
+        culture: 0,
+        stability: 50,
+        pietyPerSec: 0,
+        traits: []
+      };
+    } else {
+      // Coerce fields to expected types
+      const p = state.province;
+      if(typeof p.name !== "string") p.name = "First Province";
+      if(typeof p.settlementCount !== "number") p.settlementCount = 0;
+      if(typeof p.totalPopulation !== "number") p.totalPopulation = 0;
+      if(typeof p.tributePerSec !== "number") p.tributePerSec = 0;
+      if(typeof p.captiviPerSec !== "number") p.captiviPerSec = 0;
+      if(typeof p.workersPerSec !== "number") p.workersPerSec = 0;
+      if(typeof p.culture !== "number") p.culture = 0;
+      if(typeof p.stability !== "number") p.stability = 50;
+      if(typeof p.pietyPerSec !== "number") p.pietyPerSec = 0;
+      if(!Array.isArray(p.traits)) p.traits = [];
+    }
+    // If there are any legacy subjugated settlements, merge them into the province
+    if(Array.isArray(state.subjugatedSettlements) && state.subjugatedSettlements.length > 0){
+      for(const st of state.subjugatedSettlements){
+        if(!st || typeof st !== "object") continue;
+        const basePop = Number(st.population || 0);
+        // increment province fields
+        state.province.settlementCount += 1;
+        state.province.totalPopulation += basePop;
+        // use recorded income if available; fallback to simple per‑pop rate (0.05)
+        const inc = (typeof st.income === "number") ? st.income : (0.05 * basePop);
+        state.province.tributePerSec += inc;
+        // small boosts to culture and stability for each merged settlement
+        state.province.culture = Math.min(100, (state.province.culture || 0) + 4);
+        state.province.stability = Math.min(100, (state.province.stability || 50) + 3);
+        // Rough trait inference: treat towns as merchant, villages as agrarian
+        if(typeof st.type === "string"){
+          const t = st.type.toLowerCase();
+          if(t === "town" && state.province.traits.indexOf("Merchant") === -1){
+            state.province.traits.push("Merchant");
+          }
+          if(t === "village" && state.province.traits.indexOf("Agrarian") === -1){
+            state.province.traits.push("Agrarian");
+          }
+        }
+      }
+      // Clear out legacy array to avoid double counting
+      state.subjugatedSettlements = [];
+    }
 
     return state;
   }
@@ -4476,6 +4555,75 @@ const totalPages = Math.max(1, Math.ceil(cards.length / PAGE_SIZE));
       nextBtn.disabled = (S.factionPage >= totalPages - 1);
     }
   }
+// -----------------------------------------------------------------------------
+// Province helpers
+//
+// These functions manage the single province system which aggregates all
+// conquered settlements. When a settlement is conquered, its population and
+// income are merged into the province via addSettlementToProvince(). The
+// province object lives on the global save state (S.province).
+
+function ensureProvince(){
+  if(!S.province || typeof S.province !== "object"){
+    S.province = {
+      name: "First Province",
+      settlementCount: 0,
+      totalPopulation: 0,
+      tributePerSec: 0,
+      captiviPerSec: 0,
+      workersPerSec: 0,
+      culture: 0,
+      stability: 50,
+      pietyPerSec: 0,
+      traits: []
+    };
+  }
+  return S.province;
+}
+
+function inferProvinceTraits(p, meta){
+  if(!p || !meta) return;
+  if(!Array.isArray(p.traits)) p.traits = [];
+  const name = (meta.name || meta.settlementName || meta.territoryName || "").toLowerCase();
+  const type = (meta.type || meta.settlementType || meta.virtualType || "").toLowerCase();
+  function addTrait(t){ if(p.traits.indexOf(t) === -1) p.traits.push(t); }
+  if(/farm|field|river|valley|plain|village/.test(name) || /farm|agrarian|village/.test(type)){
+    addTrait("Agrarian");
+  }
+  if(/fort|castrum|camp|hill|barracks/.test(name) || /military|warcamp/.test(type)){
+    addTrait("Militaristic");
+  }
+  if(/market|port|harbor|harbour|trade|forum/.test(name) || /market|merchant|trade/.test(type)){
+    addTrait("Merchant");
+  }
+  if(/temple|shrine|grove/.test(name) || /devout|holy|sacred/.test(type)){
+    addTrait("Devout");
+  }
+}
+
+function addSettlementToProvince(meta, gained){
+  const p = ensureProvince();
+  // Determine base population from the gained object (population or pop fields)
+  const basePop = Math.max(0, Math.floor(Number((gained && (gained.population ?? gained.pop)) || 0)));
+  p.settlementCount = (p.settlementCount || 0) + 1;
+  p.totalPopulation = (p.totalPopulation || 0) + basePop;
+  // Determine base income per head based on settlement type if provided
+  const stype = meta && meta.type ? String(meta.type) : "";
+  let perPop = 0.05;
+  if(stype === "Town") perPop = 0.08;
+  else if(stype === "Village") perPop = 0.04;
+  const inc = perPop * basePop;
+  p.tributePerSec = (p.tributePerSec || 0) + inc;
+  // Light captivi trickle: if population contains captivi component in future
+  if(gained && typeof gained.captivi === "number"){
+    p.captiviPerSec = (p.captiviPerSec || 0) + Math.max(0.01, gained.captivi * 0.001);
+  }
+  // Update culture and stability modestly for each new settlement
+  p.culture = Math.min(100, (p.culture || 0) + 4);
+  p.stability = Math.min(100, (p.stability || 50) + 3);
+  inferProvinceTraits(p, meta);
+}
+
 // Narrative battle archetypes by tier (Hybrid: title tier × slot)
   // kind:
   //  - "skirmish"  → never grants land
@@ -4489,41 +4637,60 @@ function renderSubjugatedSettlementsList(){
   const listEl = $("#subjugatedSettlementsList");
   if(!listEl) return;
   listEl.innerHTML = "";
-  const subs = Array.isArray(S.subjugatedSettlements) ? S.subjugatedSettlements : [];
-  if(!subs.length){
+  const p = S.province;
+  // Show an empty state if no province has been formed yet.
+  if(!p || !p.settlementCount){
     const empty = document.createElement("div");
     empty.className = "smallBtn factionCard";
-    empty.textContent = "No subjugated settlements yet.";
+    empty.textContent = "No province yet. Conquer a settlement to found your province.";
     listEl.appendChild(empty);
     return;
   }
-  for(const s of subs){
-    if(!s) continue;
-    const el = document.createElement("div");
-    el.className = "smallBtn factionCard";
-
-    const type = (s.type === "Town") ? "Town" : "Village";
-    const icon = type === "Town" ? "⚓" : "🌾";
-    const typeLabel = type === "Town" ? "Subjugated Town" : "Subjugated Village";
-    const pop = typeof s.population === "number" ? s.population : 0;
-    const income = typeof s.income === "number" ? s.income : 0;
-    const loyalty = typeof s.loyalty === "number" ? s.loyalty : 0;
-
-    el.innerHTML = [
-      '<div class="factionCardHeader">',
-        '<div>',
-          '<div class="factionCardTitle">', icon, " ", (s.name || "Unknown settlement"), "</div>",
-          '<div class="factionCardType">', typeLabel, "</div>",
-        "</div>",
-        '<div class="factionCardLeader">Loyalty: ', Math.round(loyalty), "</div>",
-      "</div>",
-      '<div class="factionCardStats">',
-        '<div class="factionCardStat"><span>Pop</span><b>', fmt(pop), "</b></div>",
-        '<div class="factionCardStat"><span>Tribute</span><b>+', fmt(Math.round(income)), " denarii/tick</b></div>",
-      "</div>"
-    ].join("");
-
-    listEl.appendChild(el);
+  const el = document.createElement("div");
+  el.className = "smallBtn factionCard provinceCard";
+  const settlementCount = p.settlementCount || 0;
+  const totalPop = Math.floor(p.totalPopulation || 0);
+  const tribute = Math.round(p.tributePerSec || 0);
+  const culture = Math.round(p.culture || 0);
+  const stability = Math.round(p.stability || 0);
+  const traitsLabel = (Array.isArray(p.traits) && p.traits.length) ? p.traits.join(" • ") : "No dominant traits yet";
+  el.innerHTML = [
+    '<div class="factionCardHeader">',
+      '<div>',
+        '<div class="factionCardTitle">🏛 ', escapeHtml(p.name || "Unnamed Province"), '</div>',
+        '<div class="factionCardType">Province</div>',
+      '</div>',
+      '<div class="factionCardLeader">Settlements: ', fmt(settlementCount), '</div>',
+    '</div>',
+    '<div class="factionCardStats">',
+      '<div class="factionCardStat"><span>Population</span><b>', fmt(totalPop), '</b></div>',
+      '<div class="factionCardStat"><span>Tribute</span><b>+', fmt(tribute), ' denarii/s</b></div>',
+    '</div>',
+    '<div class="factionCardStats">',
+      '<div class="factionCardStat"><span>Culture</span><b>', culture, '</b></div>',
+      '<div class="factionCardStat"><span>Stability</span><b>', stability, '</b></div>',
+    '</div>',
+    '<div class="factionCardTraits"><span>', traitsLabel, '</span></div>',
+    '<div class="provinceRenameRow" style="display:flex;gap:6px;margin-top:6px;">',
+      '<input id="provinceNameInput" type="text" maxlength="24" ',
+        'style="flex:1;min-width:0;font-family:var(--mono);font-size:.78rem;padding:4px 6px;',
+               'border-radius:10px;border:1px solid rgba(244,170,92,.6);background:rgba(0,0,0,.04);" ',
+        'value="', escapeHtml(p.name || ""), '" placeholder="Name this province…">',
+      '<button type="button" class="tinyBtn" id="saveProvinceNameBtn">Rename</button>',
+    '</div>'
+  ].join("");
+  listEl.appendChild(el);
+  const nameInput = document.getElementById("provinceNameInput");
+  const saveBtn = document.getElementById("saveProvinceNameBtn");
+  if(nameInput && saveBtn){
+    saveBtn.onclick = () => {
+      const v = String(nameInput.value || '').trim();
+      if(v.length){
+        S.province.name = v;
+        save();
+        renderSubjugatedSettlementsList();
+      }
+    };
   }
 }
 
@@ -9522,7 +9689,7 @@ function showSettlementAssimilationPopup(meta, gained){
     );
     lines.push(
       `<div style="margin-top:2px;font-size:.8rem;color:var(--muted);">` +
-        `This settlement is now occupied and subjugated, contributing regular tribute to your realm.` +
+        `This settlement is now occupied, contributing regular tribute to your province.` +
       `</div>`
     );
   }
@@ -9562,8 +9729,8 @@ function showSettlementAssimilationPopup(meta, gained){
   }
 
   const typeLabel = settlementType === "Town"
-    ? "Subjugated Town"
-    : (settlementType === "Village" ? "Subjugated Village" : "Subjugated Settlement");
+    ? "Conquered Town"
+    : (settlementType === "Village" ? "Conquered Village" : "Conquered Settlement");
 
   const icon = settlementType === "Town" ? "⚓" : "🌾";
 
@@ -10476,29 +10643,20 @@ bumpObjective("winBattle", 1);
         const popGain = Math.max(0, Math.round(rawPop));
         const landTilesFromSettlement = Math.max(0, Math.round(rawLand));
 
-        // Create a long-term subjugated settlement record and immediate occupation rewards.
+        // Aggregate the conquered settlement into the single province instead of creating
+        // an individual subjugated settlement card. We still update land specialisation.
         try {
           const settlementType = (factionBattleMeta && factionBattleMeta.type === "Town") ? "Town" : "Village";
           const basePop = Math.max(0, Math.round(rawPop));
+          const settlementName = (factionBattleMeta && factionBattleMeta.name) ? factionBattleMeta.name : "A neighbouring settlement";
           if(basePop > 0){
-            if(!Array.isArray(S.subjugatedSettlements)) S.subjugatedSettlements = [];
-            const settlementName = (factionBattleMeta && factionBattleMeta.name) ? factionBattleMeta.name : "A neighbouring settlement";
-            const existing = S.subjugatedSettlements.find && S.subjugatedSettlements.find(s => s && s.name === settlementName);
-            if(!existing){
-              const baseIncomePerPop = settlementType === "Town" ? 0.08 : 0.04;
-              const income = baseIncomePerPop * basePop;
-              S.subjugatedSettlements.push({
-                name: settlementName,
-                type: settlementType,
-                population: basePop,
-                loyalty: 50,
-                income: income
-              });
-              if(settlementType === "Village"){
-                S.landFarmland = (S.landFarmland || 0) + 1;
-              }else{
-                S.landUrban = (S.landUrban || 0) + 1;
-              }
+            // Merge into province: meta carries name and type, gained carries population
+            addSettlementToProvince({ name: settlementName, type: settlementType }, { population: basePop });
+            // Increase land specialisation counts (farmland for villages, urban for towns)
+            if(settlementType === "Village"){
+              S.landFarmland = (S.landFarmland || 0) + 1;
+            }else{
+              S.landUrban = (S.landUrban || 0) + 1;
             }
           }
         } catch(e){}
@@ -11272,26 +11430,35 @@ if(btnReset){
 
     // Passive income (village, land, and subjugated settlements)
     let incomeBase = incomePerSec();
-    let tributePerSec = 0;
-    if(Array.isArray(S.subjugatedSettlements) && S.subjugatedSettlements.length){
-      for(const st of S.subjugatedSettlements){
-        if(!st || typeof st.income !== "number") continue;
-        tributePerSec += st.income;
-        // Optional tiny unrest chance if loyalty is low.
-        if(typeof st.loyalty !== "number") st.loyalty = 50;
-        if(st.loyalty < 30 && Math.random() < dt * 0.001){
-          st.loyalty = Math.max(0, st.loyalty - 1);
-        }
-      }
+    let provinceTribute = 0;
+    // Pull tribute from the single province instead of individual settlement cards.
+    if(S.province && typeof S.province.tributePerSec === "number"){
+      provinceTribute = S.province.tributePerSec;
+      // We could apply simple drift or unrest adjustments here if desired.
     }
-    const inc = (incomeBase + tributePerSec) * dt;
+    const inc = (incomeBase + provinceTribute) * dt;
     if(inc > 0){
       S.gold += inc;
       if(typeof S.lifetimeGold === "number") S.lifetimeGold += inc;
+      // Objectives: passive income counts toward "Earn denarii"
+      bumpEarnedDenarii(inc);
     }
 
-    // Objectives: passive income counts toward "Earn denarii"
-    if(inc > 0) bumpEarnedDenarii(inc);
+    // Province outputs: trickle captivi, piety and workers from the single province
+    if(S.province){
+      const p = S.province;
+      if(p.captiviPerSec && p.captiviPerSec > 0){
+        S.captivi = (S.captivi || 0) + p.captiviPerSec * dt;
+      }
+      if(p.pietyPerSec && p.pietyPerSec > 0){
+        S.faith = (S.faith || 0) + p.pietyPerSec * dt;
+      }
+      if(p.workersPerSec && p.workersPerSec > 0){
+        // Hook for future workers system: accumulate workers in territoryWorkers
+        // This remains unused for now but allows for future expansions.
+        S.territoryWorkersTotal = (S.territoryWorkersTotal || 0) + p.workersPerSec * dt;
+      }
+    }
 
     // Passive renown: as your wealth, land, villas and population grow,
     // word of your rule spreads slowly even while you are not tapping.
