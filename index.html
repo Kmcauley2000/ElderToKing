@@ -2665,7 +2665,7 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
   const hitX = doorCenterX - runnerWidth;           // where the runner is at the doorway
 
   // Non-cavalry step a bit further in; cavalry stops almost exactly at the door
-  // so the sprite doesn't visually overshoot.
+  // so the sprite doesn't visually overshoot. Door timing is kept the same for all.
   const overshootPx = isCavalry ? 4 : 20;
   const targetX = hitX + overshootPx;
 
@@ -2673,12 +2673,17 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
   let totalDistance = targetX - startX;
   if (totalDistance === 0) totalDistance = 1;
 
-  const distanceToDoor = hitX - startX;
-  let openAtMsRaw = travelMs * (distanceToDoor / totalDistance);
+  const distanceToDoor = Math.max(1, hitX - startX);
+
+  // Use a fixed baseline overshoot when timing the door, so cavalry and infantry
+  // open/close the door in the same rhythm regardless of their visual overshoot.
+  const baselineOvershoot = 20;
+  const doorTimeFraction = distanceToDoor / (distanceToDoor + baselineOvershoot);
+  let openAtMsRaw = travelMs * doorTimeFraction;
 
   // Clamp and bias so the door opens just after the unit reaches it (no early pop).
-  if (!Number.isFinite(openAtMsRaw)) openAtMsRaw = travelMs * 0.6;
-  let openAtMs = Math.max(0, Math.min(travelMs, openAtMsRaw + 40));
+  if (!Number.isFinite(openAtMsRaw)) openAtMsRaw = travelMs * 0.7;
+  let openAtMs = Math.max(0, Math.min(travelMs, openAtMsRaw));
 
   // Runner movement.
   runner.style.transform = "translateX(0px)";
@@ -2708,6 +2713,7 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
     }catch(e){}
   }, vanishMs + 40);
 }
+
 
 function processRecruitQueue(){
     if(!Array.isArray(S.recruitQueue)) return false;
