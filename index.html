@@ -2582,6 +2582,11 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
   }catch(e){}
 
   const runner = document.createElement('img');
+  // enlarge cavalry units ~30%
+  if (/cavalry|horse|equite|cav/i.test(unitKey)) {
+    runner.style.transformOrigin = 'left top';
+    runner.style.scale = '1.3';
+  }
   runner.src = `Sprites/${unitKey}.png`;
   runner.className = 'unitRunner';
   cardElement.appendChild(runner);
