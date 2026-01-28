@@ -12432,6 +12432,17 @@ const totalTroops = mil + cav + arc + aux + eq + vet + cap;
     ? sim.enemies
     : Math.max(4, Math.round(totalTroops * 1.1));
 
+  // If this battle comes from a settlement card attack or raid and we have a
+  // precomputed enemy headcount for that slot, snap to that value so that
+  // the card, scout preview, and actual battle all agree on army size.
+  if (!defenceFlag &&
+      typeof pendingSettlementCardBattle === "object" &&
+      pendingSettlementCardBattle &&
+      pendingSettlementCardBattle.slot === slot &&
+      typeof pendingSettlementCardBattle.enemies === "number") {
+    enemies = Math.max(1, Math.round(pendingSettlementCardBattle.enemies));
+  }
+
   // If a caller passed an enemyScale (eg. raid), reduce the force accordingly.
   const scale = (typeof enemyScale === "number" && enemyScale > 0 && enemyScale <= 1)
     ? enemyScale
