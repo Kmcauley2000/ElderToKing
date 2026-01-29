@@ -1074,9 +1074,10 @@ body::after{
     }
 
     .buildCard{
+      /* Increase minimum height to accommodate additional progress bar row in the
+         build cards. Without this the bar row gets clipped due to the fixed
+         height. */
       min-height:110px;
-      padding:20px 20px;
-      min-height:80px;
       padding:16px 16px;
       align-items:flex-start;
     }
@@ -1094,6 +1095,27 @@ body::after{
       gap:8px;
       opacity:.9;
     }
+
+/* Progress bar for build cards (farms, villas). This replicates the idle progress bar from the provided sample. */
+/* Updated progress bar styling: use a subtle light background so that the bar is always visible on the light card.
+   The border accent creates contrast and helps differentiate the bar area. */
+.buildProgressWrap{
+  /* Increase height slightly for better visibility */
+  height:12px;
+  /* Use a light background so the progress bar is clearly visible against the card.
+     The semi‑transparent white ensures contrast without clashing with the theme. */
+  background: rgba(255,255,255,0.3);
+  border:1px solid var(--accent);
+  border-radius:5px;
+  overflow:hidden;
+  position:relative;
+}
+.buildProgressFill{
+  height:100%;
+  width:0%;
+  background:var(--accent);
+  transition:width 0.08s linear;
+}
 
     .constructionTabs{
       display:flex;
@@ -1634,6 +1656,151 @@ header{
       vertical-align:middle;
       margin-right:2px;
     }
+
+
+/* --- New Construction Menu Layout (scoped) --- */
+#constructionOverlay .e2kConstructHud{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+  margin-bottom:8px;
+}
+#constructionOverlay .e2kPill{
+  border:1px solid rgba(244,170,92,.70);
+  background: rgba(255,255,255,0.08);
+  border-radius:999px;
+  padding:8px 10px;
+  box-shadow: 0 12px 24px rgba(0,0,0,.20);
+  font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+  font-size:.75rem;
+  white-space:nowrap;
+  color: var(--paper, #f7f2e7);
+  user-select:none;
+}
+#constructionOverlay .e2kPill b{ color: rgba(244,208,111,.95); font-weight:900; }
+
+#constructionOverlay .e2kConstructGrid{
+  display:grid;
+  grid-template-columns: 1fr;
+  gap:10px;
+}
+@media (min-width: 560px){
+  #constructionOverlay .e2kConstructGrid{ grid-template-columns: 1fr 1fr; }
+}
+
+#constructionOverlay .e2kBuildCard{
+  border:1px solid rgba(158,104,54,.75);
+  background: linear-gradient(180deg,#fdf6eb,#f2e0c5);
+  border-radius:18px;
+  padding:14px 14px 12px;
+  box-shadow: 0 12px 28px rgba(0,0,0,.25);
+  position:relative;
+  color:#111;
+}
+#constructionOverlay .e2kBuildTop{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+}
+#constructionOverlay .e2kBuildName{
+  font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+  font-weight:900;
+  color:#9a5b13;
+  font-size:.92rem;
+}
+#constructionOverlay .e2kBuildDesc{
+  margin-top:2px;
+  font-size:.78rem;
+  color: rgba(17,17,17,.82);
+  line-height:1.25;
+}
+#constructionOverlay .e2kBuildIcon{
+  font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+  font-size:.92rem;
+  opacity:.85;
+}
+#constructionOverlay .e2kBuildMeta{
+  margin-top:8px;
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+  font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+  font-size:.74rem;
+  color: rgba(17,17,17,.78);
+}
+#constructionOverlay .e2kBuildMeta b{ color:#111; }
+
+#constructionOverlay .e2kBuildActions{
+  margin-top:10px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+#constructionOverlay .btn{
+  border:1px solid rgba(158,104,54,.9);
+  background: linear-gradient(180deg,#ffffff,#f1ddb9);
+  color:#111;
+  border-radius:14px;
+  padding:8px 12px;
+  cursor:pointer;
+  font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+  font-size:.78rem;
+  user-select:none;
+  box-shadow: 0 10px 22px rgba(0,0,0,.22);
+  transition: transform .08s ease, filter .15s ease, opacity .15s ease;
+}
+#constructionOverlay .btn:active{transform: translateY(1px) scale(.99);}
+#constructionOverlay .btn[disabled]{opacity:.55; cursor:not-allowed; transform:none; filter:saturate(.75);}
+
+#constructionOverlay .e2kBars{ margin-top:10px; display:flex; flex-direction:column; gap:7px; }
+#constructionOverlay .e2kBarRow{ display:flex; align-items:center; gap:8px; }
+#constructionOverlay .e2kBarIcon{ width:18px; text-align:center; font-size:.9rem; line-height:1; }
+#constructionOverlay .e2kBarWrap{
+  flex:1;
+  height:10px;
+  background: rgba(255,255,255,0.35);
+  border:1px solid rgba(244,176,74,.95);
+  border-radius:8px;
+  overflow:hidden;
+}
+#constructionOverlay .e2kBarFill{
+  height:100%;
+  width:100%;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: rgba(244,176,74,.95);
+  transition: transform 0.016s linear;
+  will-change: transform;
+}
+#constructionOverlay .e2kBarFood{ background: rgba(111,202,114,.95); }
+/* Payout splash (construction overlay) */
+#constructionOverlay .e2kSplash{
+  position:absolute;
+  right:10px;
+  top:-30px;
+  padding:4px 8px;
+  border-radius:12px;
+  font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+  font-size:.72rem;
+  background: rgba(0,0,0,0.82);
+  color:#fff;
+  pointer-events:none;
+  opacity:0;
+  transform: translateY(8px);
+  white-space:nowrap;
+  z-index: 5;
+}
+#constructionOverlay .e2kSplash.show{ animation: e2kPopFade 1.05s ease-out forwards; }
+@keyframes e2kPopFade{
+  0%{opacity:0; transform:translateY(8px) scale(0.98);}
+  15%{opacity:1; transform:translateY(0) scale(1);}
+  85%{opacity:1; transform:translateY(-6px) scale(1);}
+  100%{opacity:0; transform:translateY(-12px) scale(1);}
+}
+
 </style>
 </head>
 <body>
@@ -1804,7 +1971,6 @@ header{
       </div>
     </section>
   </div>
-
   <div id="constructionOverlay" class="offlineOverlay" hidden>
     <section class="offlineCard" role="dialog" aria-modal="true" aria-labelledby="constructionTitle">
       <div class="offlineTitle">
@@ -1814,63 +1980,146 @@ header{
         </div>
         <div style="font-size:1.6rem;line-height:1;">🏗️</div>
       </div>
+
       <div class="offlineBody">
-        <p style="margin:0 0 4px;font-size:.8rem;">
-          Choose what to build next. Costs and effects scale as your realm grows.
-        </p>
-        <div class="constructionTabPanels" style="margin-top:4px;">
-          <div id="constructionTab-economy" class="constructionTabPanel">
-            <div id="buildMenu">
-              <div class="row3">
-                <button class="smallBtn buildCard" id="btnHut" style="display:none;">
-                  <div class="t">Build Huts</div>
-                  <div class="d" id="hutDesc">Cheap shelter. Attracts settlers.</div>
-                  <div class="metaRow">
-                    <span>Cost: <span id="hutCostPreview">?</span> denarii</span>
-                    <span>+<span id="hutIncomePreview">?</span> cap</span>
-                  </div>
-                </button>
-                <button class="smallBtn buildCard" id="btnFarm">
-                  <div class="t">Build Farm</div>
-                  <div class="d" id="farmDesc">Passive income. Small but forever.</div>
-                  <div class="metaRow">
-                    <span>Cost: <span id="farmCostPreview">?</span> denarii</span>
-                    <span>+<span id="farmIncomePreview">?</span> gold/s</span>
-                  </div>
-                </button>
-                <button class="smallBtn buildCard" id="btnVilla">
-                  <div class="t">Build Villa</div>
-                  <div class="d" id="villaDesc">Bigger income. Costs more.</div>
-                  <div class="metaRow">
-                    <span>Cost: <span id="villaCostPreview">?</span> denarii</span>
-                    <span>+<span id="villaIncomePreview">?</span> gold/s</span>
-                  </div>
-                </button>
-              </div>
-            </div>
-          </div>
-          <div id="constructionTab-war" class="constructionTabPanel" hidden>
-            <p style="margin:0 0 4px;font-size:.8rem;">
-              War buildings will go here later — barracks, walls and more.
-            </p>
-          </div>
-          <div id="constructionTab-other" class="constructionTabPanel" hidden>
-            <p style="margin:0 0 4px;font-size:.8rem;">
-              Other special projects will unlock here as your realm grows.
-            </p>
-          </div>
-        <div class="constructionTabs" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">
+        <div class="e2kConstructHud">
+          <div class="e2kPill">💰 Denarii <b id="constructDenarii">0</b></div>
+          <div class="e2kPill">👥 Pop <b id="constructPop">0</b></div>
+          <div class="e2kPill">🍞 Food <b id="constructFood">0</b></div>
+          <div class="e2kPill">🌾 Farms <b id="constructFarmsOwned">0</b></div>
+          <div class="e2kPill">🏛 Villas <b id="constructVillasOwned">0</b></div>
+        </div>
+
+        <div class="constructionTabs" style="margin-top:10px;">
           <button class="smallBtn constructionTab active" data-tab="economy">Economy</button>
           <button class="smallBtn constructionTab" data-tab="war">War</button>
           <button class="smallBtn constructionTab" data-tab="other">Other</button>
         </div>
+
+        <div class="constructionTabPanels" style="margin-top:10px;">
+          <div id="constructionTab-economy" class="constructionTabPanel">
+            <div class="e2kConstructGrid">
+
+              <!-- HUTS -->
+              <div class="e2kBuildCard" id="hutCard" style="display:none;">
+                <div class="e2kBuildTop">
+                  <div>
+                    <div class="e2kBuildName">Build Huts</div>
+                    <div class="e2kBuildDesc" id="hutDesc">Cheap shelter. Attracts settlers.</div>
+                  </div>
+                  <div class="e2kBuildIcon">🏚️</div>
+                </div>
+                <div class="e2kBuildMeta">
+                  <span>Cost: <b id="hutCostPreview">?</b> denarii</span>
+                  <span>+<b id="hutIncomePreview">?</b> cap</span>
+                </div>
+                <div class="e2kBuildActions">
+                  <button class="btn" id="btnHut" type="button">Buy Huts</button>
+                </div>
+              </div>
+
+              <!-- FARM -->
+              <div class="e2kBuildCard" id="farmCard">
+                <div class="e2kBuildTop">
+                  <div>
+                    <div class="e2kBuildName">Build Farm</div>
+                    <div class="e2kBuildDesc" id="farmDesc">Passive income. Small but forever.</div>
+                  </div>
+                  <div class="e2kBuildIcon">🌾</div>
+                </div>
+
+                <div class="e2kBuildMeta">
+                  <span>Cost: <b id="farmCostPreview">?</b> denarii</span>
+                  <span>Earns: +<b id="farmIncomePreview">?</b> 💰 / 5s</span>
+                </div>
+
+                <div class="e2kBuildActions">
+                  <button class="btn" id="btnFarm" type="button">Buy Farm</button>
+                </div>
+
+                <div class="e2kBars">
+  <div class="e2kBarRow">
+    <span class="e2kBarIcon">💰</span>
+    <div class="e2kBarWrap">
+      <div id="farmProgressGoldFill" class="e2kBarFill"></div>
+      <div class="e2kSplash" id="farmSplash">+0</div>
+    </div>
+  </div>
+
+  <div class="e2kBarRow">
+    <span class="e2kBarIcon">🍅</span>
+    <div class="e2kBarWrap">
+      <div id="farmProgressFill" class="e2kBarFill e2kBarFood"></div>
+    </div>
+  </div>
+</div>
+
+              </div>
+
+              <!-- VILLA -->
+              <div class="e2kBuildCard" id="villaCard">
+                <div class="e2kBuildTop">
+                  <div>
+                    <div class="e2kBuildName">Build Villa</div>
+                    <div class="e2kBuildDesc" id="villaDesc">Wealthy estates. Big income.</div>
+                  </div>
+                  <div class="e2kBuildIcon">🏛</div>
+                </div>
+
+                <div class="e2kBuildMeta">
+                  <span>Cost: <b id="villaCostPreview">?</b> denarii</span>
+                  <span>Earns: +<b id="villaIncomePreview">?</b> 💰 / 5s</span>
+                </div>
+
+                <div class="e2kBuildActions">
+                  <button class="btn" id="btnVilla" type="button">Buy Villa</button>
+                </div>
+
+                <div class="e2kBars">
+                  <div class="e2kBarRow">
+                    <span class="e2kBarIcon">💰</span>
+                    <div class="e2kBarWrap"><div id="villaProgressFill" class="e2kBarFill"></div>                <div class="e2kSplash" id="villaSplash">+0</div>
+</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div id="constructionTab-war" class="constructionTabPanel" hidden>
+            <div class="e2kBuildCard">
+              <div class="e2kBuildName">War</div>
+              <div class="e2kBuildDesc">Coming soon.</div>
+            </div>
+          </div>
+
+          <div id="constructionTab-other" class="constructionTabPanel" hidden>
+            <div class="e2kBuildCard">
+              <div class="e2kBuildName">Food Inventory</div>
+              <div class="e2kBuildDesc">Farm loot is added here when a cycle completes.</div>
+
+              <div style="margin-top:10px;">
+                <table class="table" aria-label="Food inventory">
+                  <tbody>
+                    <tr><td>🥔 Potatoes</td><td style="text-align:right;"><b id="constructInvPotato">0</b></td></tr>
+                    <tr><td>🍅 Tomatoes</td><td style="text-align:right;"><b id="constructInvTomato">0</b></td></tr>
+                    <tr><td>🌾 Grain</td><td style="text-align:right;"><b id="constructInvGrain">0</b></td></tr>
+                    <tr><td>🫘 Beans</td><td style="text-align:right;"><b id="constructInvBeans">0</b></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+
       <div class="offlineOkRow">
         <button id="constructionCloseBtn" class="offlineOkBtn">Close</button>
       </div>
     </section>
   </div>
+
   <div id="populationOverlay" class="offlineOverlay" hidden>
     <section class="offlineCard" role="dialog" aria-modal="true" aria-labelledby="populationTitle">
       <div class="offlineTitle">
@@ -2267,6 +2516,17 @@ header{
           Output: <b id="landOutputDen">+0 Denarii / tick</b>, <b id="landOutputPop">+0 Cap</b>
         </div>
 
+        <!-- Province card summarising all conquered settlements -->
+        <div id="subjugatedSettlementsContainer" class="factionCardsWrap" style="margin-top:10px;">
+          <div class="sectionTitle" style="border-radius:14px 14px 0 0;">
+            <span>Province</span>
+            <span style="font-size:.72rem;color:var(--muted);">Aggregated rule over conquered lands.</span>
+          </div>
+          <div class="cardBody" style="padding:10px 12px;border-radius:0 0 14px 14px;background:linear-gradient(180deg,rgba(255,255,255,0.12),rgba(190,160,120,0.12));">
+            <div id="subjugatedSettlementsList" class="factionCardsGrid"></div>
+          </div>
+        </div>
+
         <div id="landSummaryBlock" style="margin:8px 0 6px;font-size:.78rem;color:var(--muted);display:none;">
           <!-- Filled with grouped land types, e.g. "3 Riverlands (Income), 2 Farmlands (Cap)" -->
         </div>
@@ -2277,16 +2537,6 @@ header{
 
         <div id="territoryList" style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
           <!-- Filled by render() with cards for each territory -->
-        </div>
-
-        <div id="subjugatedSettlementsContainer" class="factionCardsWrap" style="margin-top:10px;">
-          <div class="sectionTitle" style="border-radius:14px 14px 0 0;">
-            <span>Subjugated Settlements</span>
-            <span style="font-size:.72rem;color:var(--muted);">Occupied villages and towns paying tribute.</span>
-          </div>
-          <div class="cardBody" style="padding:10px 12px;border-radius:0 0 14px 14px;background:linear-gradient(180deg,rgba(255,255,255,0.12),rgba(190,160,120,0.12));">
-            <div id="subjugatedSettlementsList" class="factionCardsGrid"></div>
-          </div>
         </div>
       </div>
     </section>
@@ -2426,6 +2676,9 @@ header{
   // resources in the land tab and stats table.
   const ITEM_DEFS = {
     grain:  { label: "Grain",    icon: "🌾" },
+    potato: { label: "Potatoes", icon: "🥔" },
+    tomato: { label: "Tomatoes", icon: "🍅" },
+    beans:  { label: "Beans",    icon: "🫘" },
     timber: { label: "Timber",   icon: "🪵" },
     stone:  { label: "Stone",    icon: "🪨" },
     livestock: { label: "Livestock", icon: "🐄" },
@@ -2934,7 +3187,6 @@ function processRecruitQueue(){
     // land & politics
     land: 0,
     // Subjugated settlements and land specialisation
-    provinceName: "Province",
     subjugatedSettlements: [],
     landFarmland: 0,
     landUrban: 0,
@@ -3039,7 +3291,7 @@ function processRecruitQueue(){
 
     // identity
     playerName: "",
-    introBattleDone: 0,
+    introBattleDone: 0
   });
 
   function normalizeState(state){
@@ -3112,6 +3364,19 @@ function processRecruitQueue(){
       }
     }
 
+    // Ensure farm food items exist in inventory (construction loot)
+    for(const fid of ["potato","tomato","beans","grain"]){
+      if(typeof state.items[fid] !== "number") state.items[fid] = 0;
+      if(typeof state.itemFrac[fid] !== "number") state.itemFrac[fid] = 0;
+    }
+
+    // Dedicated farm food inventory (prevents other systems from collapsing food into grain only)
+    if(!state.foodInv || typeof state.foodInv !== "object") state.foodInv = {};
+    for(const fid of ["potato","tomato","beans","grain"]){
+      state.foodInv[fid] = Number(state.foodInv[fid] || 0);
+      if(!Number.isFinite(state.foodInv[fid])) state.foodInv[fid] = 0;
+    }
+
     // Recruit queue: ensure the array exists for older saves. Entries must be
     // objects with type, qty and readyAt properties.  If an old save has
     // stored a non-array value here, reset it to an empty array.
@@ -3119,7 +3384,6 @@ function processRecruitQueue(){
 
     // Subjugated settlements & land specialisation: normalise for older saves.
     if(!Array.isArray(state.subjugatedSettlements)) state.subjugatedSettlements = [];
-    if(typeof state.provinceName !== "string" || !state.provinceName.trim()) state.provinceName = "Province";
     if(typeof state.landFarmland !== "number") state.landFarmland = 0;
     if(typeof state.landUrban !== "number") state.landUrban = 0;
 
@@ -3599,7 +3863,6 @@ function processRecruitQueue(){
   if(gainedRanks > 1){
     metaText += " · +" + gainedRanks + " ranks at once";
   }
-
   meta.textContent = metaText;
 
   infoBlock.appendChild(label);
@@ -3914,10 +4177,13 @@ function decreeMult(){
     return Math.floor(60 * Math.pow(1.22, n));
   }
 
-  function costFarm(){
+function costFarm(){
+    // Cost of a farm scales with the realm. Returning the base cost; dynamic scaling
+    // occurs elsewhere via costFarm() logic.
     return 320;
   }
-  function costVilla(){
+function costVilla(){
+    // Base cost of a villa. The scaling logic resides elsewhere.
     return 5200;
   }
 
@@ -4487,126 +4753,49 @@ const totalPages = Math.max(1, Math.ceil(cards.length / PAGE_SIZE));
 
   
 
-
-// Province rename popup (in-game UI; no browser prompt)
-function showProvinceRenamePopup(){
-  const current = (typeof S.provinceName === "string" && S.provinceName.trim()) ? S.provinceName.trim() : "Province";
-
-  const overlay = document.createElement("div");
-  overlay.style.position = "fixed";
-  overlay.style.inset = "0";
-  overlay.style.display = "flex";
-  overlay.style.alignItems = "center";
-  overlay.style.justifyContent = "center";
-  overlay.style.zIndex = "1200";
-
-  const backdrop = document.createElement("div");
-  backdrop.style.position = "absolute";
-  backdrop.style.inset = "0";
-  backdrop.style.background = "rgba(0,0,0,.55)";
-  backdrop.style.backdropFilter = "blur(4px)";
-
-  const card = document.createElement("section");
-  card.className = "card";
-  card.style.position = "relative";
-  card.style.maxWidth = "420px";
-  card.style.width = "92%";
-  card.style.zIndex = "10";
-
-  const header = document.createElement("div");
-  header.className = "sectionTitle";
-  header.style.justifyContent = "center";
-  const headerSpan = document.createElement("span");
-  headerSpan.style.color = "var(--accent)";
-  headerSpan.style.fontWeight = "900";
-  headerSpan.textContent = "Rename Province";
-  header.appendChild(headerSpan);
-
-  const body = document.createElement("div");
-  body.className = "cardBody";
-
-  const p = document.createElement("p");
-  p.style.fontSize = ".85rem";
-  p.style.margin = "0 0 10px";
-  p.style.color = "var(--muted)";
-  p.textContent = "Choose a name for your province.";
-
-  const input = document.createElement("input");
-  input.type = "text";
-  input.value = current;
-  input.maxLength = 24;
-  input.style.width = "100%";
-  input.style.boxSizing = "border-box";
-  input.style.padding = "10px 12px";
-  input.style.borderRadius = "14px";
-  input.style.border = "1px solid rgba(255,255,255,.12)";
-  input.style.background = "rgba(0,0,0,.25)";
-  input.style.color = "var(--text)";
-  input.style.outline = "none";
-
-  const btnRow = document.createElement("div");
-  btnRow.style.display = "flex";
-  btnRow.style.gap = "10px";
-  btnRow.style.marginTop = "12px";
-
-  const cancelBtn = document.createElement("button");
-  cancelBtn.className = "smallBtn";
-  cancelBtn.style.flex = "1";
-  cancelBtn.textContent = "Cancel";
-
-  const okBtn = document.createElement("button");
-  okBtn.className = "smallBtn";
-  okBtn.style.flex = "1";
-  okBtn.textContent = "Save";
-
-  function close(){
-    try{ document.body.removeChild(overlay); }catch(e){}
-  }
-
-  function saveName(){
-    const v = (input.value || "").trim();
-    if(!v){
-      input.value = current;
-      input.focus();
-      input.select();
-      return;
-    }
-    S.provinceName = v;
-    save();
-    renderSubjugatedSettlementsList();
-    close();
-  }
-
-  backdrop.addEventListener("click", close);
-  cancelBtn.addEventListener("click", close);
-  okBtn.addEventListener("click", saveName);
-  input.addEventListener("keydown", (e)=>{
-    if(e.key === "Enter"){ e.preventDefault(); saveName(); }
-    if(e.key === "Escape"){ e.preventDefault(); close(); }
-  });
-
-  btnRow.appendChild(cancelBtn);
-  btnRow.appendChild(okBtn);
-  body.appendChild(p);
-  body.appendChild(input);
-  body.appendChild(btnRow);
-
-  card.appendChild(header);
-  card.appendChild(body);
-  overlay.appendChild(backdrop);
-  overlay.appendChild(card);
-  document.body.appendChild(overlay);
-  setTimeout(()=>{ try{ input.focus(); input.select(); }catch(e){} }, 0);
-}
-
 function renderSubjugatedSettlementsList(){
   const listEl = $("#subjugatedSettlementsList");
   if(!listEl) return;
   listEl.innerHTML = "";
-  const subs = Array.isArray(S.subjugatedSettlements) ? S.subjugatedSettlements : [];
 
-  // No province until the first settlement is conquered
-  if(!subs.length){
+  // Compute aggregated province stats from both the province object and any
+  // remaining legacy subjugated settlements. This allows existing conquest
+  // mechanics to remain untouched while presenting a single province summary.
+  let settlementCount = 0;
+  let totalPop = 0;
+  let totalTribute = 0;
+  let loyaltySum = 0;
+
+  // Pull aggregated stats from the province if it exists. Note: province
+  // properties are optional; fall back gracefully if missing.
+  if(S.province && typeof S.province === "object"){
+    const p = S.province;
+    settlementCount += (p.settlementCount || 0);
+    totalPop     += (p.totalPopulation || 0);
+    totalTribute += (p.tributePerSec || 0);
+    // Loyalty from province stability (0–100 scale). Default to 50.
+    loyaltySum += (typeof p.stability === "number" ? p.stability : 50);
+  }
+
+  // Add stats from any legacy subjugated settlements array. Even though the UI
+  // does not display them individually, conquest may still push to this array.
+  const subs = Array.isArray(S.subjugatedSettlements) ? S.subjugatedSettlements : [];
+  if(subs.length){
+    settlementCount += subs.length;
+    for(const st of subs){
+      if(!st || typeof st !== "object") continue;
+      const pop = Number(st.population || 0);
+      const inc = Number(st.income || 0);
+      const loyalty = (typeof st.loyalty === "number") ? st.loyalty : 50;
+      totalPop += pop;
+      totalTribute += inc;
+      // For aggregated loyalty, average the loyalty across settlements.
+      loyaltySum += loyalty;
+    }
+  }
+
+  // If no settlements exist, display an empty province message
+  if(settlementCount === 0){
     const empty = document.createElement("div");
     empty.className = "smallBtn factionCard";
     empty.textContent = "No province yet. Conquer a settlement to found your province.";
@@ -4614,82 +4803,70 @@ function renderSubjugatedSettlementsList(){
     return;
   }
 
-  // Aggregate into a single Province summary card
-  let totalPop = 0;
-  let totalTribute = 0;
-  let loyaltySum = 0;
-  let counted = 0;
+  // Compute average loyalty based on sums. Avoid division by zero.
+  const loyaltyAvg = settlementCount > 0 ? Math.max(0, Math.round(loyaltySum / settlementCount)) : 0;
 
-  for(const s of subs){
-    if(!s) continue;
-    const pop = (typeof s.population === "number") ? s.population : 0;
-    const income = (typeof s.income === "number") ? s.income : 0;
-    const loyalty = (typeof s.loyalty === "number") ? s.loyalty : 0;
-    totalPop += pop;
-    totalTribute += income;
-    loyaltySum += loyalty;
-    counted++;
+  // Province name: stored on S.province if available
+  let provinceName = "Province";
+  if(S.province && typeof S.province.name === "string" && S.province.name.trim().length){
+    provinceName = S.province.name.trim();
   }
 
-  const avgLoyalty = counted ? (loyaltySum / counted) : 0;
-  const provinceName = (typeof S.provinceName === "string" && S.provinceName.trim()) ? S.provinceName.trim() : "Province";
-  const farmlands = (typeof S.landFarmland === "number") ? S.landFarmland : 0;
-  const towns = (typeof S.landUrban === "number") ? S.landUrban : 0;
+  // Determine counts of farmland and urban lands from state. These values
+  // reflect how many village (farmland) and town (urban) settlements you
+  // currently control. Default to zero if not present.
+  const farmlandCount = (typeof S.landFarmland === "number" ? S.landFarmland : 0);
+  const urbanCount    = (typeof S.landUrban    === "number" ? S.landUrban    : 0);
 
-  const card = document.createElement("div");
-  card.className = "smallBtn factionCard";
+  // Build a single faction card summarising all conquered settlements. In
+  // addition to population, tribute and loyalty, include a row showing the
+  // composition of your lands (farms vs. towns) and a rename button. The
+  // rename button triggers a prompt so user can rename the province without
+  // triggering re-renders during typing. Culture and trait details have been
+  // intentionally removed to reduce clutter.
+  const el = document.createElement("div");
+  el.className = "smallBtn factionCard provinceCard";
+  el.innerHTML = [
+    '<div class="factionCardHeader">',
+      '<div>',
+        '<div class="factionCardTitle">🏛 ', escapeHtml(provinceName), '</div>',
+        '<div class="factionCardType">Province</div>',
+      '</div>',
+      '<div class="factionCardLeader">Settlements: ', fmt(settlementCount), '</div>',
+    '</div>',
+    '<div class="factionCardStats">',
+      '<div class="factionCardStat"><span>Population</span><b>', fmt(Math.floor(totalPop)), '</b></div>',
+      '<div class="factionCardStat"><span>Tribute</span><b>+', fmt(Math.round(totalTribute)), ' denarii/tick</b></div>',
+    '</div>',
+    '<div class="factionCardStats">',
+      '<div class="factionCardStat"><span>Loyalty</span><b>', loyaltyAvg, '</b></div>',
+      '<div class="factionCardStat"><span>Land</span><b>', fmt(farmlandCount), ' farms · ', fmt(urbanCount), ' towns</b></div>',
+    '</div>',
+    '<div class="provinceCardFooter" style="display:flex;justify-content:flex-end;margin-top:4px;">',
+      '<button type="button" class="tinyBtn renameProvinceBtn">Rename Province</button>',
+    '</div>'
+  ].join("");
+  listEl.appendChild(el);
 
-  const header = document.createElement("div");
-  header.className = "factionCardHeader";
-
-  const left = document.createElement("div");
-  const title = document.createElement("div");
-  title.className = "factionCardTitle";
-  title.textContent = provinceName;
-  const type = document.createElement("div");
-  type.className = "factionCardType";
-  type.textContent = `${subs.length} settlement${subs.length===1?"":"s"} controlled`;
-  left.appendChild(title);
-  left.appendChild(type);
-
-  const right = document.createElement("div");
-  right.className = "factionCardLeader";
-  right.textContent = `Loyalty: ${Math.round(avgLoyalty)}`;
-
-  header.appendChild(left);
-  header.appendChild(right);
-
-  const stats = document.createElement("div");
-  stats.className = "factionCardStats";
-  stats.innerHTML = [
-    '<div class="factionCardStat"><span>Population</span><b>', fmt(totalPop), '</b></div>',
-    '<div class="factionCardStat"><span>Tribute</span><b>+', fmt(Math.round(totalTribute)), ' denarii/tick</b></div>',
-    '<div class="factionCardStat"><span>Producing</span><b>',
-      (farmlands ? (farmlands + ' Farmland' + (farmlands===1?'':'s')) : '0 Farmlands'),
-      (towns ? (' · ' + towns + ' Town' + (towns===1?'':'s')) : ''),
-    '</b></div>'
-  ].join('');
-
-  const btnRow = document.createElement("div");
-  btnRow.style.marginTop = "8px";
-  btnRow.style.display = "flex";
-  btnRow.style.justifyContent = "flex-end";
-
-  const renameBtn = document.createElement("button");
-  renameBtn.type = "button";
-  renameBtn.className = "smallBtn";
-  renameBtn.textContent = "Rename";
-  renameBtn.addEventListener("click", (e)=>{
-    e.preventDefault();
-    e.stopPropagation();
-    showProvinceRenamePopup();
-  });
-  btnRow.appendChild(renameBtn);
-
-  card.appendChild(header);
-  card.appendChild(stats);
-  card.appendChild(btnRow);
-  listEl.appendChild(card);
+  // Hook up rename button. Use a prompt to avoid interfering with render
+  // updates during typing. Limit province names to 24 characters.
+  const renameBtn = el.querySelector(".renameProvinceBtn");
+  if(renameBtn){
+    renameBtn.onclick = () => {
+      const current = (S.province && typeof S.province.name === "string" && S.province.name.trim().length)
+        ? S.province.name.trim()
+        : "Province";
+      const newName = prompt("Rename your province", current);
+      if(newName && newName.trim().length){
+        const trimmed = newName.trim().slice(0, 24);
+        if(!S.province || typeof S.province !== "object") S.province = {};
+        S.province.name = trimmed;
+        // Persist new name and re-render
+        if(typeof save === "function") save();
+        try{ renderSubjugatedSettlementsList(); }catch(e){}
+      }
+    };
+  }
 }
 
 const BATTLE_ARCHETYPES = {
@@ -7782,6 +7959,31 @@ function canAccess(view){
     return (n/1_000_000_000).toFixed(1).replace(".0","") + "b";
   }
 
+  // Formatting helper for small fractional numbers (e.g., income per 5s)
+  // Shows 1 decimal place (or 2 when <10) without flooring.
+  function fmtDec(n){
+    n = Number(n) || 0;
+    if(!isFinite(n)) return "0";
+    if(Math.abs(n) < 10) return (Math.round(n * 100) / 100).toString().replace(/\.0+$/,"").replace(/(\.\d)0$/,"$1");
+    if(Math.abs(n) < 1000) return (Math.round(n * 10) / 10).toString().replace(/\.0$/,"");
+    return fmt(n);
+  }
+
+
+  // HTML escape helper used by various UI render functions. Converts special
+  // characters in arbitrary strings into their corresponding HTML entities.
+  // Without this helper, user-provided province names or trait labels could
+  // break markup or cause script errors when concatenated into HTML strings.
+  function escapeHtml(text){
+    const s = String(text);
+    return s
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   function renderTabs(){
     $$(".tab").forEach(btn => {
       const v = btn.dataset.go;
@@ -8473,8 +8675,44 @@ handleRankUps();
 
 
     $("#hutDesc").textContent   = `${fmt(S.hutCount||0)} huts • Cost ${fmt(costHut())} • +2 pop cap each`;
-    $("#farmDesc").textContent  = `${fmt(S.farmCount)} farms • Cost ${fmt(costFarm())} • +0.75 denarii/s each`;
-    $("#villaDesc").textContent = `${fmt(S.villaCount)} villas • Cost ${fmt(costVilla())} • +3.0 denarii/s each • +10 pop cap`;
+    {
+      const farms = S.farmCount || 0;
+      const tomR = (typeof FARM_ITEM_OUTPUTS !== "undefined" ? (FARM_ITEM_OUTPUTS.tomato || 0) : 0) * farms;
+      const potR = (typeof FARM_ITEM_OUTPUTS !== "undefined" ? (FARM_ITEM_OUTPUTS.potato || 0) : 0) * farms;
+      const grR  = (typeof FARM_ITEM_OUTPUTS !== "undefined" ? (FARM_ITEM_OUTPUTS.grain  || 0) : 0) * farms;
+      const foodR = tomR + potR + grR;
+      // Compute denarii income per 5 seconds using the last recorded income per second
+      const farmIncomePerSec = (typeof S.lastFarmIncomePerSec === "number" ? S.lastFarmIncomePerSec : farms * 0.75);
+      const farmPer5 = farmIncomePerSec * 5;
+      $("#farmDesc").textContent  = `${fmt(farms)} farms • Cost ${fmt(costFarm())} • Earns ${fmtDec(farmPer5)} denarii / 5s • Food +${foodR.toFixed(3)}/s`;
+
+      
+// Small animated meters on the farm card (feel like production)
+// EXACT 5s cycle: all farm bars fill 0→100% together and reset on payout.
+{
+  const pct = (S.farmCount > 0) ? Math.max(0, Math.min(1, (S.buildProgFarmDen || 0) / 5)) : 0;
+
+  const denBar = document.getElementById("farmProgressFill");
+  if(denBar){
+    denBar.style.width = "100%";
+    denBar.style.transformOrigin = "0 50%";
+    denBar.style.transform = "scaleX(" + pct.toFixed(4) + ")";
+  }
+}// Small animated meters on the villa card
+      const denBar = document.getElementById("villaProgressFill");
+      if(denBar){
+        // Tie the villa progress bar to time progress. Use S.buildProgVillaDen
+        const prog = (S.buildProgVillaDen || 0);
+        const villaCt = Number(S.villaCount) || 0;
+        const frac = villaCt > 0 ? Math.min(prog / 5, 1) : 0;
+        denBar.style.width = (frac * 100).toFixed(1) + "%";
+      }
+      const popBar = document.getElementById("villaPopBar");
+      if(popBar){
+        // Hide the villa population bar since villas should not display a pop meter.
+        popBar.style.display = "none";
+      }
+    }
 
     updateTitleProgress();
 
@@ -9796,9 +10034,8 @@ function showBattleSimulation(rep, tier){
   const enemyStatsEl = document.getElementById("battleSimEnemyStats");
   const yourStatsEl  = document.getElementById("battleSimYourStats");
   const eventsEl     = document.getElementById("battleSimEvents");
-  const btnContinue  = document.getElementById("battleSimContinue");
-
-  if(
+  const btnSkip      = document.getElementById("btnSkip") || document.getElementById("battleSimSkip") || document.getElementById("battleSimContinue");
+  const btnContinue  = document.getElementById("battleSimContinue");  if(
     !overlay || !title || !enemyNameEl ||
     !enemyBarImg || !yourBarImg || !enemyStatsEl || !yourStatsEl ||
     !eventsEl || !btnSkip || !btnContinue
@@ -10644,26 +10881,28 @@ bumpObjective("winBattle", 1);
         // Create a long-term subjugated settlement record and immediate occupation rewards.
         try {
           const settlementType = (factionBattleMeta && factionBattleMeta.type === "Town") ? "Town" : "Village";
+          const settlementName = (factionBattleMeta && factionBattleMeta.name) ? factionBattleMeta.name : "A neighbouring settlement";
           const basePop = Math.max(0, Math.round(rawPop));
           if(basePop > 0){
+            // Each conquered settlement becomes a subjugated settlement. Store basic stats.
+            const incomePerTick = Math.max(1, Math.round(basePop * 0.03));
             if(!Array.isArray(S.subjugatedSettlements)) S.subjugatedSettlements = [];
-            const settlementName = (factionBattleMeta && factionBattleMeta.name) ? factionBattleMeta.name : "A neighbouring settlement";
-            const existing = S.subjugatedSettlements.find && S.subjugatedSettlements.find(s => s && s.name === settlementName);
-            if(!existing){
-              const baseIncomePerPop = settlementType === "Town" ? 0.08 : 0.04;
-              const income = baseIncomePerPop * basePop;
-              S.subjugatedSettlements.push({
-                name: settlementName,
-                type: settlementType,
-                population: basePop,
-                loyalty: 50,
-                income: income
-              });
-              if(settlementType === "Village"){
-                S.landFarmland = (S.landFarmland || 0) + 1;
-              }else{
-                S.landUrban = (S.landUrban || 0) + 1;
-              }
+            S.subjugatedSettlements.push({
+              name: settlementName,
+              type: settlementType,
+              population: basePop,
+              income: incomePerTick,
+              loyalty: 50
+            });
+            // Increase land specialisation counts (farmland for villages, urban for towns)
+            if(settlementType === "Village"){
+              S.landFarmland = (S.landFarmland || 0) + 1;
+            }else{
+              S.landUrban = (S.landUrban || 0) + 1;
+            }
+            // Re-render the province summary after assimilation
+            if(typeof renderSubjugatedSettlementsList === "function"){
+              try{ renderSubjugatedSettlementsList(); }catch(e){}
             }
           }
         } catch(e){}
@@ -11310,11 +11549,39 @@ function updateConstructionPreviews(){
   const farmIncEl = $("#farmIncomePreview");
   const villaIncEl = $("#villaIncomePreview");
   if(farmIncEl){
-    farmIncEl.textContent = "0.75";
+    const farmsNow = S.farmCount || 0;
+    const per5 = farmsNow > 0 ? (farmsNow * 0.75 * 5) : 0;
+    farmIncEl.textContent = fmtDec(per5);
   }
   if(villaIncEl){
-    villaIncEl.textContent = "3.0";
+    const villasNow = S.villaCount || 0;
+    const per5 = villasNow > 0 ? (villasNow * 3.0 * 5) : 0;
+    villaIncEl.textContent = fmtDec(per5);
   }
+  // Update new Construction HUD pills (safe if elements exist)
+  const denPill = $("#constructDenarii");
+  const popPill = $("#constructPop");
+  const foodPill = $("#constructFood");
+  const farmsPill = $("#constructFarmsOwned");
+  const villasPill = $("#constructVillasOwned");
+  if(denPill) denPill.textContent = Math.floor((S && typeof S.gold === "number") ? S.gold : 0);
+  const popVal = (S && typeof S.population === "number") ? S.population : ((S && typeof S.pop === "number") ? S.pop : 0);
+  if(popPill) popPill.textContent = Math.floor(popVal);
+  const items = (S && S.foodInv) ? S.foodInv : ((S && S.items) ? S.items : {});
+  const foodTotal = (items.grain||0) + (items.potato||0) + (items.tomato||0) + (items.beans||0);
+  if(foodPill) foodPill.textContent = Math.floor(foodTotal);
+  // Food inventory rows inside Construction → Other tab
+  const invPot = $("#constructInvPotato");
+  const invTom = $("#constructInvTomato");
+  const invGra = $("#constructInvGrain");
+  const invBea = $("#constructInvBeans");
+  if(invPot) invPot.textContent = Math.floor(items.potato || 0);
+  if(invTom) invTom.textContent = Math.floor(items.tomato || 0);
+  if(invGra) invGra.textContent = Math.floor(items.grain  || 0);
+  if(invBea) invBea.textContent = Math.floor(items.beans  || 0);
+
+  if(farmsPill) farmsPill.textContent = Math.floor((S && typeof S.farmCount === "number") ? S.farmCount : (S.farmCount||0));
+  if(villasPill) villasPill.textContent = Math.floor((S && typeof S.villaCount === "number") ? S.villaCount : (S.villaCount||0));
 }
 
 const btnExport = $("#btnExport");
@@ -11449,14 +11716,257 @@ if(btnReset){
         }
       }
     }
+    // Compute total passive income for objectives/renown but distribute payments differently.
     const inc = (incomeBase + tributePerSec) * dt;
-    if(inc > 0){
-      S.gold += inc;
-      if(typeof S.lifetimeGold === "number") S.lifetimeGold += inc;
-    }
 
-    // Objectives: passive income counts toward "Earn denarii"
-    if(inc > 0) bumpEarnedDenarii(inc);
+    // ---------------------------------------------------------------------
+    // Modified passive income distribution:
+    // - Denarii from farms and villas accumulate progress on a meter and only
+    //   award whole denarii when the meter fills (idle payout).
+    // - All other income (e.g. land, labourers, taxes, tribute) is paid
+    //   immediately each tick.
+    // ---------------------------------------------------------------------
+    {
+      // Determine raw building incomes and scale them relative to total raw income.
+      const farmCount = S.farmCount || 0;
+      const villaCount = S.villaCount || 0;
+
+      // Raw income per second for farms and villas (before multipliers)
+      let farmRaw = farmCount * 0.75;
+      // Soft cap reduces farm income if too many farms versus land
+      const softCap = 6 + (S.land || 0) * 2;
+      if(farmCount > softCap){
+        farmRaw *= Math.max(0.60, 1 - (farmCount - softCap) * 0.04);
+      }
+      const villaRaw = villaCount * 3.0;
+      // Other raw income components (land workers, base land tax)
+      const landWork   = (typeof landWorkersIncome === "function") ? landWorkersIncome() : 0;
+      const landBase   = (typeof landBaseIncome === "function") ? landBaseIncome() : 0;
+      const terrCount  = Array.isArray(S.controlledRegions) ? S.controlledRegions.length : 0;
+      const landTax    = (typeof LAND_TAX_RATE !== "undefined" ? LAND_TAX_RATE : 0) * terrCount;
+      const baseRaw    = farmRaw + villaRaw + landWork + landBase + landTax;
+      // Scale farm and villa income by their share of raw income relative to incomeBase.
+      let farmIncome  = 0;
+      let villaIncome = 0;
+      if(baseRaw > 0){
+        farmIncome  = (farmRaw  / baseRaw) * incomeBase;
+        villaIncome = (villaRaw / baseRaw) * incomeBase;
+      }
+      // All other income (including tribute) is paid immediately.
+      const otherIncome = incomeBase - farmIncome - villaIncome;
+      const incOther = (otherIncome + tributePerSec) * dt;
+      if(incOther > 0){
+        S.gold += incOther;
+        if(typeof S.lifetimeGold === "number") S.lifetimeGold += incOther;
+      }
+      // Record the last computed per-second incomes for display
+      S.lastFarmIncomePerSec = farmIncome;
+      S.lastVillaIncomePerSec = villaIncome;
+
+      // Passive payout on a fixed 5‑second cycle
+      // We accumulate time on a progress meter and only award denarii in
+      // 5‑second chunks. This 
+      // Smooth 5s production cycles (Farms/Villas) driven by requestAnimationFrame.
+      // This keeps the progress bars perfectly smooth even if the main game tick/render runs slower.
+      if(!window.__E2K_ProdBarsLoopStarted){
+        window.__E2K_ProdBarsLoopStarted = true;
+
+        if(typeof S.buildProgFarmDen !== "number") S.buildProgFarmDen = 0;   // seconds into current 5s cycle
+        if(typeof S.buildProgVillaDen !== "number") S.buildProgVillaDen = 0; // seconds into current 5s cycle
+
+        let _lastMS = performance.now();
+        // --- Food loot (matches Construction Menu Only prototype) ---
+        const __E2K_FOOD_ITEMS = [
+          { key:"potato", weight: 1.15 },
+          { key:"tomato", weight: 0.85 },
+          { key:"grain",  weight: 1.35 },
+          { key:"beans",  weight: 1.00 },
+        ];
+        const __E2K_FOOD_TOTAL_PER_FARM_PER_CYCLE = 4; // units per farm per 5s
+
+        function __e2kRollFood(units){
+          // Deterministic weighted roll (avoids "all grain" outcomes and matches splash/inventory 1:1).
+          // Builds a repeating weighted bag once, then distributes units across it.
+          const out = { potato:0, tomato:0, grain:0, beans:0 };
+          units = Math.floor(Number(units) || 0);
+          if(units <= 0) return out;
+
+          // Build a small weighted bag (scaled) for stable distribution.
+          // Ratio roughly follows weights: potato 1.15, tomato 0.85, grain 1.35, beans 1.00
+          const bag = [];
+          const pushN = (key, n)=>{ for(let i=0;i<n;i++) bag.push(key); };
+
+          pushN("potato", 23);
+          pushN("tomato", 17);
+          pushN("grain",  27);
+          pushN("beans",  20);
+
+          const L = bag.length || 1;
+          for(let i=0;i<units;i++){
+            const key = bag[i % L];
+            out[key] = (out[key] || 0) + 1;
+          }
+          return out;
+        }
+
+
+
+        function _prodLoop(nowMS){
+          const dtSec = Math.min(0.2, (nowMS - _lastMS) / 1000);
+          _lastMS = nowMS;
+
+          const farmCount = S.farmCount || 0;
+          const villaCount = S.villaCount || 0;
+
+          // Construction overlay visibility (prevents ReferenceError / TDZ)
+          const overlayOpen = (typeof constructionOverlay !== "undefined")
+            && constructionOverlay
+            && constructionOverlay.classList.contains("visible")
+            && !constructionOverlay.hasAttribute("hidden");
+
+
+          // Income-per-second must match your construction preview numbers.
+          const farmIncome = farmCount * 0.75; // denarii/sec
+          const villaIncome = villaCount * 3.0; // denarii/sec
+
+          // Advance progress only if producing
+          if(farmCount > 0 && farmIncome > 0){
+            S.buildProgFarmDen += dtSec;
+          }else{
+            S.buildProgFarmDen = 0;
+          }
+
+          if(villaCount > 0 && villaIncome > 0){
+            S.buildProgVillaDen += dtSec;
+          }else{
+            S.buildProgVillaDen = 0;
+          }
+
+          // Payout on cycle completion (exactly like the prototype: payout only when bar completes)
+          
+if(S.buildProgFarmDen >= 5){
+  const intervals = Math.floor(S.buildProgFarmDen / 5);
+  const payoutGold = farmIncome * 5 * intervals;
+
+  
+  // Food loot per cycle (matches the Construction Menu Only prototype): rolls into inventory on completion.
+  const totalFoodUnits = Math.max(0, Math.floor((farmCount || 0) * __E2K_FOOD_TOTAL_PER_FARM_PER_CYCLE)) * intervals;
+  const alloc = __e2kRollFood(totalFoodUnits);
+
+  if(!S.items || typeof S.items !== "object") S.items = {};
+  for(const k of ["potato","tomato","grain","beans"]){
+    if(typeof S.items[k] !== "number") S.items[k] = 0;
+  }
+  // Add rolled loot
+  S.items.potato += alloc.potato;
+  S.items.tomato += alloc.tomato;
+  S.items.grain  += alloc.grain;
+  S.items.beans  += alloc.beans;
+
+  // Also mirror into dedicated farm inventory (used by Construction menu inventory UI)
+  if(!S.foodInv || typeof S.foodInv !== "object") S.foodInv = { potato:0, tomato:0, grain:0, beans:0 };
+  for(const k of ["potato","tomato","grain","beans"]){
+    if(typeof S.foodInv[k] !== "number") S.foodInv[k] = 0;
+  }
+  S.foodInv.potato += alloc.potato;
+  S.foodInv.tomato += alloc.tomato;
+  S.foodInv.grain  += alloc.grain;
+  S.foodInv.beans  += alloc.beans;
+
+  const tomato = alloc.tomato;
+  const potato = alloc.potato;
+  const grain  = alloc.grain;
+  const beans  = alloc.beans;
+if(payoutGold > 0){
+    S.gold += payoutGold;
+    if(typeof S.lifetimeGold === "number") S.lifetimeGold += payoutGold;
+  }
+
+  // Splash only when overlay is open
+  if(overlayOpen){
+    const el = document.getElementById("farmSplash");
+    if(el){
+      
+      const parts = [];
+      if(tomato) parts.push("🍅x"+tomato);
+      if(potato) parts.push("🥔x"+potato);
+      if(grain)  parts.push("🌾x"+grain);
+      if(beans)  parts.push("🫘x"+beans);
+      const loot = parts.length ? ("  " + parts.join("  ")) : "";
+      el.textContent = `+${Math.floor(payoutGold)}💰${loot}`;
+      el.classList.remove("show");
+      void el.offsetWidth;
+      el.classList.add("show");
+    }
+  }
+
+  S.buildProgFarmDen -= intervals * 5;
+}
+
+          
+if(S.buildProgVillaDen >= 5){
+  const intervals = Math.floor(S.buildProgVillaDen / 5);
+  const payoutGold = villaIncome * 5 * intervals;
+
+  if(payoutGold > 0){
+    S.gold += payoutGold;
+    if(typeof S.lifetimeGold === "number") S.lifetimeGold += payoutGold;
+  }
+
+  if(overlayOpen){
+    const el = document.getElementById("villaSplash");
+    if(el){
+      el.textContent = `+${Math.floor(payoutGold)}💰`;
+      el.classList.remove("show");
+      void el.offsetWidth;
+      el.classList.add("show");
+    }
+  }
+
+  S.buildProgVillaDen -= intervals * 5;
+}
+          // Update bar visuals only when the construction overlay is open
+
+          if(overlayOpen){
+            const pct = Math.max(0, Math.min(1, (S.buildProgFarmDen || 0) / 5));
+            const farmGoldFill = document.getElementById("farmProgressGoldFill");
+            const farmFoodFill = document.getElementById("farmProgressFill") || document.getElementById("farmDenBar");
+            if(farmGoldFill){
+              farmGoldFill.style.width = "100%";
+              farmGoldFill.style.transformOrigin = "0 50%";
+              farmGoldFill.style.transform = "scaleX(" + pct.toFixed(4) + ")";
+              farmGoldFill.style.willChange = "transform";
+              farmGoldFill.style.transition = "transform 0.016s linear";
+            }
+            if(farmFoodFill){
+              farmFoodFill.style.width = "100%";
+              farmFoodFill.style.transformOrigin = "0 50%";
+              farmFoodFill.style.transform = "scaleX(" + pct.toFixed(4) + ")";
+              farmFoodFill.style.willChange = "transform";
+              farmFoodFill.style.transition = "transform 0.016s linear";
+            }const villaFill = document.getElementById("villaProgressFill") || document.getElementById("villaDenBar");
+            if(villaFill){
+              const pct = Math.max(0, Math.min(1, (S.buildProgVillaDen || 0) / 5));
+              villaFill.style.width = "100%";
+              villaFill.style.transformOrigin = "0 50%";
+              villaFill.style.transform = "scaleX(" + pct.toFixed(4) + ")";
+              villaFill.style.willChange = "transform";
+              villaFill.style.transition = "transform 0.016s linear";
+            }
+          }
+
+          
+          // Keep Construction HUD + previews live while the menu is open (so you don't need to close/reopen).
+          if(overlayOpen && typeof updateConstructionPreviews === "function"){
+            updateConstructionPreviews();
+          }
+requestAnimationFrame(_prodLoop);
+        }
+
+        requestAnimationFrame(_prodLoop);
+      }
+// Objectives: passive income counts toward "Earn denarii"
+    if(inc > 0 && typeof bumpEarnedDenarii === "function") bumpEarnedDenarii(inc);
 
     // Passive renown: as your wealth, land, villas and population grow,
     // word of your rule spreads slowly even while you are not tapping.
@@ -11595,7 +12105,7 @@ if(btnReset){
 
 
     render({ skipBattles: true });
-  }, 650);
+  }}, 650);
 
   // First paint
   $("#log").innerHTML = "";
@@ -13194,6 +13704,7 @@ function currentRecruitBatchSize(){
 
   // Ensure the player's state has an inventory for all defined trade items.
   function ensureTradeItemsState(){
+    if(!Array.isArray(tradeItems)) tradeItems = [];
     if(!S.items || typeof S.items !== "object"){
       S.items = {};
     }
@@ -13219,167 +13730,125 @@ function currentRecruitBatchSize(){
     const container = document.getElementById('tradeOptionsContainer');
     const noteEl = document.getElementById('tradeOverlayNote');
     if(!container) return;
+
+    const gold = (S && typeof S.gold === 'number') ? S.gold : 0;
+
     // Compose contextual note showing available gold and current tab
-    const gold = S.gold || 0;
     let note = `You have ${fmt(gold)} denarii.`;
-    if(currentTradeTab === 'buy'){
-      note += ' Select items to purchase.';
-    }else{
-      note += ' Select items to sell.';
-    }
+    note += (currentTradeTab === 'buy') ? ' Select items to purchase.' : ' Select items to sell.';
     if(noteEl) noteEl.textContent = note;
+
+    // Build a display list that includes tradable goods + farm food loot (non-tradable)
+    const tradeList = Array.isArray(tradeItems) ? tradeItems : [];
+    const tradeMap = {};
+    for(const it of tradeList){
+      if(it && it.id) tradeMap[it.id] = it;
+    }
+
+    const extraIds = ["potato","tomato","beans","grain"];
+    const display = [];
+    const seen = new Set();
+    const pushId = (id)=>{
+      if(!id || seen.has(id)) return;
+      seen.add(id);
+      if(tradeMap[id]){
+        display.push(tradeMap[id]);
+      }else{
+        const def = (typeof ITEM_DEFS !== 'undefined' && ITEM_DEFS[id]) ? ITEM_DEFS[id] : { label: id, icon: '' };
+        display.push({ id, name: def.label, buyPrice: null, sellPrice: null, _nonTrade: true });
+      }
+      if(!S.items || typeof S.items !== 'object') S.items = {};
+      if(typeof S.items[id] !== 'number') S.items[id] = 0;
+    };
+
+    for(const it of tradeList) pushId(it.id);
+    for(const id of extraIds) pushId(id);
+
     // Clear previous rows
     container.innerHTML = '';
-    if(currentTradeTab === 'buy'){
-      // Display items for purchase
-      for(const item of tradeItems){
-        const row = document.createElement('div');
-        row.style.display = 'flex';
-        row.style.alignItems = 'center';
-        row.style.justifyContent = 'space-between';
-        // Left column: name and cost
-        const leftCol = document.createElement('div');
-        leftCol.style.display = 'flex';
-        leftCol.style.flexDirection = 'column';
-        // Determine the display label and icon from ITEM_DEFS. If a custom
-        // definition is missing, fall back to the provided name and no icon.
-        const def = (typeof ITEM_DEFS !== 'undefined' && ITEM_DEFS[item.id]) ? ITEM_DEFS[item.id] : { label: item.name, icon: '' };
-        const nameSpan = document.createElement('div');
-        nameSpan.textContent = `${def.icon || ''} ${def.label}`;
-        const descSpan = document.createElement('div');
-        descSpan.style.fontSize = '.8rem';
-        descSpan.style.color = 'var(--muted)';
-        descSpan.textContent = `Cost ${fmt(item.buyPrice)}`;
-        leftCol.appendChild(nameSpan);
-        leftCol.appendChild(descSpan);
-        // Right column: buy button and owned quantity
-        const rightCol = document.createElement('div');
-        rightCol.style.display = 'flex';
-        rightCol.style.flexDirection = 'column';
-        const btn = document.createElement('button');
-        btn.className = 'smallBtn';
+
+    for(const item of display){
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.alignItems = 'center';
+      row.style.justifyContent = 'space-between';
+      row.style.gap = '10px';
+      row.style.padding = '8px 0';
+      row.style.borderBottom = '1px solid rgba(255,255,255,.08)';
+
+      // Left: label + price/desc
+      const leftCol = document.createElement('div');
+      leftCol.style.display = 'flex';
+      leftCol.style.flexDirection = 'column';
+      leftCol.style.minWidth = '0';
+
+      const def = (typeof ITEM_DEFS !== 'undefined' && ITEM_DEFS[item.id]) ? ITEM_DEFS[item.id] : { label: item.name || item.id, icon: '' };
+
+      const nameSpan = document.createElement('div');
+      nameSpan.textContent = `${def.icon || ''} ${def.label}`;
+      const descSpan = document.createElement('div');
+      descSpan.style.fontSize = '.8rem';
+      descSpan.style.color = 'var(--muted)';
+
+      if(currentTradeTab === 'buy'){
+        descSpan.textContent = (typeof item.buyPrice === 'number') ? `Cost ${fmt(item.buyPrice)}` : 'Not tradable';
+      }else{
+        descSpan.textContent = (typeof item.sellPrice === 'number') ? `Sells for ${fmt(item.sellPrice)}` : 'Not tradable';
+      }
+
+      leftCol.appendChild(nameSpan);
+      leftCol.appendChild(descSpan);
+
+      // Right: button + owned
+      const rightCol = document.createElement('div');
+      rightCol.style.display = 'flex';
+      rightCol.style.flexDirection = 'column';
+      rightCol.style.alignItems = 'flex-end';
+      rightCol.style.gap = '6px';
+
+      const btn = document.createElement('button');
+      btn.className = 'smallBtn';
+
+      const owned = (S.items && typeof S.items[item.id] === 'number') ? S.items[item.id] : 0;
+
+      if(currentTradeTab === 'buy'){
         btn.textContent = 'Buy';
-        btn.disabled = (gold < item.buyPrice);
-        btn.addEventListener('click', function(){
-          const currentGold = S.gold || 0;
-          if(currentGold < item.buyPrice){
-            toast(`Not enough denarii to buy ${item.name}.`);
-            return;
-          }
-          S.gold = currentGold - item.buyPrice;
-          S.items[item.id] = (S.items[item.id] || 0) + 1;
-          logLine(`You bought 1 ${item.name}.`, 'good');
-          toast(`-${fmt(item.buyPrice)} denarii`);
+        const price = item.buyPrice;
+        btn.disabled = !(typeof price === 'number') || (gold < price);
+        btn.addEventListener('click', ()=>{
+          if(!(typeof price === 'number')) return;
+          if(S.gold < price) return;
+          S.gold -= price;
+          if(typeof S.items[item.id] !== 'number') S.items[item.id] = 0;
+          S.items[item.id] += 1;
           renderTradeOptions();
-          if(typeof render === 'function') render();
+          render();
         });
-        const qtySpan = document.createElement('div');
-        qtySpan.style.fontSize = '.8rem';
-        qtySpan.style.color = 'var(--muted)';
-        qtySpan.textContent = `Owned: ${fmt(S.items[item.id] || 0)}`;
-        rightCol.appendChild(btn);
-        rightCol.appendChild(qtySpan);
-        row.appendChild(leftCol);
-        row.appendChild(rightCol);
-        container.appendChild(row);
-      }
-    }else{
-      // Display items for sale, including captives
-      // Sell standard items
-      for(const item of tradeItems){
-        const qty = S.items[item.id] || 0;
-        if(qty <= 0) continue;
-        const row = document.createElement('div');
-        row.style.display = 'flex';
-        row.style.alignItems = 'center';
-        row.style.justifyContent = 'space-between';
-        // Left column: name and sale price
-        const leftCol = document.createElement('div');
-        leftCol.style.display = 'flex';
-        leftCol.style.flexDirection = 'column';
-        // Use ITEM_DEFS to display icon and proper label for the item.
-        const def = (typeof ITEM_DEFS !== 'undefined' && ITEM_DEFS[item.id]) ? ITEM_DEFS[item.id] : { label: item.name, icon: '' };
-        const nameSpan = document.createElement('div');
-        nameSpan.textContent = `${def.icon || ''} ${def.label}`;
-        const descSpan = document.createElement('div');
-        descSpan.style.fontSize = '.8rem';
-        descSpan.style.color = 'var(--muted)';
-        descSpan.textContent = `Sell for ${fmt(item.sellPrice)}`;
-        leftCol.appendChild(nameSpan);
-        leftCol.appendChild(descSpan);
-        // Right column: sell button and owned quantity
-        const rightCol = document.createElement('div');
-        rightCol.style.display = 'flex';
-        rightCol.style.flexDirection = 'column';
-        const btn = document.createElement('button');
-        btn.className = 'smallBtn';
+      }else{
         btn.textContent = 'Sell';
-        btn.disabled = (qty <= 0);
-        btn.addEventListener('click', function(){
+        const price = item.sellPrice;
+        btn.disabled = !(typeof price === 'number') || (owned <= 0);
+        btn.addEventListener('click', ()=>{
+          if(!(typeof price === 'number')) return;
           if((S.items[item.id] || 0) <= 0) return;
-          S.items[item.id] = (S.items[item.id] || 0) - 1;
-          S.gold = (S.gold || 0) + item.sellPrice;
-          logLine(`You sold 1 ${item.name}.`, 'good');
-          toast(`+${fmt(item.sellPrice)} denarii`);
+          S.items[item.id] -= 1;
+          S.gold += price;
           renderTradeOptions();
-          if(typeof render === 'function') render();
+          render();
         });
-        const qtySpan = document.createElement('div');
-        qtySpan.style.fontSize = '.8rem';
-        qtySpan.style.color = 'var(--muted)';
-        qtySpan.textContent = `Owned: ${fmt(qty)}`;
-        rightCol.appendChild(btn);
-        rightCol.appendChild(qtySpan);
-        row.appendChild(leftCol);
-        row.appendChild(rightCol);
-        container.appendChild(row);
       }
-      // Sell captives (captivi) if any
-      if((S.captivi || 0) > 0){
-        const qty = S.captivi || 0;
-        const row = document.createElement('div');
-        row.style.display = 'flex';
-        row.style.alignItems = 'center';
-        row.style.justifyContent = 'space-between';
-        const leftCol = document.createElement('div');
-        leftCol.style.display = 'flex';
-        leftCol.style.flexDirection = 'column';
-        const nameSpan = document.createElement('div');
-        // Use ITEM_DEFS.captivi if defined for icon and label; default fallback
-        const defCapt = (typeof ITEM_DEFS !== 'undefined' && ITEM_DEFS.captivi) ? ITEM_DEFS.captivi : { label: 'Captive', icon: '' };
-        nameSpan.textContent = `${defCapt.icon || ''} ${defCapt.label}`;
-        const descSpan = document.createElement('div');
-        descSpan.style.fontSize = '.8rem';
-        descSpan.style.color = 'var(--muted)';
-        descSpan.textContent = `Sell for ${fmt(CAPTIVI_SELL_PRICE)}`;
-        leftCol.appendChild(nameSpan);
-        leftCol.appendChild(descSpan);
-        const rightCol = document.createElement('div');
-        rightCol.style.display = 'flex';
-        rightCol.style.flexDirection = 'column';
-        const btn = document.createElement('button');
-        btn.className = 'smallBtn';
-        btn.textContent = 'Sell';
-        btn.disabled = (qty <= 0);
-        btn.addEventListener('click', function(){
-          if((S.captivi || 0) <= 0) return;
-          S.captivi = (S.captivi || 0) - 1;
-          S.gold = (S.gold || 0) + CAPTIVI_SELL_PRICE;
-          logLine(`You ransomed 1 captive.`, 'good');
-          toast(`+${fmt(CAPTIVI_SELL_PRICE)} denarii`);
-          renderTradeOptions();
-          if(typeof render === 'function') render();
-        });
-        const qtySpan = document.createElement('div');
-        qtySpan.style.fontSize = '.8rem';
-        qtySpan.style.color = 'var(--muted)';
-        qtySpan.textContent = `Owned: ${fmt(qty)}`;
-        rightCol.appendChild(btn);
-        rightCol.appendChild(qtySpan);
-        row.appendChild(leftCol);
-        row.appendChild(rightCol);
-        container.appendChild(row);
-      }
+
+      const ownedSpan = document.createElement('div');
+      ownedSpan.style.fontSize = '.8rem';
+      ownedSpan.style.color = 'var(--muted)';
+      ownedSpan.textContent = `Owned: ${fmt(owned)}`;
+
+      rightCol.appendChild(btn);
+      rightCol.appendChild(ownedSpan);
+
+      row.appendChild(leftCol);
+      row.appendChild(rightCol);
+      container.appendChild(row);
     }
   }
 
@@ -13488,55 +13957,77 @@ function currentRecruitBatchSize(){
   // updates the inventory count in the header as well. Called by the main
   // render() loop and also after drop actions.
   function renderInventory(){
-    // Ensure there is an items state and trade items defined
-    ensureTradeItemsState();
+    // Ensure inventory objects exist
+    if(!S.items || typeof S.items !== "object") S.items = {};
+    if(!S.itemFrac || typeof S.itemFrac !== "object") S.itemFrac = {};
+
+    // Keep trade items initialized (does NOT delete other keys)
+    if(typeof ensureTradeItemsState === "function") ensureTradeItemsState();
+
     const listEl = document.getElementById('inventoryList');
     const countEl = document.getElementById('inventoryCount');
     if(!listEl) return;
-    // Clear any existing rows
+
+    // Build a display order:
+    // 1) Food items (potato/tomato/grain/beans)
+    // 2) Trade items list
+    // 3) Any other item keys that exist in S.items
+    const baseFood = ["potato","tomato","grain","beans"];
+    const tradeIds = (Array.isArray(tradeItems) ? tradeItems.map(t=>t.id) : []);
+    const extra = Object.keys(S.items).filter(k => !baseFood.includes(k) && !tradeIds.includes(k));
+    const order = [...baseFood, ...tradeIds, ...extra];
+
+    // Render only items that have a definition OR a nonzero quantity
     listEl.innerHTML = '';
     let totalCount = 0;
-    for(const item of tradeItems){
-      const qty = S.items[item.id] || 0;
-      totalCount += qty;
-      // Row container for each item
+
+    for(const id of order){
+      const qty = Number(S.items[id] || 0);
+      if(!qty && !(ITEM_DEFS && ITEM_DEFS[id])) continue; // hide unknown zeros
+      if(qty > 0) totalCount += qty;
+
       const row = document.createElement('div');
       row.style.display = 'flex';
       row.style.justifyContent = 'space-between';
       row.style.alignItems = 'center';
-      // Name and quantity
+      row.style.gap = '10px';
+
       const label = document.createElement('div');
       label.style.flex = '1';
-      label.textContent = `${item.name}: ${fmt(qty)}`;
-      // Drop button
-      const dropBtn = document.createElement('button');
-      dropBtn.className = 'smallBtn';
-      dropBtn.textContent = 'Drop';
-      dropBtn.disabled = (qty <= 0);
-      dropBtn.addEventListener('click', function(){
-        if((S.items[item.id] || 0) <= 0) return;
-        // Remove one item from inventory
-        S.items[item.id] = (S.items[item.id] || 0) - 1;
-        logLine(`You dropped 1 ${item.name}.`, 'warn');
-        toast(`Dropped 1 ${item.name}`);
-        // Refresh inventory list and overall UI
-        renderInventory();
-        if(typeof render === 'function') render();
+      const def = (typeof ITEM_DEFS !== 'undefined' && ITEM_DEFS[id]) ? ITEM_DEFS[id] : { label: id, icon: '' };
+      label.textContent = `${def.icon ? (def.icon + ' ') : ''}${def.label}`;
+
+      const qtyEl = document.createElement('div');
+      qtyEl.style.minWidth = '70px';
+      qtyEl.style.textAlign = 'right';
+      qtyEl.style.fontFamily = 'var(--mono)';
+      qtyEl.textContent = fmt(qty);
+
+      const btn = document.createElement('button');
+      btn.className = 'smallBtn';
+      btn.textContent = 'Drop';
+      btn.disabled = qty <= 0;
+      btn.addEventListener('click', () => {
+        if(!S.items || typeof S.items !== "object") return;
+        const cur = Number(S.items[id] || 0);
+        if(cur <= 0) return;
+        S.items[id] = Math.max(0, cur - 1);
+        toast(`Dropped 1 ${def.label}.`);
+        save();
+        render();
       });
-      // Append to row
+
       row.appendChild(label);
-      row.appendChild(dropBtn);
+      row.appendChild(qtyEl);
+      row.appendChild(btn);
       listEl.appendChild(row);
     }
+
     if(countEl){
-      countEl.textContent = fmt(totalCount) + ' items';
+      countEl.textContent = `${fmt(totalCount)} items`;
     }
   }
 
-  // Build the battle inventory list inside the dedicated overlay. Used to
-  // allow players to drop items during tactical battles. Similar to
-  // renderInventory() but targets a different container and omits the
-  // inventory count update.
   function renderBattleInventory(){
     ensureTradeItemsState();
     const listEl = document.getElementById('battleInventoryList');
