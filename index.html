@@ -1,4 +1,3 @@
-
 <!doctype html>
 <!--
 === ELDER TO KING – CODE MAP / GLOSSARY ===
@@ -22,7 +21,6 @@ Search for the [VIEW] or [SYS] tag below to jump to that system.
 -->
 
 
-<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -1303,7 +1301,7 @@ body.theme-parchment{
   color:var(--accent);
 }
 
-/* Secondary small buttons ("Build Huts", nav tabs etc.) */
+/* Secondary small buttons ("Build", nav tabs etc.) */
 .smallBtn{
   border:1px solid rgba(158,104,54,.9);
   background: linear-gradient(180deg,#fdf6eb,#f2e0c5);
@@ -1626,18 +1624,20 @@ header{
   margin-bottom:8px;
 }
 #constructionOverlay .e2kPill{
-  border:1px solid rgba(244,170,92,.70);
-  background: rgba(255,255,255,0.08);
+  border:1px solid rgba(158,104,54,.85);
+  background: rgba(255,246,232,0.92);
   border-radius:999px;
-  padding:8px 10px;
-  box-shadow: 0 12px 24px rgba(0,0,0,.20);
+  padding:9px 12px;
+  box-shadow: 0 10px 18px rgba(0,0,0,.18);
   font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
-  font-size:.75rem;
+  font-size:.92rem;
+  line-height:1;
   white-space:nowrap;
-  color: var(--paper, #f7f2e7);
+  color: rgba(60,40,22,.95);
   user-select:none;
 }
-#constructionOverlay .e2kPill b{ color: rgba(244,208,111,.95); font-weight:900; }
+
+#constructionOverlay .e2kPill b{ color: rgba(120,70,28,.98); font-weight:900; }
 
 #constructionOverlay .e2kConstructGrid{
   display:grid;
@@ -1864,14 +1864,14 @@ header{
       <div id="offlineBody" class="offlineBody">
         <!-- Filled by JS -->
       </div>
-      <div class="offlineOkRow">
+      <div class="offlineOkRow" style="flex:0 0 auto;">
         <button id="offlineOkBtn" class="offlineOkBtn">OK</button>
       </div>
     </section>
   </div>
 
   <div id="gloryOverlay" class="offlineOverlay" hidden>
-    <section class="offlineCard" role="dialog" aria-modal="true" aria-labelledby="gloryTitle">
+    <section class="offlineCard" role="dialog" aria-modal="true" aria-labelledby="gloryTitle" style="max-height:85vh; overflow:hidden; display:flex; flex-direction:column;">
       <div class="offlineTitle">
         <div>
           <div id="gloryTitle" class="offlineTitleText"><img src="Sprites/Castrum Victoriae.png" style="width:192px;height:192px;image-rendering:pixelated;vertical-align:middle;"></div>
@@ -1879,7 +1879,7 @@ header{
         </div>
         <div class="offlineSub">Glory <b id="gloryOverlayNow">0</b></div>
       </div>
-      <div id="gloryBody" class="offlineBody">
+      <div id="gloryBody" class="offlineBody" style="flex:1 1 auto; overflow-y:auto; min-height:0;">
         <p>Spend glory to recruit special forces with unique battlefield roles.</p>
 
         <div class="gloryUnitColumn">
@@ -1970,7 +1970,7 @@ header{
           </div>
         </div>
       </div>
-      <div class="offlineOkRow">
+      <div class="offlineOkRow" style="flex:0 0 auto; margin-top:10px;">
         <button id="gloryCloseBtn" class="offlineOkBtn">Close</button>
       </div>
     </section>
@@ -1989,17 +1989,15 @@ header{
           <div id="constructionTitle" class="offlineTitleText">Construction</div>
           <div class="offlineSub">Spend denarii to expand and improve your settlement.</div>
         </div>
-        <div style="font-size:1.6rem;line-height:1;">🏗️</div>
+        
+        <button id="constructionCloseBtn" class="offlineOkBtn" style="margin-left:10px;">Close</button>
       </div>
 
       <div class="offlineBody">
         <div class="e2kConstructHud">
           <div class="e2kPill">💰 Denarii <b id="constructDenarii">0</b></div>
           <div class="e2kPill">👥 Pop <b id="constructPop">0</b></div>
-          <div class="e2kPill">🍞 Food <b id="constructFood">0</b></div>
-          <div class="e2kPill">🌾 Farms <b id="constructFarmsOwned">0</b></div>
-          <div class="e2kPill">🏛 Villas <b id="constructVillasOwned">0</b></div>
-        </div>
+</div>
 
         <div class="constructionTabs" style="margin-top:10px;">
           <button class="smallBtn constructionTab active" data-tab="economy">Economy</button>
@@ -2011,88 +2009,67 @@ header{
           <div id="constructionTab-economy" class="constructionTabPanel">
             <div class="e2kConstructGrid">
 
-              <!-- HUTS -->
-              <div class="e2kBuildCard" id="hutCard" style="display:none;">
-                <div class="e2kBuildTop">
-                  <div>
-                    <div class="e2kBuildName">Build Huts</div>
-                    <div class="e2kBuildDesc" id="hutDesc">Cheap shelter. Attracts settlers.</div>
-                  </div>
-                  <div class="e2kBuildIcon">🏚️</div>
-                </div>
-                <div class="e2kBuildMeta">
-                  <span>Cost: <b id="hutCostPreview">?</b> denarii</span>
-                  <span>+<b id="hutIncomePreview">?</b> cap</span>
-                </div>
-                <div class="e2kBuildActions">
-                  <button class="btn" id="btnHut" type="button">Buy Huts</button>
-                </div>
-              </div>
-
-              <!-- FARM -->
+              <!-- FARMS -->
               <div class="e2kBuildCard" id="farmCard">
                 <div class="e2kBuildTop">
                   <div>
-                    <div class="e2kBuildName">Build Farm</div>
-                    <div class="e2kBuildDesc" id="farmDesc">Passive income. Small but forever.</div>
+                    <div class="e2kBuildName">Farms</div>
+                    <div class="e2kBuildDesc" id="farmDesc">Produces food and denarii.</div>
                   </div>
                   <div class="e2kBuildIcon">🌾</div>
                 </div>
-
                 <div class="e2kBuildMeta">
-                  <span>Cost: <b id="farmCostPreview">?</b> denarii</span>
-                  <span>Earns: +<b id="farmIncomePreview">?</b> 💰 / 5s</span>
+                  <span>Cost: <b id="farmCostPreview">?</b></span>
+                  <span>Owned: <b id="farmOwnedPreview">?</b></span>
+                  <span>Produces: +<b id="farmIncomePreview">?</b> 💰 / 5s</span>
                 </div>
-
                 <div class="e2kBuildActions">
                   <button class="btn" id="btnFarm" type="button">Buy Farm</button>
                 </div>
-
-                <div class="e2kBars">
-  <div class="e2kBarRow">
-    <span class="e2kBarIcon">💰</span>
-    <div class="e2kBarWrap">
-      <div id="farmProgressGoldFill" class="e2kBarFill"></div>
-      <div class="e2kSplash" id="farmSplash">+0</div>
-    </div>
-  </div>
-
-  <div class="e2kBarRow">
-    <span class="e2kBarIcon">🍅</span>
-    <div class="e2kBarWrap">
-      <div id="farmProgressFill" class="e2kBarFill e2kBarFood"></div>
-    </div>
-  </div>
-</div>
-
-              </div>
-
-              <!-- VILLA -->
-              <div class="e2kBuildCard" id="villaCard">
-                <div class="e2kBuildTop">
-                  <div>
-                    <div class="e2kBuildName">Build Villa</div>
-                    <div class="e2kBuildDesc" id="villaDesc">Wealthy estates. Big income.</div>
-                  </div>
-                  <div class="e2kBuildIcon">🏛</div>
-                </div>
-
-                <div class="e2kBuildMeta">
-                  <span>Cost: <b id="villaCostPreview">?</b> denarii</span>
-                  <span>Earns: +<b id="villaIncomePreview">?</b> 💰 / 5s</span>
-                </div>
-
-                <div class="e2kBuildActions">
-                  <button class="btn" id="btnVilla" type="button">Buy Villa</button>
-                </div>
-
                 <div class="e2kBars">
                   <div class="e2kBarRow">
                     <span class="e2kBarIcon">💰</span>
-                    <div class="e2kBarWrap"><div id="villaProgressFill" class="e2kBarFill"></div>                <div class="e2kSplash" id="villaSplash">+0</div>
-</div>
+                    <div class="e2kBarWrap">
+                      <div id="farmProgressGoldFill" class="e2kBarFill"></div>
+                      <div class="e2kSplash" id="farmSplash">+0</div>
+                    </div>
+                  </div>
+                  <div class="e2kBarRow">
+                    <span class="e2kBarIcon">🍅</span>
+                    <div class="e2kBarWrap">
+                      <div id="farmProgressFill" class="e2kBarFill e2kBarFood"></div>
+                    </div>
                   </div>
                 </div>
+              </div>
+
+              <!-- VILLAS -->
+              <div class="e2kBuildCard" id="villaCard">
+                <div class="e2kBuildTop">
+                  <div>
+                    <div class="e2kBuildName">Villas</div>
+                    <div class="e2kBuildDesc" id="villaDesc">Big income.</div>
+                  </div>
+                  <div class="e2kBuildIcon">🏛️</div>
+                </div>
+                <div class="e2kBuildMeta">
+                  <span>Cost: <b id="villaCostPreview">?</b></span>
+                  <span>Owned: <b id="villaOwnedPreview">?</b></span>
+                  <span>Produces: +<b id="villaIncomePreview">?</b> 💰 / 5s</span>
+                </div>
+                <div class="e2kBuildActions">
+                  <button class="btn" id="btnVilla" type="button">Buy Villa</button>
+                </div>
+                <div class="e2kBars">
+                  <div class="e2kBarRow">
+                    <span class="e2kBarIcon">💰</span>
+                    <div class="e2kBarWrap">
+                      <div id="villaProgressFill" class="e2kBarFill"></div>
+                      <div class="e2kSplash" id="villaSplash">+0</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
               </div>
 
             </div>
@@ -2107,27 +2084,16 @@ header{
 
           <div id="constructionTab-other" class="constructionTabPanel" hidden>
             <div class="e2kBuildCard">
-              <div class="e2kBuildName">Food Inventory</div>
-              <div class="e2kBuildDesc">Farm loot is added here when a cycle completes.</div>
-
-              <div style="margin-top:10px;">
-                <table class="table" aria-label="Food inventory">
-                  <tbody>
-                    <tr><td>🥔 Potatoes</td><td style="text-align:right;"><b id="constructInvPotato">0</b></td></tr>
-                    <tr><td>🍅 Tomatoes</td><td style="text-align:right;"><b id="constructInvTomato">0</b></td></tr>
-                    <tr><td>🌾 Grain</td><td style="text-align:right;"><b id="constructInvGrain">0</b></td></tr>
-                    <tr><td>🫘 Beans</td><td style="text-align:right;"><b id="constructInvBeans">0</b></td></tr>
-                  </tbody>
-                </table>
-              </div>
+              <div class="e2kBuildName">Other</div>
+              <div class="e2kBuildDesc">No extra panels here.</div>
             </div>
+          
+          </div>
           </div>
         </div>
       </div>
 
-      <div class="offlineOkRow">
-        <button id="constructionCloseBtn" class="offlineOkBtn">Close</button>
-      </div>
+      
     </section>
   </div>
 
@@ -2187,7 +2153,7 @@ header{
      [VIEW] VILLAGE
      Main village UI card:
        - Tribute button & streak rewards
-       - Huts / Farms / Villas (income + population capacity)
+       - Farms / Villas (income + population capacity)
        - Population, migration, and income breakdown
        - Recent event log and current Objectives
      When editing anything about early-game flow or basic economy UI,
@@ -2677,23 +2643,18 @@ if(typeof window.UI.id !== "function"){ window.UI.id = function(id){ return docu
 // --- UI DOM bridge helpers (UI is the only layer that touches DOM) ---
 UI.doc = UI.doc || (()=>document);
 UI.win = UI.win || (()=>window);
-UI.id = UI.id || function(id){ return document.getElementById(id); };
+UI.id  = UI.id  || function(id){ return document.getElementById(id); };
 UI.q   = UI.q   || ((sel, root)=> (root || UI.doc()).querySelector(sel));
 UI.qa  = UI.qa  || ((sel, root)=> Array.from((root || UI.doc()).querySelectorAll(sel)));
-UI.__on = UI.__on || function __on(el, type, fn, opts){
-  if(!el || !el.addEventListener) return;
-  el.addEventListener(type, fn, opts || false);
+
+// UI.__on = QUEUE-ONLY. Actual addEventListener happens only inside initUI() bind phase.
+UI.__on = UI.__on || function(selOrEl, type, handler, opts){
+  return __on(selOrEl, type, handler, opts);
 };
+
 UI.visibilityState = UI.visibilityState || (()=> UI.doc().visibilityState);
 
 // --- UI internal helpers (event binding) ---
-if(!UI.__on){
-  UI.__on = function __on(el, type, fn, opts){
-    if(!el || !el.addEventListener) return;
-    el.addEventListener(type, fn, opts || false);
-  };
-}
-
       for(const id of ids){
         if(!UI[id]) UI[id] = UI.el(id);
       }
@@ -2707,21 +2668,28 @@ if(!UI.__on){
       const type = b[1];
       const handler = b[2];
       const opts = b[3];
-      if(!el || !type || !handler) continue;
+
+      let target = el;
+      if(typeof target === "string"){
+        target = UI.q(target);
+      }
+
+      if(!target || !type || !handler) continue;
 
       // Per-element wiring map
-      if(!el._wired || el._wired === true || typeof el._wired !== 'object') el._wired = Object.create(null);
+      if(!target._wired || target._wired === true || typeof target._wired !== 'object') target._wired = Object.create(null);
 
       let key = type + "|" + (handler.name || "anon");
       if(opts !== undefined){
         try{ key += "|" + JSON.stringify(opts); }catch(e){ key += "|[opts]"; }
       }
 
-      if(el._wired[key]) continue;
-      el._wired[key] = true;
+      if(target._wired[key]) continue;
+      target._wired[key] = true;
 
       // Actual binding happens only here
-      el.addEventListener(type, handler, opts);
+// LEGACY EVENT BINDING — REVIEW (dynamic/closure/global)
+      target.addEventListener(type, handler, opts);
     }
   }
 
@@ -3237,7 +3205,7 @@ function processRecruitQueue(){
   //
   // Purpose:
   //   - Handles tribute tapping (gold per tap + streak multiplier).
-  //   - Manages huts / farms / villas and their passive income.
+  //   - Manages farms / villas and their passive income.
   //   - Tracks population, migration rate, and population capacity.
   //   - Drives early-game Objectives tied to the village tab.
   //
@@ -3252,9 +3220,7 @@ function processRecruitQueue(){
     tribute: 1,
     farmCount: 0,
     villaCount: 0,
-    hutCount: 0,
-
-    // ========================================================================
+// ========================================================================
     // [SYS] LEGION & BATTLES
     //
     // Purpose:
@@ -3630,10 +3596,17 @@ function processRecruitQueue(){
 // --- ensure UI.__on exists early (used by reliable save hooks) ---
 window.UI = window.UI || {};
 if(typeof window.UI.__on !== "function"){
-  window.UI.__on = function __on(el, type, fn, opts){
-    if(!el || !el.addEventListener) return;
-    el.addEventListener(type, fn, opts || false);
-  };
+  window.UI.__on = function(el, type, handler, opts){
+  try{
+    if(!el) return;
+    (window.__uiBinds || (window.__uiBinds = [])).push([el, type, handler, opts]);
+    if(window.UI && typeof window.UI.readyState === "function"){
+      if(window.UI.readyState() !== "loading" && typeof initUI === "function"){
+        initUI();
+      }
+    }
+  }catch(e){}
+};
 }
 
 (
@@ -3707,9 +3680,70 @@ function setupReliableSaves(){
     toast._tm = setTimeout(()=>t.classList.remove("show"), 900);
   }
 
-  function logLine(text, tone="") {
+  
+function logLine(text, tone="") {
   const log = $("#log");
-  if (!log) return;
+  if(!log) return;
+
+  // If the newest entry is the same event, "combo" it into one line.
+  const first = log.firstChild;
+  if(first){
+    const timeEl = first.querySelector(".log-time");
+    const msgEl  = first.querySelector("span:last-child");
+    if(timeEl && msgEl){
+      const prevTone =
+        msgEl.dataset.tone ||
+        (msgEl.classList.contains("good") ? "good" :
+         msgEl.classList.contains("bad")  ? "bad"  :
+         msgEl.classList.contains("warn") ? "warn" : "");
+
+      const sameTone = (prevTone||"") === (tone||"");
+      const prevBase = msgEl.dataset.baseText || msgEl.textContent;
+      const incomingBase = String(text || "");
+
+      if(sameTone){
+        // Special: settlers/villagers joined line → add the numbers together.
+        const joinRe = /^(\d+)\s+(settler|villager)(s)? joined your village\.$/i;
+        const mPrev = prevBase.match(joinRe);
+        const mNew  = incomingBase.match(joinRe);
+        if(mPrev && mNew){
+          const total = (Number(mPrev[1])||0) + (Number(mNew[1])||0);
+          const noun  = String(mPrev[2]||"settler").toLowerCase();
+          const plural = (total === 1) ? noun : (noun + "s");
+
+          const merged = `${total} ${plural} joined your village.`;
+          msgEl.dataset.baseText = merged;
+          msgEl.dataset.tone = tone || "";
+          msgEl.textContent = merged;
+
+          const ts = new Date();
+          timeEl.textContent =
+            `${ts.getHours().toString().padStart(2,"0")}:` +
+            `${ts.getMinutes().toString().padStart(2,"0")}`;
+
+          log.scrollTo({ top: 0, behavior: "smooth" });
+          return;
+        }
+
+        // Generic: exact same text → show a multiplier instead of repeating lines.
+        if(incomingBase === prevBase){
+          const n = (Number(msgEl.dataset.comboRepeat)||1) + 1;
+          msgEl.dataset.comboRepeat = String(n);
+          msgEl.dataset.baseText = prevBase;
+          msgEl.dataset.tone = tone || "";
+          msgEl.textContent = `${n}× ${prevBase}`;
+
+          const ts = new Date();
+          timeEl.textContent =
+            `${ts.getHours().toString().padStart(2,"0")}:` +
+            `${ts.getMinutes().toString().padStart(2,"0")}`;
+
+          log.scrollTo({ top: 0, behavior: "smooth" });
+          return;
+        }
+      }
+    }
+  }
 
   const wrap = UI.ce("div");
   wrap.className = "log-entry";
@@ -3726,7 +3760,10 @@ function setupReliableSaves(){
 
   // Message column
   const msgEl = UI.ce("span");
-  if (tone === "good" || tone === "bad" || tone === "warn") {
+  msgEl.dataset.baseText = String(text || "");
+  msgEl.dataset.tone = tone || "";
+
+  if(tone === "good" || tone === "bad" || tone === "warn"){
     msgEl.classList.add(tone);
   }
   msgEl.textContent = text;
@@ -3735,23 +3772,21 @@ function setupReliableSaves(){
   wrap.appendChild(msgEl);
 
   // Prepend newest entry at the top
-  if (log.firstChild) {
+  if(log.firstChild){
     log.insertBefore(wrap, log.firstChild);
-  } else {
+  }else{
     log.appendChild(wrap);
   }
 
   // Keep only the latest 4 entries
-  while (log.childNodes.length > 4) {
+  while(log.childNodes.length > 4){
     log.removeChild(log.lastChild);
   }
 
   // Always show top (newest) entries
-  log.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
+  log.scrollTo({ top: 0, behavior: "smooth" });
 }
+
   // ---- Intro / naming flow ----
   let introDemoGold = 0;
 
@@ -4175,8 +4210,7 @@ function decreeMult(){
     const incomeRate = clamp(incomePerSec()/140, 0, 0.35);
     const sizeRate =
       (S.villaCount||0)*0.010 +
-      (S.farmCount||0)*0.0045 +
-      (S.hutCount||0)*0.0045;
+      (S.farmCount||0)*0.0045;
     const landRate = (S.land||0)*0.0018;
 
     // 🔥 Streak-based attraction (infinite, diminishing returns)
@@ -4201,11 +4235,10 @@ function decreeMult(){
   function populationCap(){
     // Farms provide housing; villas attract families; land improves efficiency.
     // Simple + readable:
-    // - Each hut supports 3 people
     // - Each farm supports 5 people
     // - Each villa supports 14 people (bigger households)
     // - Land boosts overall capacity a bit more
-    const base = (S.hutCount * 3) + (S.farmCount * 5) + (S.villaCount * 14);
+    const base = (S.farmCount * 5) + (S.villaCount * 14);
     return Math.floor(base * (1 + S.land * 0.10) * landAllocPopMult());
   }
   function hasVillageCapacity(){
@@ -4288,12 +4321,6 @@ function decreeMult(){
 
 
   // ---- Costs (ramp hard so it isn't beaten in 2 mins) ----
-  function costHut(){
-    // Cheap early housing that becomes gradually more expensive
-    const n = S.hutCount||0;
-    return Math.floor(60 * Math.pow(1.22, n));
-  }
-
 function costFarm(){
     // Cost of a farm scales with the realm. Returning the base cost; dynamic scaling
     // occurs elsewhere via costFarm() logic.
@@ -5741,7 +5768,7 @@ const TERRITORY_SPECIALIZATIONS = {
     {
       id: "river_tradepost",
       label: "Establish River Trade Post",
-      description: "Build a jetty and huts for barge traffic.",
+      description: "Build a jetty for barge traffic.",
       costGold: 260,
       costPop: 2,
       durationDays: 16,
@@ -6460,7 +6487,7 @@ function adjustTerritoryWorkers(delta){
     { id:"farmlands",    name:"Farmlands",       tier:1, summary:"Open fields you can work and defend." },
     { id:"pastures",     name:"Grazing Commons", tier:1, summary:"Common pastureland for herds and carts." },
     { id:"marsh",        name:"Marsh Flats",     tier:1, summary:"Difficult ground that hides you from raiders." },
-    { id:"quarry",       name:"Old Quarry",      tier:1, summary:"Stone and clay to shore up walls and huts." }
+    { id:"quarry",       name:"Old Quarry",      tier:1, summary:"Stone and clay to shore up walls and shelters." }
   ],
 
   // Tier 2 — Clan Leadership: small holdings begin to appear
@@ -8542,18 +8569,6 @@ function statsRows(){
     // prisoners increase your income but do not occupy housing.
     rows.push({ k: "Captivi", v: S.captivi || 0 });
 
-    // Show land resources if any have been collected. Resources are grouped
-    // under their own header for clarity. Only display resources that the
-    // player actually owns (quantity > 0).
-    const itemIds = Object.keys(S.items || {}).filter(id => (S.items[id] || 0) > 0);
-    if(itemIds.length > 0){
-      rows.push({ type: "header", label: "Resources (from Land)" });
-      itemIds.sort().forEach(id => {
-        const def = ITEM_DEFS[id] || { label: id, icon: "" };
-        rows.push({ k: (def.icon ? def.icon + " " : "") + def.label, v: S.items[id] || 0 });
-      });
-    }
-
     // Legion
     rows.push({ type: "header", label: "Legion" });
     rows.push({ k: "Milites", v: S.warriors });
@@ -8778,10 +8793,7 @@ function updateDerivedValues(){
         $("#cashoutDesc").textContent = `Cash out +${fmt(pot)} denarii${ms>0 ? ` • Milestones ${ms}` : ""}`;
       }
     }
-
-
-    $("#hutDesc").textContent   = `${fmt(S.hutCount||0)} huts • Cost ${fmt(costHut())} • +2 pop cap each`;
-    {
+{
       const farms = S.farmCount || 0;
       const tomR = (typeof FARM_ITEM_OUTPUTS !== "undefined" ? (FARM_ITEM_OUTPUTS.tomato || 0) : 0) * farms;
       const potR = (typeof FARM_ITEM_OUTPUTS !== "undefined" ? (FARM_ITEM_OUTPUTS.potato || 0) : 0) * farms;
@@ -8790,9 +8802,8 @@ function updateDerivedValues(){
       // Compute denarii income per 5 seconds using the last recorded income per second
       const farmIncomePerSec = (typeof S.lastFarmIncomePerSec === "number" ? S.lastFarmIncomePerSec : farms * 0.75);
       const farmPer5 = farmIncomePerSec * 5;
-      $("#farmDesc").textContent  = `${fmt(farms)} farms • Cost ${fmt(costFarm())} • Earns ${fmtDec(farmPer5)} denarii / 5s • Food +${foodR.toFixed(3)}/s`;
-
-      
+      const _farmDescEl = $("#farmDesc");
+      if(_farmDescEl) _farmDescEl.textContent = "";
 // Small animated meters on the farm card (feel like production)
 // EXACT 5s cycle: all farm bars fill 0→100% together and reset on payout.
 {
@@ -9293,16 +9304,6 @@ const totalTroops =
     render();
 
   });
-
-  UI.__on($("#btnHut"), "click", ()=>{
-    const c = costHut();
-    if(S.gold < c){ toast("Not enough denarii"); return; }
-    S.gold -= c;
-    S.hutCount = (S.hutCount||0) + 1;
-    toast("Huts raised — word spreads");
-    render();
-  });
-
   UI.__on($("#btnFarm"), "click", ()=>{
     const c = costFarm();
     if(S.gold < c){ toast("Not enough denarii"); return; }
@@ -11551,18 +11552,14 @@ if(constructionTabButtons.length){
 
 
 function updateConstructionPreviews(){
-  const hutCostEl = $("#hutCostPreview");
-  const farmCostEl = $("#farmCostPreview");
+const farmCostEl = $("#farmCostPreview");
   const villaCostEl = $("#villaCostPreview");
-  if(typeof costHut === "function" && hutCostEl){
-    hutCostEl.textContent = costHut();
-  }
-  if(typeof costFarm === "function" && farmCostEl){
-    farmCostEl.textContent = costFarm();
-  }
-  if(typeof costVilla === "function" && villaCostEl){
-    villaCostEl.textContent = costVilla();
-  }
+const farmOwnedEl = $("#farmOwnedPreview");
+  const villaOwnedEl = $("#villaOwnedPreview");
+if(typeof costFarm === "function" && farmCostEl) farmCostEl.textContent = fmt(costFarm());
+  if(typeof costVilla === "function" && villaCostEl) villaCostEl.textContent = fmt(costVilla());
+if(farmOwnedEl) farmOwnedEl.textContent = fmt(S.farmCount||0);
+  if(villaOwnedEl) villaOwnedEl.textContent = fmt(S.villaCount||0);
 
   const farmIncEl = $("#farmIncomePreview");
   const villaIncEl = $("#villaIncomePreview");
@@ -11576,30 +11573,16 @@ function updateConstructionPreviews(){
     const per5 = villasNow > 0 ? (villasNow * 3.0 * 5) : 0;
     villaIncEl.textContent = fmtDec(per5);
   }
-  // Update new Construction HUD pills (safe if elements exist)
+
+  // Update Construction HUD pills (safe if elements exist)
   const denPill = $("#constructDenarii");
   const popPill = $("#constructPop");
-  const foodPill = $("#constructFood");
-  const farmsPill = $("#constructFarmsOwned");
-  const villasPill = $("#constructVillasOwned");
-  if(denPill) denPill.textContent = Math.floor((S && typeof S.gold === "number") ? S.gold : 0);
+  if(denPill){
+    const den = (S && typeof S.gold === "number") ? S.gold : 0;
+    denPill.textContent = fmt(den);
+  }
   const popVal = (S && typeof S.population === "number") ? S.population : ((S && typeof S.pop === "number") ? S.pop : 0);
-  if(popPill) popPill.textContent = Math.floor(popVal);
-  const items = (S && S.foodInv) ? S.foodInv : ((S && S.items) ? S.items : {});
-  const foodTotal = (items.grain||0) + (items.potato||0) + (items.tomato||0) + (items.beans||0);
-  if(foodPill) foodPill.textContent = Math.floor(foodTotal);
-  // Food inventory rows inside Construction → Other tab
-  const invPot = $("#constructInvPotato");
-  const invTom = $("#constructInvTomato");
-  const invGra = $("#constructInvGrain");
-  const invBea = $("#constructInvBeans");
-  if(invPot) invPot.textContent = Math.floor(items.potato || 0);
-  if(invTom) invTom.textContent = Math.floor(items.tomato || 0);
-  if(invGra) invGra.textContent = Math.floor(items.grain  || 0);
-  if(invBea) invBea.textContent = Math.floor(items.beans  || 0);
-
-  if(farmsPill) farmsPill.textContent = Math.floor((S && typeof S.farmCount === "number") ? S.farmCount : (S.farmCount||0));
-  if(villasPill) villasPill.textContent = Math.floor((S && typeof S.villaCount === "number") ? S.villaCount : (S.villaCount||0));
+  if(popPill) popPill.textContent = fmt(popVal);
 }
 
 const btnExport = $("#btnExport");
@@ -13712,6 +13695,44 @@ function currentRecruitBatchSize(){
     { id: "horses",    name: "Horses",    buyPrice: 300, sellPrice: 210 }
   ];
 
+  // Ensures EVERY inventory item is buyable & sellable.
+  function _tradeDefById(id){
+    if(!id) return null;
+
+    // Map defined trade catalogue
+    const tradeMap = {};
+    if(Array.isArray(tradeItems)){
+      for(const it of tradeItems){
+        if(it && it.id) tradeMap[it.id] = it;
+      }
+    }
+
+    // Explicit prices for construction food loot
+    const foodPrices = {
+      potato: { buy: 30, sell: 20 },
+      tomato: { buy: 35, sell: 24 },
+      beans:  { buy: 28, sell: 19 },
+      grain:  { buy: 50, sell: 35 }
+    };
+
+    const def = (typeof ITEM_DEFS !== "undefined" && ITEM_DEFS[id]) ? ITEM_DEFS[id] : { label: id, icon: "" };
+
+    if(foodPrices[id]){
+      return { id, name: def.label, buyPrice: foodPrices[id].buy, sellPrice: foodPrices[id].sell };
+    }
+    if(tradeMap[id]){
+      const it = tradeMap[id];
+      return { id, name: def.label || it.name || id, buyPrice: it.buyPrice, sellPrice: it.sellPrice };
+    }
+
+    // Default price for unknown/new items: tradable, but expensive.
+    const buyPrice = 100;
+    const sellPrice = 70;
+    return { id, name: def.label, buyPrice, sellPrice, _default: true };
+  }
+
+
+
   // Ensure the player's state has an inventory for all defined trade items.
   function ensureTradeItemsState(){
     if(!Array.isArray(tradeItems)) tradeItems = [];
@@ -13748,30 +13769,38 @@ function currentRecruitBatchSize(){
     note += (currentTradeTab === 'buy') ? ' Select items to purchase.' : ' Select items to sell.';
     if(noteEl) noteEl.textContent = note;
 
-    // Build a display list that includes tradable goods + farm food loot (non-tradable)
+    // Build a display list that includes ALL inventory items (always tradable)
     const tradeList = Array.isArray(tradeItems) ? tradeItems : [];
-    const tradeMap = {};
-    for(const it of tradeList){
-      if(it && it.id) tradeMap[it.id] = it;
-    }
+    const baseFood = ["potato","tomato","beans","grain"];
 
-    const extraIds = ["potato","tomato","beans","grain"];
+    // Compose an ordered list:
+    // 1) Base food loot
+    // 2) Defined trade catalogue
+    // 3) Any other keys present in S.items
+    const tradeIds = tradeList.map(it => it && it.id).filter(Boolean);
+    const extraIds = Object.keys(S.items || {}).filter(id => !baseFood.includes(id) && !tradeIds.includes(id));
+
     const display = [];
     const seen = new Set();
     const pushId = (id)=>{
       if(!id || seen.has(id)) return;
       seen.add(id);
-      if(tradeMap[id]){
-        display.push(tradeMap[id]);
+
+      // Ensure inventory key exists
+      if(!S.items || typeof S.items !== "object") S.items = {};
+      if(typeof S.items[id] !== "number") S.items[id] = 0;
+
+      const td = (typeof _tradeDefById === "function") ? _tradeDefById(id) : null;
+      if(td){
+        display.push(td);
       }else{
-        const def = (typeof ITEM_DEFS !== 'undefined' && ITEM_DEFS[id]) ? ITEM_DEFS[id] : { label: id, icon: '' };
-        display.push({ id, name: def.label, buyPrice: null, sellPrice: null, _nonTrade: true });
+        const def = (typeof ITEM_DEFS !== "undefined" && ITEM_DEFS[id]) ? ITEM_DEFS[id] : { label: id, icon: "" };
+        display.push({ id, name: def.label, buyPrice: 100, sellPrice: 70, _default: true });
       }
-      if(!S.items || typeof S.items !== 'object') S.items = {};
-      if(typeof S.items[id] !== 'number') S.items[id] = 0;
     };
 
-    for(const it of tradeList) pushId(it.id);
+    for(const id of baseFood) pushId(id);
+    for(const id of tradeIds) pushId(id);
     for(const id of extraIds) pushId(id);
 
     // Clear previous rows
@@ -13801,9 +13830,9 @@ function currentRecruitBatchSize(){
       descSpan.style.color = 'var(--muted)';
 
       if(currentTradeTab === 'buy'){
-        descSpan.textContent = (typeof item.buyPrice === 'number') ? `Cost ${fmt(item.buyPrice)}` : 'Not tradable';
+        descSpan.textContent = `Cost ${fmt(item.buyPrice)}`;
       }else{
-        descSpan.textContent = (typeof item.sellPrice === 'number') ? `Sells for ${fmt(item.sellPrice)}` : 'Not tradable';
+        descSpan.textContent = `Sells for ${fmt(item.sellPrice)}`;
       }
 
       leftCol.appendChild(nameSpan);
@@ -14013,11 +14042,48 @@ function currentRecruitBatchSize(){
       qtyEl.style.fontFamily = 'var(--mono)';
       qtyEl.textContent = fmt(qty);
 
-      const btn = UI.ce('button');
-      btn.className = 'smallBtn';
-      btn.textContent = 'Drop';
-      btn.disabled = qty <= 0;
-      UI.__on(btn, 'click', () => {
+      const td = (typeof _tradeDefById === "function") ? _tradeDefById(id) : null;
+      const buyPrice = td && typeof td.buyPrice === "number" ? td.buyPrice : 100;
+      const sellPrice = td && typeof td.sellPrice === "number" ? td.sellPrice : 70;
+
+      const btnRow = UI.ce('div');
+      btnRow.style.display = 'flex';
+      btnRow.style.alignItems = 'center';
+      btnRow.style.gap = '6px';
+
+      const btnSell = UI.ce('button');
+      btnSell.className = 'smallBtn';
+      btnSell.textContent = 'Sell';
+      btnSell.disabled = qty <= 0;
+      UI.__on(btnSell, 'click', ()=>{
+        const cur = Number(S.items[id] || 0);
+        if(cur <= 0) return;
+        S.items[id] = Math.max(0, cur - 1);
+        S.gold = (S.gold || 0) + sellPrice;
+        toast(`Sold 1 ${def.label} for ${fmt(sellPrice)} denarii.`);
+        save();
+        render();
+      });
+
+      const btnBuy = UI.ce('button');
+      btnBuy.className = 'smallBtn';
+      btnBuy.textContent = 'Buy';
+      btnBuy.disabled = (S.gold || 0) < buyPrice;
+      UI.__on(btnBuy, 'click', ()=>{
+        const g = Number(S.gold || 0);
+        if(g < buyPrice) return;
+        S.gold = g - buyPrice;
+        S.items[id] = Number(S.items[id] || 0) + 1;
+        toast(`Bought 1 ${def.label} for ${fmt(buyPrice)} denarii.`);
+        save();
+        render();
+      });
+
+      const btnDrop = UI.ce('button');
+      btnDrop.className = 'smallBtn';
+      btnDrop.textContent = 'Drop';
+      btnDrop.disabled = qty <= 0;
+      UI.__on(btnDrop, 'click', () => {
         if(!S.items || typeof S.items !== "object") return;
         const cur = Number(S.items[id] || 0);
         if(cur <= 0) return;
@@ -14027,9 +14093,13 @@ function currentRecruitBatchSize(){
         render();
       });
 
+      btnRow.appendChild(btnSell);
+      btnRow.appendChild(btnBuy);
+      btnRow.appendChild(btnDrop);
+
       row.appendChild(label);
       row.appendChild(qtyEl);
-      row.appendChild(btn);
+      row.appendChild(btnRow);
       listEl.appendChild(row);
     }
 
@@ -14230,7 +14300,6 @@ UI.__on(document, "click", function(ev){
     if(typeof populationCap==="function" && !Economy.populationCap) Economy.populationCap = populationCap;
     if(typeof hasVillageCapacity==="function" && !Economy.hasVillageCapacity) Economy.hasVillageCapacity = hasVillageCapacity;
     if(typeof tapGain==="function" && !Economy.tapGain) Economy.tapGain = tapGain;
-    if(typeof costHut==="function" && !Economy.costHut) Economy.costHut = costHut;
     if(typeof costFarm==="function" && !Economy.costFarm) Economy.costFarm = costFarm;
     if(typeof costVilla==="function" && !Economy.costVilla) Economy.costVilla = costVilla;
     if(typeof generateSettlementCard==="function" && !Economy.generateSettlementCard) Economy.generateSettlementCard = generateSettlementCard;
