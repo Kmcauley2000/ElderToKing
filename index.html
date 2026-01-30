@@ -1814,8 +1814,8 @@ header{
 ===== END LEGACY (CSS) ===== */
 
 .invIcon{
-  width:18px;
-  height:18px;
+  width:7px;
+  height:7px;
   image-rendering:pixelated;
   vertical-align:middle;
 }
@@ -11363,7 +11363,7 @@ if(factionPager){
       const btn = evt && evt.currentTarget ? evt.currentTarget : $("#btnBuyAuxilia");
       const card = btn && btn.closest ? btn.closest(".unitCard") : null;
       if(card && typeof playRecruitAnimation === "function"){
-        playRecruitAnimation("Captivi Auxiliary", card, btn);
+        playRecruitAnimation("Milites", card, btn);
       }
     }catch(e){}
     render();
@@ -11403,7 +11403,7 @@ if(factionPager){
       const btn = evt && evt.currentTarget ? evt.currentTarget : $("#btnBuyVeterans");
       const card = btn && btn.closest ? btn.closest(".unitCard") : null;
       if(card && typeof playRecruitAnimation === "function"){
-        playRecruitAnimation("Captivi Auxiliary", card, btn);
+        playRecruitAnimation("Milites", card, btn);
       }
     }catch(e){}
     render();
