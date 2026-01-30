@@ -1820,6 +1820,12 @@ header{
   vertical-align:middle;
 }
 
+
+.unitImg--captivi{
+  width:42px;
+  height:42px;
+}
+
 </style>
 </head>
 <body class="theme-parchment">
@@ -2355,7 +2361,7 @@ header{
               <span class="unitRole">Captive infantry</span>
             </div>
             <!-- Reuse Milites sprite as a placeholder for Captivi Auxiliaries -->
-            <img src="Sprites/Captivi Auxiliary.png" class="unitImg" alt="Captivi Auxiliaries">
+            <img src="Sprites/Captivi Auxiliary.png" class="unitImg unitImg--captivi" alt="Captivi Auxiliaries">
           </div>
           <div class="unitStats">
             <span class="stat">⚔ 5</span>
@@ -2969,7 +2975,7 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
   const isCavalry = /cavalry|horse|equite|cav/i.test(unitKey);
 
   // Base sprite size and cavalry enlargement (~30% bigger).
-  const baseSize = 45;
+  const baseSize = (unitKey && unitKey.toLowerCase().includes("captivi")) ? 62 : 45;
   const spriteSize = isCavalry ? Math.round(baseSize * 1.3) : baseSize;
   runner.style.width = spriteSize + "px";
   runner.style.height = spriteSize + "px";
@@ -3122,7 +3128,7 @@ function processRecruitQueue(){
           unitKey = "Cavalry";
         }else if(type === "cap"){
           btnId = "btnRecruitCaptiviAux";
-          unitKey = "Milites"; // reuse Milites sprite for captivi auxiliaries, or adjust if a dedicated sprite exists
+          unitKey = "Captivi Auxiliary";
         }
         if(btnId && unitKey){
           const btn = UI.el(btnId);
@@ -9386,7 +9392,7 @@ const totalTroops =
         const btn = UI.el("btnRecruit");
         const card = btn && btn.closest ? btn.closest(".unitCard") : null;
         if(card && typeof playRecruitAnimation === "function"){
-          playRecruitAnimation("Milites", card, btn);
+          playRecruitAnimation("Captivi Auxiliary", card, btn);
         }
       }catch(e){}
 
@@ -9613,7 +9619,7 @@ UI.__on($("#btnRecruitCavalry"), "click", (e)=>{
         const card = btn && btn.closest ? btn.closest(".unitCard") : null;
         if(card && typeof playRecruitAnimation === "function"){
           // Reuse Milites sprite unless you later add a dedicated CaptiviAux image
-          playRecruitAnimation("Milites", card, btn);
+          playRecruitAnimation("Captivi Auxiliary", card, btn);
         }
       }catch(e){}
 
@@ -11357,7 +11363,7 @@ if(factionPager){
       const btn = evt && evt.currentTarget ? evt.currentTarget : $("#btnBuyAuxilia");
       const card = btn && btn.closest ? btn.closest(".unitCard") : null;
       if(card && typeof playRecruitAnimation === "function"){
-        playRecruitAnimation("Milites", card, btn);
+        playRecruitAnimation("Captivi Auxiliary", card, btn);
       }
     }catch(e){}
     render();
@@ -11397,7 +11403,7 @@ if(factionPager){
       const btn = evt && evt.currentTarget ? evt.currentTarget : $("#btnBuyVeterans");
       const card = btn && btn.closest ? btn.closest(".unitCard") : null;
       if(card && typeof playRecruitAnimation === "function"){
-        playRecruitAnimation("Milites", card, btn);
+        playRecruitAnimation("Captivi Auxiliary", card, btn);
       }
     }catch(e){}
     render();
