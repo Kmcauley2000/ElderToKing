@@ -1814,8 +1814,8 @@ header{
 ===== END LEGACY (CSS) ===== */
 
 .invIcon{
-  width:7px;
-  height:7px;
+  width:18px;
+  height:18px;
   image-rendering:pixelated;
   vertical-align:middle;
 }
@@ -2218,10 +2218,6 @@ header{
           <div>Title: <b id="title">Village Elder</b></div>
           <div>Next: <b id="nextTitle">Village Elder</b></div>
         </div>
-        <p id="incomeBreakdown" style="margin:6px 0 0;font-size:.72rem;color:var(--muted);">
-          Income: 0.00/s (net)
-        </p>
-
         <div class="miniLog">
           <div class="miniLogHeader">Recent Events</div>
           <div class="log" id="log"></div>
@@ -2239,7 +2235,7 @@ header{
      the player sees their army, start here.
      =================================================================== -->
     <section class="card view" data-view="legion" hidden>
-      <div class="sectionTitle"><span>⚔️</span><span class="milites-label"></span><span>Glory <b id="gloryNow">0</b></span></div>
+      <div class="sectionTitle"><span>⚔️</span><span class="milites-label"></span></div>
       <div class="cardBody">
         <!-- Recruitment quantity selector: choose how many units to recruit per tap. -->
         <div id="recruitQtyBar" class="recruitQtyBar" style="display:flex;gap:6px;margin-bottom:10px;">
@@ -2710,7 +2706,7 @@ UI.visibilityState = UI.visibilityState || (()=> UI.doc().visibilityState);
 
 
   const $ = (q, el)=>UI.q(q, el);
-  const $$ = (q, el=document)=> Array.from(el.querySelectorAll(q));
+  const $$ = (q, el)=> UI.qa(q, el || UI.doc());
   const clamp = (n,min,max)=> Math.max(min, Math.min(max,n));
   const rnd = (a,b)=> Math.floor(Math.random()*(b-a+1))+a;
   const chance = (p)=> Math.random() < p;
@@ -3292,6 +3288,9 @@ function processRecruitQueue(){
     controlledRegions: [],
     territoryWorkers: {},
 
+
+    // Province meta + separate population pool (conquered settlements)
+    province: { name: "Province", population: 0, stability: 50 },
     // Settlement cards pagination state
     factionPage: 0,
 
@@ -3396,6 +3395,15 @@ function processRecruitQueue(){
         state[k] = Number(state[k]);
         if(!Number.isFinite(state[k])) state[k] = d[k];
       }
+    }
+
+    // Province baseline (separate population pool for conquered settlements)
+    if(!state.province || typeof state.province !== "object"){
+      state.province = { name: "Province", population: 0, stability: 50 };
+    }else{
+      if(typeof state.province.name !== "string") state.province.name = "Province";
+      if(typeof state.province.population !== "number" || !Number.isFinite(state.province.population)) state.province.population = 0;
+      if(typeof state.province.stability !== "number" || !Number.isFinite(state.province.stability)) state.province.stability = 50;
     }
 
     // Arm offline system for existing saves that predate offlineReady.
@@ -3678,7 +3686,7 @@ function setupReliableSaves(){
   function flushSave(){
     try{ save(true); }catch(e){}
   }
-  UI.__on(document, "visibilitychange", ()=>{
+  UI.onDoc("visibilitychange", ()=>{
     if(window.UI.visibilityState() === "hidden") flushSave();
   });
   UI.__on(window, "pagehide", flushSave, {capture:true});
@@ -4929,10 +4937,12 @@ function renderSubjugatedSettlementsList(){
   if(S.province && typeof S.province === "object"){
     const p = S.province;
     settlementCount += (p.settlementCount || 0);
-    totalPop     += (p.totalPopulation || 0);
+    totalPop     += (typeof p.population === "number" ? p.population : (p.totalPopulation || 0));
     totalTribute += (p.tributePerSec || 0);
     // Loyalty from province stability (0–100 scale). Default to 50.
     loyaltySum += (typeof p.stability === "number" ? p.stability : 50);
+
+  const useProvincePop = !!(S.province && typeof S.province === "object" && typeof S.province.population === "number" && S.province.population > 0);
   }
 
   // Add stats from any legacy subjugated settlements array. Even though the UI
@@ -4945,7 +4955,7 @@ function renderSubjugatedSettlementsList(){
       const pop = Number(st.population || 0);
       const inc = Number(st.income || 0);
       const loyalty = (typeof st.loyalty === "number") ? st.loyalty : 50;
-      totalPop += pop;
+      if(!useProvincePop) totalPop += pop;
       totalTribute += inc;
       // For aggregated loyalty, average the loyalty across settlements.
       loyaltySum += loyalty;
@@ -10969,25 +10979,14 @@ bumpObjective("winBattle", 1);
           }
         }catch(e){}
 
-        // Population: try to add as much as possible, respecting population cap if present.
+        // Population: add conquered population into the province pool (separate from your village population).
         if (popGain > 0) {
-          const prevPop = S.population || 0;
-          let cap = Infinity;
-          try {
-            if (typeof populationCap === "function") {
-              cap = populationCap();
-            }
-          } catch(e){}
-          let newPop = prevPop + popGain;
-          let effectiveGain = popGain;
-          if (Number.isFinite(cap)) {
-            newPop = Math.min(cap, newPop);
-            effectiveGain = Math.max(0, newPop - prevPop);
-          }
-          S.population = newPop;
-          assimilatedPopGain = effectiveGain;
-
-          // Recompute used population, treating all recruits as free civilians for now.
+          if(!S.province || typeof S.province !== "object") S.province = { name: "Province", population: 0, stability: 50 };
+          const prev = (typeof S.province.population === "number") ? S.province.population : 0;
+          const gain = Math.max(0, Math.round(popGain));
+          S.province.population = prev + gain;
+          assimilatedPopGain = gain;
+          // Keep village pop-used in sync with troops (does not change here)
           S.populationUsed = (S.warriors||0) + (S.archers||0) + (S.cavalry||0) + (S.auxilia||0) + (S.equites||0) + (S.veterans||0);
         }
 
@@ -11363,7 +11362,7 @@ if(factionPager){
       const btn = evt && evt.currentTarget ? evt.currentTarget : $("#btnBuyAuxilia");
       const card = btn && btn.closest ? btn.closest(".unitCard") : null;
       if(card && typeof playRecruitAnimation === "function"){
-        playRecruitAnimation("Milites", card, btn);
+        playRecruitAnimation("Captivi Auxiliary", card, btn);
       }
     }catch(e){}
     render();
@@ -11403,7 +11402,7 @@ if(factionPager){
       const btn = evt && evt.currentTarget ? evt.currentTarget : $("#btnBuyVeterans");
       const card = btn && btn.closest ? btn.closest(".unitCard") : null;
       if(card && typeof playRecruitAnimation === "function"){
-        playRecruitAnimation("Milites", card, btn);
+        playRecruitAnimation("Captivi Auxiliary", card, btn);
       }
     }catch(e){}
     render();
@@ -11672,7 +11671,7 @@ if(btnReset){
   }
 
   let _offlineResumeArmed = false;
-  UI.__on(document, "visibilitychange", ()=>{
+  UI.onDoc("visibilitychange", ()=>{
     // When going to background, stamp time.
     if(window.UI.visibilityState() === "hidden"){
       _offlineResumeArmed = true;
@@ -14278,7 +14277,7 @@ function currentRecruitBatchSize(){
 
 
 // === Fallback safety wiring for faction actions (Conquer / Pillage etc) ===
-UI.__on(document, "click", function(ev){
+UI.onDoc("click", function(ev){
   try{
     const btn = ev.target && ev.target.closest ? ev.target.closest("[data-faction-action]") : null;
     if(!btn) return;
@@ -14450,6 +14449,21 @@ UI.__on(document, "click", function(ev){
 // ===== LEGACY / DEPRECATED =====
 // (nothing moved safely)
 // =================================
+
+
+// === BOOT_PASSIVE_LOOP ===
+try{
+  if(!window.__bootPassiveLoop){
+    window.__bootPassiveLoop = true;
+    setInterval(()=>{
+      try{
+        if(typeof render === "function") render({ skipBattles:true });
+      }catch(e){}
+    }, 250);
+  }
+}catch(e){ console.warn("Passive loop fail", e); }
+
+
 
 </script>
 
