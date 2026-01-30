@@ -1812,6 +1812,14 @@ header{
   border-color:rgba(255,107,107,.55) !important;
 }
 ===== END LEGACY (CSS) ===== */
+
+.invIcon{
+  width:18px;
+  height:18px;
+  image-rendering:pixelated;
+  vertical-align:middle;
+}
+
 </style>
 </head>
 <body class="theme-parchment">
@@ -1891,7 +1899,7 @@ header{
                 <span class="unitRole">Defensive infantry</span>
               </div>
               <!-- Reuse Milites sprite for Auxilia -->
-              <img src="Sprites/Milites.png" class="unitImg" alt="Auxilia Spearmen">
+              <img src="Sprites/Captivi Auxiliary.png" class="unitImg" alt="Auxilia Spearmen">
             </div>
             <div class="unitStats">
               <span class="stat">⚔ 6</span>
@@ -1948,7 +1956,7 @@ header{
                 <span class="unitRole">Elite heavy infantry</span>
               </div>
               <!-- Reuse Milites sprite as placeholder -->
-              <img src="Sprites/Milites.png" class="unitImg" alt="Veteran Cohort">
+              <img src="Sprites/Captivi Auxiliary.png" class="unitImg" alt="Veteran Cohort">
             </div>
             <div class="unitStats">
               <span class="stat">⚔ 9</span>
@@ -2240,7 +2248,7 @@ header{
               <span class="unitName">Milites</span>
               <span class="unitRole">Line Infantry</span>
             </div>
-            <img src="Sprites/Milites.png" class="unitImg" alt="Milite">
+            <img src="Sprites/Captivi Auxiliary.png" class="unitImg" alt="Milite">
           </div>
           <div class="unitStats">
             <span class="stat">⚔ 7</span>
@@ -2347,7 +2355,7 @@ header{
               <span class="unitRole">Captive infantry</span>
             </div>
             <!-- Reuse Milites sprite as a placeholder for Captivi Auxiliaries -->
-            <img src="Sprites/Milites.png" class="unitImg" alt="Captivi Auxiliaries">
+            <img src="Sprites/Captivi Auxiliary.png" class="unitImg" alt="Captivi Auxiliaries">
           </div>
           <div class="unitStats">
             <span class="stat">⚔ 5</span>
@@ -2765,7 +2773,7 @@ UI.visibilityState = UI.visibilityState || (()=> UI.doc().visibilityState);
     beans:  { label: "Beans",    icon: "🫘" },
     timber: { label: "Timber",   icon: "🪵" },
     stone:  { label: "Stone",    icon: "🪨" },
-    livestock: { label: "Livestock", icon: "🐄" },
+    livestock: { label: "Livestock", icon: '<img src="Sprites/Inventory/Sheep Icon.png" class="invIcon">' },
     fish:   { label: "Fish",     icon: "🐟" },
     ore:    { label: "Ore",      icon: "⛏️" },
     fruit:  { label: "Fruit",    icon: "🍎" },
@@ -5556,7 +5564,7 @@ function territoryIcon(name){
     case "Riverlands": return "🌊";
     case "Forest Edge": return "🌲";
     case "Farmlands": return "🌾";
-    case "Grazing Commons": return "🐄";
+    case "Grazing Commons": return "🐑";
     case "Marsh Flats": return "🪵";
     case "Old Quarry": return "⛏️";
     case "Orchard Lands": return "🍎";
@@ -5743,7 +5751,7 @@ const TERRITORY_SPECIALIZATIONS = {
     },
     {
       id: "pasture",
-      label: "Prepare Pasture (Livestock)",
+      label: 'Prepare Pasture (🐑)',
       description: "Fence and seed the land for grazing herds.",
       costGold: 150,
       costPop: 2,
@@ -13824,7 +13832,7 @@ function currentRecruitBatchSize(){
       const def = (typeof ITEM_DEFS !== 'undefined' && ITEM_DEFS[item.id]) ? ITEM_DEFS[item.id] : { label: item.name || item.id, icon: '' };
 
       const nameSpan = UI.ce('div');
-      nameSpan.textContent = `${def.icon || ''} ${def.label}`;
+      nameSpan.innerHTML = `${def.icon || ''} ${def.label}`;
       const descSpan = UI.ce('div');
       descSpan.style.fontSize = '.8rem';
       descSpan.style.color = 'var(--muted)';
@@ -14034,7 +14042,7 @@ function currentRecruitBatchSize(){
       const label = UI.ce('div');
       label.style.flex = '1';
       const def = (typeof ITEM_DEFS !== 'undefined' && ITEM_DEFS[id]) ? ITEM_DEFS[id] : { label: id, icon: '' };
-      label.textContent = `${def.icon ? (def.icon + ' ') : ''}${def.label}`;
+      label.innerHTML = `${def.icon ? (def.icon + ' ') : ''}${def.label}`;
 
       const qtyEl = UI.ce('div');
       qtyEl.style.minWidth = '70px';
