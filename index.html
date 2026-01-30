@@ -2976,7 +2976,7 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
   runner.style.width = spriteSize + "px";
   runner.style.height = spriteSize + "px";
 
-  runner.src = `Sprites/${unitKey}.png`;
+  runner.src = `Sprites/${unitKey === 'Milites' ? 'Milites' : unitKey}.png`;
   runner.className = 'unitRunner';
   cardElement.appendChild(runner);
 
@@ -11633,7 +11633,17 @@ if(btnReset){
     const logEl = $("#log");
     if(logEl) logEl.innerHTML = "";
 
-    // Re-render base UI
+    
+
+    // Reset construction splashes/bars (prevents ghost animations after New Game)
+    try{
+      const fs = UI.el("farmSplash"); if(fs){ fs.classList.remove("show"); fs.textContent = "+0"; }
+      const vs = UI.el("villaSplash"); if(vs){ vs.classList.remove("show"); vs.textContent = "+0"; }
+      const fg = UI.el("farmProgressGoldFill"); if(fg){ fg.style.transform = "scaleX(0)"; }
+      const ff = UI.el("farmProgressFill"); if(ff){ ff.style.transform = "scaleX(0)"; }
+      const vp = UI.el("villaProgressFill"); if(vp){ vp.style.width = "0%"; }
+    }catch(e){} 
+// Re-render base UI
     render();
 
     // Show the intro name screen again
@@ -11900,7 +11910,10 @@ if(payoutGold > 0){
     const el = UI.el("farmSplash");
     if(el){
       
-      const parts = [];
+      
+      // Guard: do not show splash when no farms / no payout (prevents new-game ghost splashes)
+      if((farmCount > 0) && (payoutGold > 0 || tomato || potato || grain || beans)){
+const parts = [];
       if(tomato) parts.push("🍅x"+tomato);
       if(potato) parts.push("🥔x"+potato);
       if(grain)  parts.push("🌾x"+grain);
@@ -11910,6 +11923,11 @@ if(payoutGold > 0){
       el.classList.remove("show");
       void el.offsetWidth;
       el.classList.add("show");
+      }else{
+        // Ensure splash is hidden when not producing
+        el.classList.remove("show");
+      }
+
     }
   }
 
@@ -11929,10 +11947,17 @@ if(S.buildProgVillaDen >= 5){
   if(overlayOpen){
     const el = UI.el("villaSplash");
     if(el){
-      el.textContent = `+${Math.floor(payoutGold)}💰`;
+      
+      // Guard: do not show splash when no villas / no payout (prevents new-game ghost splashes)
+      if((villaCount > 0) && (payoutGold > 0)){
+el.textContent = `+${Math.floor(payoutGold)}💰`;
       el.classList.remove("show");
       void el.offsetWidth;
       el.classList.add("show");
+      }else{
+        el.classList.remove("show");
+      }
+
     }
   }
 
