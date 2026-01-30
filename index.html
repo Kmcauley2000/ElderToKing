@@ -22,7 +22,6 @@ Search for the [VIEW] or [SYS] tag below to jump to that system.
 -->
 
 
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -30,15 +29,12 @@ Search for the [VIEW] or [SYS] tag below to jump to that system.
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 
 
-
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="ElderToKing">
 
 
-
   <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
-
 
 
   <title>ElderToKing</title>
@@ -132,13 +128,7 @@ body::after{
   transform: translateY(-1px);
 }
 .pill--main b{ font-size: 18px; letter-spacing:.2px; }
-.pillSub{
-  display:block;
-  margin-top:2px;
-  font-size:11px;
-  color: var(--muted);
-  line-height:1.1;
-}
+/* moved to LEGACY CSS: .pillSub */
 .pill b{color:var(--accent);font-weight:900;font-size:.9rem;letter-spacing:.03em;}
     .card{
       background: rgba(255,255,255,0.06);
@@ -495,17 +485,9 @@ body::after{
 .warn{color:var(--warn);font-weight:900;}
 
 /* Optional: tiny resource tags if you ever want them */
-.log-tag{
-  padding:1px 4px;
-  border-radius:4px;
-  font-size:.72rem;
-  opacity:.9;
-  user-select:none;
-  border:1px solid rgba(31,58,42,.65);
-  margin-left:6px;
-}
+/* moved to LEGACY CSS: .log-tag */
 .log-tag-gold{color:var(--accent);}
-.log-tag-renown{color:var(--muted);}
+/* moved to LEGACY CSS: .log-tag-renown */
 .log-tag-land{color:var(--muted);}
 
 /* Bottom tabs */
@@ -846,15 +828,7 @@ body::after{
   transform: translateY(0) scale(1);
   opacity:1;
 }
-.simLine{
-  margin:0 0 6px;
-  font-family:var(--mono);
-  font-size:.80rem;
-  line-height:1.30;
-  white-space:pre;
-}
-
-
+/* moved to LEGACY CSS: .simLine */
 .simMetaRow{
   display:flex;
   justify-content:space-between;
@@ -916,7 +890,6 @@ body::after{
 }
 
 
-
 .battleBarCount{
   position:absolute;
   right:24px;
@@ -955,10 +928,7 @@ body::after{
   margin:6px 0;
   border-top:1px solid rgba(158,104,54,.45);
 }
-.battleSummaryMeta{
-  color:var(--muted);
-  font-size:.78rem;
-}
+/* moved to LEGACY CSS: .battleSummaryMeta */
 .battleSummaryNote{
   margin-top:8px;
   font-family:var(--sans);
@@ -1099,17 +1069,7 @@ body::after{
 /* Progress bar for build cards (farms, villas). This replicates the idle progress bar from the provided sample. */
 /* Updated progress bar styling: use a subtle light background so that the bar is always visible on the light card.
    The border accent creates contrast and helps differentiate the bar area. */
-.buildProgressWrap{
-  /* Increase height slightly for better visibility */
-  height:12px;
-  /* Use a light background so the progress bar is clearly visible against the card.
-     The semi‑transparent white ensures contrast without clashing with the theme. */
-  background: rgba(255,255,255,0.3);
-  border:1px solid var(--accent);
-  border-radius:5px;
-  overflow:hidden;
-  position:relative;
-}
+/* moved to LEGACY CSS: .buildProgressWrap */
 .buildProgressFill{
   height:100%;
   width:0%;
@@ -1278,7 +1238,8 @@ body::after{
 
 /* === Creamy parchment + high-contrast black text theme overrides === */
 
-:root{
+
+body.theme-parchment{
   --panel:#f7f0e2;
   --panel2:#f1e2c7;
   --text:#111111;
@@ -1286,6 +1247,7 @@ body::after{
   --accent:#f4b04a;
   --ok:#14854c;
 }
+
 
 /* Main cards */
 .card{
@@ -1465,10 +1427,7 @@ body::after{
 }
 
 /* Danger rows in stats */
-.danger{
-  border-color:rgba(255,107,107,.55) !important;
-}
-
+/* moved to LEGACY CSS: .danger */
 /* Ensure generic text colour on cards/logs/stats is black */
 .card, .log, .miniLog, .table, .table td, .smallBtn, .bigBtn{
   color:var(--text);
@@ -1801,9 +1760,61 @@ header{
   100%{opacity:0; transform:translateY(-12px) scale(1);}
 }
 
+
+
+/* ===== LEGACY / DEPRECATED (CSS) =====
+.pillSub{
+  display:block;
+  margin-top:2px;
+  font-size:11px;
+  color: var(--muted);
+  line-height:1.1;
+}
+
+.log-tag{
+  padding:1px 4px;
+  border-radius:4px;
+  font-size:.72rem;
+  opacity:.9;
+  user-select:none;
+  border:1px solid rgba(31,58,42,.65);
+  margin-left:6px;
+}
+
+.log-tag-renown{color:var(--muted);}
+
+.simLine{
+  margin:0 0 6px;
+  font-family:var(--mono);
+  font-size:.80rem;
+  line-height:1.30;
+  white-space:pre;
+}
+
+.battleSummaryMeta{
+  color:var(--muted);
+  font-size:.78rem;
+}
+
+.buildProgressWrap{
+  /* Increase height slightly for better visibility */
+  height:12px;
+  /* Use a light background so the progress bar is clearly visible against the card.
+     The semi‑transparent white ensures contrast without clashing with the theme. */
+  background: rgba(255,255,255,0.3);
+  border:1px solid var(--accent);
+  border-radius:5px;
+  overflow:hidden;
+  position:relative;
+}
+
+.danger{
+  border-color:rgba(255,107,107,.55) !important;
+}
+===== END LEGACY (CSS) ===== */
 </style>
 </head>
-<body>
+<body class="theme-parchment">
   <div id="introOverlay" class="introOverlay">
     <div class="introBackdrop"></div>
     <div class="introCenter">
@@ -2139,10 +2150,6 @@ header{
       </div>
     </section>
   </div>
-
-
-
-
 
 
   <header>
@@ -2610,8 +2617,117 @@ header{
 
 <script>
   "use strict";
+  const DEBUG = false;
 
-  const $ = (q, el=document)=> el.querySelector(q);
+  // === [SYS] SYSTEM OBJECTS (NON-BEHAVIOUR REFACTOR) ===
+  window.UI = window.UI || {};
+if(typeof window.UI.id !== "function"){ window.UI.id = function(id){ return document.getElementById(id); }; }
+  const Economy = window.Economy || (window.Economy = {});
+  const Battles = window.Battles || (window.Battles = {});
+  const Save = window.Save || (window.Save = {});
+  const Game = window.Game || (window.Game = {});
+
+  // DOM access proxies (rule: only UI touches DOM)
+  (function(UI){
+    UI.doc = UI.doc || function(){ return document; };
+    UI.el  = UI.el  || function(id){ return UI.id(id); };
+    UI.q   = UI.q   || function(sel, root){ return (root||document).querySelector(sel); };
+    UI.qa  = UI.qa  || function(sel, root){ return Array.from((root||document).querySelectorAll(sel)); };
+    UI.ce  = UI.ce  || function(tag){ return document.createElement(tag); };
+    UI.onDoc   = UI.onDoc   || function(type, handler, opts){ return UI.__on(UI.doc(), type, handler, opts); };
+    UI.offDoc  = UI.offDoc  || function(type, handler, opts){ return document.removeEventListener(type, handler, opts); };
+    UI.readyState = UI.readyState || function(){ return document.readyState; };
+    UI.visibilityState = UI.visibilityState || function(){ return document.visibilityState; };
+    UI.body = UI.body || function(){ return document.body; };
+    UI.html = UI.html || function(){ return document.documentElement; };
+    UI.appendBody = UI.appendBody || function(node){ return document.body && document.body.appendChild(node); };
+    UI.removeNode = UI.removeNode || function(node){ try{ if(node && node.remove) node.remove(); }catch(e){} };
+    UI.getReadyHandler = UI.getReadyHandler || function(){ return document.onreadystatechange; };
+    UI.setReadyHandler = UI.setReadyHandler || function(fn){ document.onreadystatechange = fn; };
+    UI.now = UI.now || function(){ return Date.now(); };
+  })(window.UI);
+
+
+  // === [SYS] CENTRAL UI WIRING SYSTEM ===
+  // Queue listener requests anywhere in code; they will be bound once inside initUI().
+  function __on(el, type, handler, opts){
+    try{
+      if(!el) return;
+      (window.__uiBinds || (window.__uiBinds = [])).push([el, type, handler, opts]);
+
+      // If bindings are registered after DOM-ready, process them immediately.
+      // (initUI itself performs the addEventListener calls and de-dupes.)
+      if(window.UI.readyState() !== "loading" && typeof initUI === "function"){
+        initUI();
+      }
+    }catch(e){}
+  }
+
+  function initUI(){
+    // query elements (optional cache)
+    try{
+      const ids = [
+        "introOverlay","introNameInput","introStartBtn",
+        "offlineOverlay","offlineOkBtn",
+        "gloryOverlay","gloryCloseBtn",
+        "territoryOverlay","constructionOverlay",
+        "toast"
+      ];
+      const UI = window.UI || (window.UI = {});
+// --- UI DOM bridge helpers (UI is the only layer that touches DOM) ---
+UI.doc = UI.doc || (()=>document);
+UI.win = UI.win || (()=>window);
+UI.id = UI.id || function(id){ return document.getElementById(id); };
+UI.q   = UI.q   || ((sel, root)=> (root || UI.doc()).querySelector(sel));
+UI.qa  = UI.qa  || ((sel, root)=> Array.from((root || UI.doc()).querySelectorAll(sel)));
+UI.__on = UI.__on || function __on(el, type, fn, opts){
+  if(!el || !el.addEventListener) return;
+  el.addEventListener(type, fn, opts || false);
+};
+UI.visibilityState = UI.visibilityState || (()=> UI.doc().visibilityState);
+
+// --- UI internal helpers (event binding) ---
+if(!UI.__on){
+  UI.__on = function __on(el, type, fn, opts){
+    if(!el || !el.addEventListener) return;
+    el.addEventListener(type, fn, opts || false);
+  };
+}
+
+      for(const id of ids){
+        if(!UI[id]) UI[id] = UI.el(id);
+      }
+    }catch(e){}
+
+    // bind listeners (dedupe via element._wired)
+    const binds = window.__uiBinds || [];
+    for(const b of binds){
+      if(!b) continue;
+      const el = b[0];
+      const type = b[1];
+      const handler = b[2];
+      const opts = b[3];
+      if(!el || !type || !handler) continue;
+
+      // Per-element wiring map
+      if(!el._wired || el._wired === true || typeof el._wired !== 'object') el._wired = Object.create(null);
+
+      let key = type + "|" + (handler.name || "anon");
+      if(opts !== undefined){
+        try{ key += "|" + JSON.stringify(opts); }catch(e){ key += "|[opts]"; }
+      }
+
+      if(el._wired[key]) continue;
+      el._wired[key] = true;
+
+      // Actual binding happens only here
+      el.addEventListener(type, handler, opts);
+    }
+  }
+
+
+
+  const $ = (q, el)=>UI.q(q, el);
   const $$ = (q, el=document)=> Array.from(el.querySelectorAll(q));
   const clamp = (n,min,max)=> Math.max(min, Math.min(max,n));
   const rnd = (a,b)=> Math.floor(Math.random()*(b-a+1))+a;
@@ -2863,10 +2979,6 @@ header{
   
 
 
-
-
-
-
 function playRecruitAnimation(unitKey, cardElement, buttonElement) {
   if (!cardElement) return;
   const door = cardElement.querySelector('.unitDoorImg');
@@ -2877,7 +2989,7 @@ function playRecruitAnimation(unitKey, cardElement, buttonElement) {
     door.src = "Sprites/barracksdoorclosed.png";
   }catch(e){}
 
-  const runner = document.createElement('img');
+  const runner = UI.ce('img');
   const isCavalry = /cavalry|horse|equite|cav/i.test(unitKey);
 
   // Base sprite size and cavalry enlargement (~30% bigger).
@@ -3037,7 +3149,7 @@ function processRecruitQueue(){
           unitKey = "Milites"; // reuse Milites sprite for captivi auxiliaries, or adjust if a dedicated sprite exists
         }
         if(btnId && unitKey){
-          const btn = document.getElementById(btnId);
+          const btn = UI.el(btnId);
           const card = btn && btn.closest ? btn.closest(".unitCard") : null;
           if(card){
             playRecruitAnimation(unitKey, card, btn);
@@ -3291,8 +3403,7 @@ function processRecruitQueue(){
 
     // identity
     playerName: "",
-    introBattleDone: 0
-  });
+});
 
   function normalizeState(state){
     const d = defaultState();
@@ -3516,7 +3627,19 @@ function processRecruitQueue(){
 
 // --- iPhone/iOS reliability: persistent storage + autosave + lifecycle saves ---
 // iOS Safari can aggressively discard tabs; we save often and also on page hide.
-(function setupReliableSaves(){
+// --- ensure UI.__on exists early (used by reliable save hooks) ---
+window.UI = window.UI || {};
+if(typeof window.UI.__on !== "function"){
+  window.UI.__on = function __on(el, type, fn, opts){
+    if(!el || !el.addEventListener) return;
+    el.addEventListener(type, fn, opts || false);
+  };
+}
+
+(
+
+
+function setupReliableSaves(){
   // Ask for "persistent" storage when available (reduces eviction on some browsers)
   try{
     if(navigator.storage && navigator.storage.persist){
@@ -3568,11 +3691,11 @@ function processRecruitQueue(){
   function flushSave(){
     try{ save(true); }catch(e){}
   }
-  document.addEventListener("visibilitychange", ()=>{
-    if(document.visibilityState === "hidden") flushSave();
+  UI.__on(document, "visibilitychange", ()=>{
+    if(window.UI.visibilityState() === "hidden") flushSave();
   });
-  window.addEventListener("pagehide", flushSave, {capture:true});
-  window.addEventListener("beforeunload", flushSave, {capture:true});
+  UI.__on(window, "pagehide", flushSave, {capture:true});
+  UI.__on(window, "beforeunload", flushSave, {capture:true});
 })();
 
 
@@ -3588,7 +3711,7 @@ function processRecruitQueue(){
   const log = $("#log");
   if (!log) return;
 
-  const wrap = document.createElement("div");
+  const wrap = UI.ce("div");
   wrap.className = "log-entry";
 
   const ts = new Date();
@@ -3597,12 +3720,12 @@ function processRecruitQueue(){
     `${ts.getMinutes().toString().padStart(2,"0")}`;
 
   // Time column
-  const timeEl = document.createElement("span");
+  const timeEl = UI.ce("span");
   timeEl.className = "log-time";
   timeEl.textContent = stamp;
 
   // Message column
-  const msgEl = document.createElement("span");
+  const msgEl = UI.ce("span");
   if (tone === "good" || tone === "bad" || tone === "warn") {
     msgEl.classList.add(tone);
   }
@@ -3667,7 +3790,7 @@ function processRecruitQueue(){
     // Wire once
     if(demoBtn && !demoBtn._wired){
       demoBtn._wired = true;
-      demoBtn.addEventListener("click", (e)=>{
+      UI.__on(demoBtn, "click", (e)=>{
         introDemoGold += 1;
         if(demoGold) demoGold.textContent = introDemoGold;
         const rect = e.currentTarget.getBoundingClientRect();
@@ -3677,7 +3800,7 @@ function processRecruitQueue(){
 
     if(nameInput && !nameInput._wired){
       nameInput._wired = true;
-      nameInput.addEventListener("input", ()=>{
+      UI.__on(nameInput, "input", ()=>{
         const raw = nameInput.value || "";
         const trimmed = raw.trim();
         S.playerName = trimmed;
@@ -3693,20 +3816,14 @@ function processRecruitQueue(){
 
     if(startBtn && !startBtn._wired){
       startBtn._wired = true;
-      startBtn.addEventListener("click", ()=>{
+      UI.__on(startBtn, "click", ()=>{
         if(!S.playerName || !S.playerName.trim()) return;
         overlay.setAttribute("hidden","hidden");
         updatePlayerNameHud();
         // Mark that the player has properly started a run, so offline gains are valid.
         S.offlineReady = 1;
         if(typeof scheduleSave === "function") scheduleSave();
-        // Intro flavour: invasion hook instead of generic welcome
-        toast("Your village is being invaded!");
-        // Trigger intro battle once, right after the player enters the village
-        if(!S.introBattleDone && typeof startIntroBattle === "function"){
-          setTimeout(()=> startIntroBattle(), 650);
-        }
-      });
+});
     }
   }
 
@@ -3720,7 +3837,7 @@ function processRecruitQueue(){
     const hue    = g*12;           // subtle warm shift
     const glowA  = 0.10 + g*0.55;  // glow alpha
     for(let i=0;i<n;i++){
-      const s = document.createElement("div");
+      const s = UI.ce("div");
       s.className = "spark";
       s.style.left = x+"px";
       s.style.top  = y+"px";
@@ -3731,7 +3848,7 @@ function processRecruitQueue(){
         `drop-shadow(0 10px 18px rgba(0,0,0,.35)) `+
         `drop-shadow(0 0 ${8 + g*18}px rgba(255, 215, 120, ${glowA})) `+
         `hue-rotate(${hue}deg) saturate(${sat}) brightness(${bright})`;
-      document.body.appendChild(s);
+      UI.body().appendChild(s);
       setTimeout(()=> s.remove(), 700);
     }
   }
@@ -3799,7 +3916,7 @@ function processRecruitQueue(){
   const tierLabel   = rankTierLabel(tier);
   const flavour     = rankUpFlavorLine(tier);
 
-  const overlay = document.createElement("div");
+  const overlay = UI.ce("div");
   overlay.style.position = "fixed";
   overlay.style.inset = "0";
   overlay.style.display = "flex";
@@ -3807,13 +3924,13 @@ function processRecruitQueue(){
   overlay.style.justifyContent = "center";
   overlay.style.zIndex = "1200";
 
-  const backdrop = document.createElement("div");
+  const backdrop = UI.ce("div");
   backdrop.style.position = "absolute";
   backdrop.style.inset = "0";
   backdrop.style.background = "rgba(0,0,0,.55)";
   backdrop.style.backdropFilter = "blur(4px)";
 
-  const card = document.createElement("section");
+  const card = UI.ce("section");
   card.className = "card";
   card.style.position = "relative";
   card.style.maxWidth = "420px";
@@ -3822,39 +3939,39 @@ function processRecruitQueue(){
   card.style.overflow = "auto";
   card.style.zIndex = "10";
 
-  const header = document.createElement("div");
+  const header = UI.ce("div");
   header.className = "sectionTitle";
   header.style.justifyContent = "center";
-  const headerSpan = document.createElement("span");
+  const headerSpan = UI.ce("span");
   headerSpan.style.color = "var(--accent)";
   headerSpan.style.fontWeight = "900";
   headerSpan.textContent = "Rank Up!";
   header.appendChild(headerSpan);
 
-  const body = document.createElement("div");
+  const body = UI.ce("div");
   body.className = "cardBody";
 
-  const p = document.createElement("p");
+  const p = UI.ce("p");
   p.style.fontSize = ".85rem";
   p.style.margin = "0 0 10px";
   p.textContent = flavour;
 
-  const infoBlock = document.createElement("div");
+  const infoBlock = UI.ce("div");
   infoBlock.style.marginBottom = "10px";
 
-  const label = document.createElement("div");
+  const label = UI.ce("div");
   label.style.fontFamily = "var(--sans)";
   label.style.fontSize = ".84rem";
   label.style.color = "var(--muted)";
   label.style.marginBottom = "2px";
   label.textContent = "New title";
 
-  const titleDiv = document.createElement("div");
+  const titleDiv = UI.ce("div");
   titleDiv.style.fontSize = "1.12rem";
   titleDiv.style.fontWeight = "700";
   titleDiv.textContent = titleName;
 
-  const meta = document.createElement("div");
+  const meta = UI.ce("div");
   meta.style.fontFamily = "var(--mono)";
   meta.style.fontSize = ".80rem";
   meta.style.marginTop = "6px";
@@ -3869,7 +3986,7 @@ function processRecruitQueue(){
   infoBlock.appendChild(titleDiv);
   infoBlock.appendChild(meta);
 
-  const btn = document.createElement("button");
+  const btn = UI.ce("button");
   btn.type = "button";
   btn.className = "smallBtn";
   btn.style.width = "100%";
@@ -3896,12 +4013,12 @@ function processRecruitQueue(){
     toast("New title: " + titleName);
   };
 
-  btn.addEventListener("click", close);
-  overlay.addEventListener("click", (ev)=>{
+  UI.__on(btn, "click", close);
+  UI.__on(overlay, "click", (ev)=>{
     if(ev.target === overlay) close();
   });
 
-  document.body.appendChild(overlay);
+  UI.body().appendChild(overlay);
   rankUpConfettiBurst();
 }
   // ---- Scalind + rates (make it LAST longer) ----
@@ -4550,7 +4667,7 @@ function renderSettlementCardsFromCurrentBattles(bs, tier, hasTroops){
     const baseCount = Array.isArray(bs) ? bs.length : 0;
     if(!baseCount){
       listEl.innerHTML = "";
-      const empty = document.createElement("div");
+      const empty = UI.ce("div");
       empty.className = "smallBtn factionCard";
       empty.textContent = "Scouts report no nearby factions.";
       listEl.appendChild(empty);
@@ -4687,13 +4804,13 @@ const totalPages = Math.max(1, Math.ceil(cards.length / PAGE_SIZE));
 
     listEl.innerHTML = "";
     if(visible.length === 0){
-      const empty = document.createElement("div");
+      const empty = UI.ce("div");
       empty.className = "smallBtn factionCard";
       empty.textContent = "Scouts report no nearby factions.";
       listEl.appendChild(empty);
     }else{
       for(const card of visible){
-        const el = document.createElement("div");
+        const el = UI.ce("div");
         el.className = "smallBtn factionCard";
         el.setAttribute("data-battle-slot", String(card.battleSlot));
         el.setAttribute("data-faction-index", String(card.cardIndex));
@@ -4796,7 +4913,7 @@ function renderSubjugatedSettlementsList(){
 
   // If no settlements exist, display an empty province message
   if(settlementCount === 0){
-    const empty = document.createElement("div");
+    const empty = UI.ce("div");
     empty.className = "smallBtn factionCard";
     empty.textContent = "No province yet. Conquer a settlement to found your province.";
     listEl.appendChild(empty);
@@ -4824,7 +4941,7 @@ function renderSubjugatedSettlementsList(){
   // rename button triggers a prompt so user can rename the province without
   // triggering re-renders during typing. Culture and trait details have been
   // intentionally removed to reduce clutter.
-  const el = document.createElement("div");
+  const el = UI.ce("div");
   el.className = "smallBtn factionCard provinceCard";
   el.innerHTML = [
     '<div class="factionCardHeader">',
@@ -5369,7 +5486,6 @@ function adjustTypeWorkers(name, delta){
   if(typeof scheduleSave === "function") scheduleSave();
   render();
 }
-
 
 
 function updateTerritoryProjects(){
@@ -6023,8 +6139,8 @@ let territoryUIState = {
 };
 
 function openTerritoryOverlay(name){
-  const overlay = document.getElementById("territoryOverlay");
-  const inner = document.getElementById("territoryCardInner");
+  const overlay = UI.el("territoryOverlay");
+  const inner = UI.el("territoryCardInner");
   if(!overlay || !inner) return;
 
   const arr = Array.isArray(S.controlledRegions) ? S.controlledRegions : [];
@@ -6059,7 +6175,7 @@ function openTerritoryOverlay(name){
 }
 
 function closeTerritoryOverlay(){
-  const overlay = document.getElementById("territoryOverlay");
+  const overlay = UI.el("territoryOverlay");
   if(overlay){
     overlay.classList.remove("visible");
     overlay.setAttribute("hidden", "hidden");
@@ -6084,7 +6200,7 @@ function currentTerritoryRef(){
 
 
 function renderTerritoryDetail(){
-  const inner = document.getElementById("territoryCardInner");
+  const inner = UI.el("territoryCardInner");
   if(!inner) return;
   const ref = currentTerritoryRef();
   if(!ref) return;
@@ -6220,12 +6336,12 @@ function renderTerritoryDetail(){
     </div>
   `;
 // Wire buttons
-  const prevBtn = document.getElementById("territoryPrevBtn");
-  const nextBtn = document.getElementById("territoryNextBtn");
-  const closeBtn = document.getElementById("territoryCloseBtn");
-  const startBtn = document.getElementById("territoryStartDevBtn");
-  const minusBtn = document.getElementById("terrWorkerMinus");
-  const plusBtn = document.getElementById("terrWorkerPlus");
+  const prevBtn = UI.el("territoryPrevBtn");
+  const nextBtn = UI.el("territoryNextBtn");
+  const closeBtn = UI.el("territoryCloseBtn");
+  const startBtn = UI.el("territoryStartDevBtn");
+  const minusBtn = UI.el("terrWorkerMinus");
+  const plusBtn = UI.el("terrWorkerPlus");
 
   if(prevBtn) prevBtn.onclick = () => stepTerritory(-1);
   if(nextBtn) nextBtn.onclick = () => stepTerritory(1);
@@ -6251,7 +6367,7 @@ function startTerritoryDevelopment(){
     return;
   }
 
-  const radios = document.querySelectorAll('input[name="territoryDevChoice"]');
+  const radios = UI.qa('input[name="territoryDevChoice"]');
   let chosenId = null;
   radios.forEach(r => { if(r.checked) chosenId = r.value; });
   if(!chosenId) chosenId = specs[0].id;
@@ -7436,24 +7552,24 @@ function renderObjectives(){
 
   list.innerHTML = "";
   S.objectives.forEach((o, i) => {
-    const row = document.createElement("div");
+    const row = UI.ce("div");
     row.style.display = "flex";
     row.style.alignItems = "center";
     row.style.justifyContent = "space-between";
     row.style.gap = "10px";
 
-    const left = document.createElement("div");
+    const left = UI.ce("div");
     left.style.display = "flex";
     left.style.flexDirection = "column";
     left.style.gap = "2px";
 
-    const title = document.createElement("div");
+    const title = UI.ce("div");
     title.style.fontFamily = "var(--mono)";
     title.style.fontSize = ".78rem";
     title.style.color = "var(--text)";
     title.textContent = objText(o);
 
-    const small = document.createElement("div");
+    const small = UI.ce("div");
     small.style.fontFamily = "var(--sans)";
     small.style.fontSize = ".74rem";
     small.style.color = "var(--muted)";
@@ -7462,23 +7578,20 @@ function renderObjectives(){
     left.appendChild(title);
     left.appendChild(small);
 
-    const btn = document.createElement("button");
+    const btn = UI.ce("button");
     btn.className = "tab"; // reuse pill button style
     btn.style.padding = "10px 12px";
     btn.style.fontSize = ".74rem";
     btn.textContent = objComplete(o) ? "Claim" : `${Math.floor((o.progress/Math.max(1,o.target))*100)}%`;
     btn.disabled = !objComplete(o);
     if(objComplete(o)) btn.classList.add("active");
-    btn.addEventListener("click", () => { claimObjective(i); render(); });
+    UI.__on(btn, "click", () => { claimObjective(i); render(); });
 
     row.appendChild(left);
     row.appendChild(btn);
     list.appendChild(row);
   });
 }
-
-
-
 
 
   // ---- Burst Events (RNG micro-spikes) ----
@@ -8199,8 +8312,8 @@ function applyOfflineProgress(){
   }
 
   function showOfflineOverlay(summary){
-    const overlay = document.getElementById("offlineOverlay");
-    const body = document.getElementById("offlineBody");
+    const overlay = UI.el("offlineOverlay");
+    const body = UI.el("offlineBody");
     if(!overlay || !body) return;
 
     const duration = formatDuration(summary.seconds || 0);
@@ -8346,40 +8459,40 @@ function applyOfflineProgress(){
     // --- Render lines into overlay body ---
     body.innerHTML = "";
 
-    const pIntro = document.createElement("p");
+    const pIntro = UI.ce("p");
     pIntro.textContent = introLine;
     body.appendChild(pIntro);
 
     for(const line of buildLines){
-      const p = document.createElement("p");
+      const p = UI.ce("p");
       p.textContent = line;
       body.appendChild(p);
     }
 
-    const pFamilies = document.createElement("p");
+    const pFamilies = UI.ce("p");
     pFamilies.textContent = familiesLine;
     body.appendChild(pFamilies);
     // Insert resource and land settler lines after families
     if(resourcesLine){
-      const pRes = document.createElement("p");
+      const pRes = UI.ce("p");
       pRes.textContent = resourcesLine;
       body.appendChild(pRes);
     }
     if(landPopLine){
-      const pLP = document.createElement("p");
+      const pLP = UI.ce("p");
       pLP.textContent = landPopLine;
       body.appendChild(pLP);
     }
 
-    const pGold = document.createElement("p");
+    const pGold = UI.ce("p");
     pGold.textContent = goldLine;
     body.appendChild(pGold);
 
-    const pEco = document.createElement("p");
+    const pEco = UI.ce("p");
     pEco.textContent = economyLine;
     body.appendChild(pEco);
 
-    const pTiles = document.createElement("p");
+    const pTiles = UI.ce("p");
     pTiles.textContent = tilesLine;
     body.appendChild(pTiles);
 
@@ -8522,30 +8635,20 @@ function statsRows(){
 // If you see something visually "stuck" or not updating after state
 // changes, render() is the first place to inspect.
 // ============================================================================
-function render(opts){
-handleRankUps();
+function updateDerivedValues(){
+    handleRankUps();
     expireCashoutIfNeeded();
     expireStreakIfNeeded();
     updateTerritoryProjects();
+  }
+
+  function renderHUD(){
 
     $("#gold").textContent = fmt(S.gold);
     $("#renown").textContent = fmt(S.renown);
     $("#landHud").textContent = fmt(S.land || 0);
+    
 
-    // Always re-render the inventory HUD and counts whenever state changes.
-    // This keeps the inventory tab in sync with current items even when
-    // viewing other sections. Only call renderInventory() once the trade
-    // items have been defined to avoid runtime errors caused by the
-    // temporal dead zone of const declarations. If tradeItems is
-    // undefined, skip the inventory render until later renders.
-    if (typeof tradeItems !== "undefined" && typeof renderInventory === "function") {
-      try {
-        renderInventory();
-      } catch (err) {
-        // Silently ignore errors during early load; inventory will render once
-        // all dependencies are available.
-      }
-    }
 
     const grossInc = incomePerSec();
     const upkeepNow = warriorUpkeepPerSec();
@@ -8591,7 +8694,10 @@ handleRankUps();
       }
     })();
 
-    // Population display (village capacity)
+    
+  }
+
+  function renderVillage(){// Population display (village capacity)
     const cap = populationCap();
     const totalPop = (S.population||0);
     const warriors = (S.warriors||0); // line infantry
@@ -8628,16 +8734,16 @@ handleRankUps();
       rows.push({ k: "Migration rate", v: (Math.round(mr*100)/100).toFixed(2) + "/s" });
 
       for(const row of rows){
-        const tr = document.createElement("tr");
+        const tr = UI.ce("tr");
         if(row.type === "header"){
-          const td = document.createElement("td");
+          const td = UI.ce("td");
           td.colSpan = 2;
           td.textContent = row.label || "";
           td.classList.add("statHeaderRow");
           tr.appendChild(td);
         }else{
-          const td1 = document.createElement("td");
-          const td2 = document.createElement("td");
+          const td1 = UI.ce("td");
+          const td2 = UI.ce("td");
           td1.textContent = row.k;
           td2.textContent = String(row.v);
           tr.appendChild(td1);
@@ -8692,14 +8798,14 @@ handleRankUps();
 {
   const pct = (S.farmCount > 0) ? Math.max(0, Math.min(1, (S.buildProgFarmDen || 0) / 5)) : 0;
 
-  const denBar = document.getElementById("farmProgressFill");
+  const denBar = UI.el("farmProgressFill");
   if(denBar){
     denBar.style.width = "100%";
     denBar.style.transformOrigin = "0 50%";
     denBar.style.transform = "scaleX(" + pct.toFixed(4) + ")";
   }
 }// Small animated meters on the villa card
-      const denBar = document.getElementById("villaProgressFill");
+      const denBar = UI.el("villaProgressFill");
       if(denBar){
         // Tie the villa progress bar to time progress. Use S.buildProgVillaDen
         const prog = (S.buildProgVillaDen || 0);
@@ -8707,7 +8813,7 @@ handleRankUps();
         const frac = villaCt > 0 ? Math.min(prog / 5, 1) : 0;
         denBar.style.width = (frac * 100).toFixed(1) + "%";
       }
-      const popBar = document.getElementById("villaPopBar");
+      const popBar = UI.el("villaPopBar");
       if(popBar){
         // Hide the villa population bar since villas should not display a pop meter.
         popBar.style.display = "none";
@@ -8716,7 +8822,10 @@ handleRankUps();
 
     updateTitleProgress();
 
-    // Legion
+    
+  }
+
+  function renderLegion(opts){// Legion
     const legStats = recalcLegionStrength();
     const wEl = $("#warriors");
     if(wEl) wEl.textContent = fmt(S.warriors);
@@ -8823,7 +8932,10 @@ const totalTroops =
     if(!hasVillageCapacity()){
     }
 
-    // Temple
+    
+  }
+
+  function renderLand(){// Temple
     $("#crowns").textContent = fmt(S.crowns);
     $("#offerCost").textContent = `Cost ${fmt(offerCost())}`;
     $("#faithNow").textContent = `Faith ${fmt(S.faith)}`;
@@ -8963,7 +9075,7 @@ const totalTroops =
         }
 
         // Compose HTML for the territory card
-        const card = document.createElement("div");
+        const card = UI.ce("div");
         card.className = "smallBtn territoryCard";
         card.innerHTML = `
           <div class="territoryCardHeader">
@@ -9019,7 +9131,7 @@ const totalTroops =
 
       // Wire up worker +/- buttons after all cards are in the DOM
       $$(".terrWorkerBtn").forEach(btn=>{
-        btn.addEventListener("click", (e)=>{
+        UI.__on(btn, "click", (e)=>{
           const tName = btn.getAttribute("data-type");
           const delta = Number(btn.getAttribute("data-delta") || "0");
           if(tName && delta){
@@ -9034,16 +9146,16 @@ const totalTroops =
     if(body){
       body.innerHTML = "";
       for(const row of statsRows()){
-        const tr = document.createElement("tr");
+        const tr = UI.ce("tr");
         if(row && row.type === "header"){
-          const td = document.createElement("td");
+          const td = UI.ce("td");
           td.colSpan = 2;
           td.textContent = row.label || "";
           td.classList.add("statHeaderRow");
           tr.appendChild(td);
         }else if(row){
-          const td1 = document.createElement("td");
-          const td2 = document.createElement("td");
+          const td1 = UI.ce("td");
+          const td2 = UI.ce("td");
           td1.textContent = row.k;
           const v = row.v;
           td2.textContent = (typeof v === "number") ? fmt(v) : String(v);
@@ -9054,7 +9166,21 @@ const totalTroops =
       }
     }
 
-    // global
+    
+  }
+
+  function renderInventoryInner(){
+    if (typeof tradeItems !== "undefined" && typeof renderInventoryInner === "function") {
+      try {
+        renderInventoryInner();
+      } catch (err) {
+        // Silently ignore errors during early load; inventory will render once
+        // all dependencies are available.
+      }
+    }
+  }
+
+  function renderOverlays(){// global
     renderTabs();
     renderObjectives();
     $("#subline").textContent = (Date.now() < (S.prosperUntil||0))
@@ -9063,9 +9189,20 @@ const totalTroops =
           ? "Blessing active — crits are juiced."
           : "Unlock tabs by earning renown. Prestige later for crowns.");
     save(true);
+
+  }
+
+  function render(opts){
+    updateDerivedValues();
+    renderHUD();
+    renderVillage();
+    renderLegion(opts);
+    renderLand();
+    renderInventory();
+    renderOverlays();
   }
   // ---- Actions ----
-  $("#btnTribute").addEventListener("click", (e)=>{
+  UI.__on($("#btnTribute"), "click", (e)=>{
     applyStreak();
     const {gain, crit, critMult} = tapGain();
 
@@ -9157,7 +9294,7 @@ const totalTroops =
 
   });
 
-  $("#btnHut").addEventListener("click", ()=>{
+  UI.__on($("#btnHut"), "click", ()=>{
     const c = costHut();
     if(S.gold < c){ toast("Not enough denarii"); return; }
     S.gold -= c;
@@ -9166,7 +9303,7 @@ const totalTroops =
     render();
   });
 
-  $("#btnFarm").addEventListener("click", ()=>{
+  UI.__on($("#btnFarm"), "click", ()=>{
     const c = costFarm();
     if(S.gold < c){ toast("Not enough denarii"); return; }
     S.gold -= c;
@@ -9178,7 +9315,7 @@ const totalTroops =
     render();
   });
 
-  $("#btnVilla").addEventListener("click", ()=>{
+  UI.__on($("#btnVilla"), "click", ()=>{
     const c = costVilla();
     if(S.gold < c){ toast("Not enough denarii"); return; }
     S.gold -= c;
@@ -9189,7 +9326,7 @@ const totalTroops =
     toast("Village capacity grows");
     render();
   });
-  $("#btnRecruit").addEventListener("click", (e)=>{
+  UI.__on($("#btnRecruit"), "click", (e)=>{
     // Recruit milites in batches using the current batch size.
     const desired = currentRecruitBatchSize();
     // Prevent spam for this unit type: only one Milites batch may run at a time.
@@ -9237,7 +9374,7 @@ const totalTroops =
       bumpObjective("recruit", qty);
       logLine(`Recruited ${fmt(qty)} milites.`, "good");
       try{
-        const btn = document.getElementById("btnRecruit");
+        const btn = UI.el("btnRecruit");
         const card = btn && btn.closest ? btn.closest(".unitCard") : null;
         if(card && typeof playRecruitAnimation === "function"){
           playRecruitAnimation("Milites", card, btn);
@@ -9267,7 +9404,7 @@ const totalTroops =
   });
 
   
-  $("#btnRecruitArchers").addEventListener("click", (e)=>{
+  UI.__on($("#btnRecruitArchers"), "click", (e)=>{
     // Recruit archers using quantity selection and training queue
     const desired = currentRecruitBatchSize();
     // Prevent spam for this unit type: only one Archers batch may run at a time.
@@ -9315,7 +9452,7 @@ const totalTroops =
       bumpObjective("recruit", qty);
       logLine("Recruited " + fmt(qty) + " archers.", "good");
       try{
-        const btn = document.getElementById("btnRecruitArchers");
+        const btn = UI.el("btnRecruitArchers");
         const card = btn && btn.closest ? btn.closest(".unitCard") : null;
         if(card && typeof playRecruitAnimation === "function"){
           playRecruitAnimation("Archers", card, btn);
@@ -9343,7 +9480,7 @@ const totalTroops =
     render({skipBattles:true});
   });
 
-$("#btnRecruitCavalry").addEventListener("click", (e)=>{
+UI.__on($("#btnRecruitCavalry"), "click", (e)=>{
     // Recruit cavalry using quantity selection and training queue
     const desired = currentRecruitBatchSize();
     // Prevent spam for this unit type: only one Cavalry batch may run at a time.
@@ -9391,7 +9528,7 @@ $("#btnRecruitCavalry").addEventListener("click", (e)=>{
       bumpObjective("recruit", qty);
       logLine("Recruited " + fmt(qty) + " cavalry.", "good");
       try{
-        const btn = document.getElementById("btnRecruitCavalry");
+        const btn = UI.el("btnRecruitCavalry");
         const card = btn && btn.closest ? btn.closest(".unitCard") : null;
         if(card && typeof playRecruitAnimation === "function"){
           playRecruitAnimation("Cavalry", card, btn);
@@ -9425,7 +9562,7 @@ $("#btnRecruitCavalry").addEventListener("click", (e)=>{
   // captivi as a prerequisite and cost a flat, low amount of gold.  Large
   // batches (≥10 units) are queued and take time to train.  Quantity is
   // determined by the recruitBatchSize selection.
-  $("#btnRecruitCaptiviAux").addEventListener("click", (e)=>{
+  UI.__on($("#btnRecruitCaptiviAux"), "click", (e)=>{
     // Captivi Auxiliaries ignore civilian population but consume captivi.
     const desired = currentRecruitBatchSize();
     // Prevent spam for this unit type: only one Captivi Auxiliaries batch may run at a time.
@@ -9463,7 +9600,7 @@ $("#btnRecruitCavalry").addEventListener("click", (e)=>{
       bumpObjective("recruit", qty);
       logLine(`Recruited ${fmt(qty)} captivi auxiliaries.`, "good");
       try{
-        const btn = document.getElementById("btnRecruitCaptiviAux");
+        const btn = UI.el("btnRecruitCaptiviAux");
         const card = btn && btn.closest ? btn.closest(".unitCard") : null;
         if(card && typeof playRecruitAnimation === "function"){
           // Reuse Milites sprite unless you later add a dedicated CaptiviAux image
@@ -9540,9 +9677,6 @@ const totalTroops = (S.warriors||0) + (S.archers||0) + (S.cavalry||0) + (S.auxil
 }
 
 
-
-
-
 function maybeSpawnDefenceFromCashout(){
   // 30% chance on cashout, only after intro battle and if you actually have troops.
   if(typeof window !== "undefined" && window.defenceOverlayOpen) return;
@@ -9576,7 +9710,7 @@ function maybeSpawnDefenceFromCashout(){
   // Protect the streak window while the player is reading this
   S.lastTap = Date.now();
 
-  const overlay = document.createElement("div");
+  const overlay = UI.ce("div");
   overlay.id = "defencePopup";
   overlay.style.position = "fixed";
   overlay.style.inset = "0";
@@ -9586,12 +9720,12 @@ function maybeSpawnDefenceFromCashout(){
   overlay.style.justifyContent = "center";
   overlay.style.zIndex = "1600";
 
-  const card = document.createElement("section");
+  const card = UI.ce("section");
   card.className = "card";
   card.style.maxWidth = "420px";
   card.style.margin = "0 14px";
 
-  const header = document.createElement("div");
+  const header = UI.ce("div");
   header.className = "sectionTitle";
 
   // Risk icon based on size of the raid
@@ -9604,10 +9738,10 @@ function maybeSpawnDefenceFromCashout(){
 
   header.innerHTML = `<span style="font-weight:700;color:var(--text)">Defence</span>`;
 
-  const bodyWrap = document.createElement("div");
+  const bodyWrap = UI.ce("div");
   bodyWrap.className = "cardBody";
 
-  const title = document.createElement("div");
+  const title = UI.ce("div");
   title.textContent = battle.label;
   title.style.fontFamily = "var(--mono)";
   title.style.fontSize = ".86rem";
@@ -9615,12 +9749,12 @@ function maybeSpawnDefenceFromCashout(){
   title.style.color = "var(--text)";
   title.style.marginBottom = "4px";
 
-  const desc = document.createElement("div");
+  const desc = UI.ce("div");
   desc.style.fontSize = ".8rem";
   desc.style.marginBottom = "10px";
   desc.textContent = "Enemy raiders are disrupting your lands.";
 
-  const stats = document.createElement("div");
+  const stats = UI.ce("div");
   stats.style.fontFamily = "var(--mono)";
   stats.style.fontSize = ".78rem";
   stats.style.border = "1px solid rgba(158,104,54,.6)";
@@ -9663,27 +9797,27 @@ function maybeSpawnDefenceFromCashout(){
   const costsDen = defenceIgnoreCostDen();
   const costsRen = defenceIgnoreCostRen();
 
-  const actions = document.createElement("div");
+  const actions = UI.ce("div");
   actions.style.display = "flex";
   actions.style.flexDirection = "column";
   actions.style.gap = "8px";
 
-  const btnEngage = document.createElement("button");
+  const btnEngage = UI.ce("button");
   btnEngage.className = "smallBtn";
   btnEngage.innerHTML = `<div class="t">🛡️ Defend</div><div class="d">Risk your troops, no payment.</div>`;
 
-  const btnIgnore = document.createElement("button");
+  const btnIgnore = UI.ce("button");
   btnIgnore.className = "smallBtn";
   btnIgnore.innerHTML = `<div class="t">💰 Buy Them Off — ${fmt(costsDen)}d, ${fmt(costsRen)}r</div><div class="d">Avoid casualties.</div>`;
 
-  btnEngage.addEventListener("click", ()=>{
+  UI.__on(btnEngage, "click", ()=>{
     closeDefencePopup(overlay);
     // Refresh lastTap so streak window resumes from now
     S.lastTap = Date.now();
     startTacticalBattle(slot, true);
   });
 
-  btnIgnore.addEventListener("click", ()=>{
+  UI.__on(btnIgnore, "click", ()=>{
     const costDen = defenceIgnoreCostDen();
     const costRen = defenceIgnoreCostRen();
 
@@ -9714,7 +9848,7 @@ function maybeSpawnDefenceFromCashout(){
   card.appendChild(bodyWrap);
 
   overlay.appendChild(card);
-  document.body.appendChild(overlay);
+  UI.body().appendChild(overlay);
 }
 
 
@@ -9745,19 +9879,19 @@ function closeDefencePopup(overlay){
     if(typeof scheduleSave === "function") scheduleSave();
   }
 
-  $("#landAgricultureBtn") && $("#landAgricultureBtn").addEventListener("click", ()=>adjustLandAllocation("agriculture"));
-  $("#landMilitaryBtn") && $("#landMilitaryBtn").addEventListener("click", ()=>adjustLandAllocation("military"));
-  $("#landHousingBtn") && $("#landHousingBtn").addEventListener("click", ()=>adjustLandAllocation("housing"));
-  $("#landGovernanceBtn") && $("#landGovernanceBtn").addEventListener("click", ()=>adjustLandAllocation("governance"));
+  $("#landAgricultureBtn") && UI.__on($("#landAgricultureBtn"), "click", ()=>adjustLandAllocation("agriculture"));
+  $("#landMilitaryBtn") && UI.__on($("#landMilitaryBtn"), "click", ()=>adjustLandAllocation("military"));
+  $("#landHousingBtn") && UI.__on($("#landHousingBtn"), "click", ()=>adjustLandAllocation("housing"));
+  $("#landGovernanceBtn") && UI.__on($("#landGovernanceBtn"), "click", ()=>adjustLandAllocation("governance"));
 
   
     
 // --- Battle Report overlay (after every battle) ---
 
 function showBattleReport(rep){
-  const overlay = document.getElementById("battleOverlay");
-  const body = document.getElementById("battleBody");
-  const title = document.getElementById("battleTitle");
+  const overlay = UI.el("battleOverlay");
+  const body = UI.el("battleBody");
+  const title = UI.el("battleTitle");
   if(!overlay || !body || !title) return;
 
   const denChange = rep.denDelta || 0;
@@ -9889,7 +10023,7 @@ function showBattleReport(rep){
 }
 
 function closeBattleReport(){
-  const overlay = document.getElementById("battleOverlay");
+  const overlay = UI.el("battleOverlay");
   if(!overlay) return;
   overlay.classList.remove("visible");
   setTimeout(()=>{ overlay.style.display = "none"; }, 220);
@@ -9899,9 +10033,9 @@ window.showBattleReport = showBattleReport;
 
 // --- Settlement assimilation popup (after faction-card battles) ---
 function showSettlementAssimilationPopup(meta, gained){
-  const overlay = document.getElementById("factionAssimOverlay");
-  const body = document.getElementById("factionAssimBody");
-  const title = document.getElementById("factionAssimTitle");
+  const overlay = UI.el("factionAssimOverlay");
+  const body = UI.el("factionAssimBody");
+  const title = UI.el("factionAssimTitle");
   if(!overlay || !body || !title) return;
 
   const name = meta && meta.name ? meta.name : "A neighbouring settlement";
@@ -9988,7 +10122,7 @@ function showSettlementAssimilationPopup(meta, gained){
 }
 
 function closeSettlementAssimilation(){
-  const overlay = document.getElementById("factionAssimOverlay");
+  const overlay = UI.el("factionAssimOverlay");
   if(!overlay) return;
   overlay.classList.remove("visible");
   setTimeout(()=>{ overlay.style.display = "none"; }, 200);
@@ -10024,18 +10158,18 @@ function showBattleSimulation(rep, tier){
     return "█".repeat(filled) + "░".repeat(empty);
   };
 
-  const overlay      = document.getElementById("battleSimOverlay");
-  const title        = document.getElementById("battleSimTitle");
-  const enemyNameEl  = document.getElementById("battleSimEnemyName");
-  const enemyBarImg  = document.getElementById("battleSimEnemyBarImg");
-  const yourBarImg   = document.getElementById("battleSimYourBarImg");
-  const enemyBarCount = document.getElementById("enemyBarCount");
-  const yourBarCount  = document.getElementById("yourBarCount");
-  const enemyStatsEl = document.getElementById("battleSimEnemyStats");
-  const yourStatsEl  = document.getElementById("battleSimYourStats");
-  const eventsEl     = document.getElementById("battleSimEvents");
-  const btnSkip      = document.getElementById("btnSkip") || document.getElementById("battleSimSkip") || document.getElementById("battleSimContinue");
-  const btnContinue  = document.getElementById("battleSimContinue");  if(
+  const overlay      = UI.el("battleSimOverlay");
+  const title        = UI.el("battleSimTitle");
+  const enemyNameEl  = UI.el("battleSimEnemyName");
+  const enemyBarImg  = UI.el("battleSimEnemyBarImg");
+  const yourBarImg   = UI.el("battleSimYourBarImg");
+  const enemyBarCount = UI.el("enemyBarCount");
+  const yourBarCount  = UI.el("yourBarCount");
+  const enemyStatsEl = UI.el("battleSimEnemyStats");
+  const yourStatsEl  = UI.el("battleSimYourStats");
+  const eventsEl     = UI.el("battleSimEvents");
+  const btnSkip      = UI.el("btnSkip") || UI.el("battleSimSkip") || UI.el("battleSimContinue");
+  const btnContinue  = UI.el("battleSimContinue");  if(
     !overlay || !title || !enemyNameEl ||
     !enemyBarImg || !yourBarImg || !enemyStatsEl || !yourStatsEl ||
     !eventsEl || !btnSkip || !btnContinue
@@ -10232,7 +10366,7 @@ function showBattleSimulation(rep, tier){
 
   const appendLine = (entry)=>{
     if(!entry) return;
-    const div = document.createElement("div");
+    const div = UI.ce("div");
     div.className = "simEventLine";
 
     if(entry && typeof entry === "object"){
@@ -10302,128 +10436,13 @@ function showBattleSimulation(rep, tier){
   btnSkip.onclick = ()=>{
     finish();
     showBattleReport(rep);
-    if(rep && rep.isIntro){
-      toast("This is how legends are born.");
-      logLine("First defence of the village: this is where your legend begins.", "good");
-      if(typeof scheduleSave === "function") scheduleSave();
-    }
-  };
+};
 
   btnContinue.onclick = ()=>{
     finish();
     showBattleReport(rep);
-    if(rep && rep.isIntro){
-      toast("This is how legends are born.");
-      logLine("First defence of the village: this is where your legend begins.", "good");
-      if(typeof scheduleSave === "function") scheduleSave();
-    }
-  };
-}function startIntroBattle(){
-  if(S.introBattleDone) return;
-  S.introBattleDone = 1;
-
-  // Remember pre-intro forces so the visiting warband can leave afterwards
-  const prevWarriors = S.warriors || 0;
-  const prevPopulation = S.population || 0;
-
-  // Ensure a small visiting warband so the battle feels real
-  let warriors = S.warriors || 0;
-  let population = S.population || 0;
-  if(warriors < 12){
-    const add = 12 - warriors;
-    warriors += add;
-    population += add;
-  }
-  S.warriors = warriors;
-  S.population = population;
-  S.populationUsed = (S.warriors||0) + (S.archers||0) + (S.cavalry||0);
-
-  // Use the new battleSim to decide how bloody the intro feels,
-  // but always treat it as a hard-won victory in the story.
-  const beforeWarriors = S.warriors || 0;
-  const introSlot = 0; // first battle tier (usually bandits)
-  const sim = battleSim(introSlot);
-
-  // Derive casualties from the sim, but clamp to a "narrow win" band.
-  let simLosses = sim && typeof sim.losses === "number" ? sim.losses : Math.round(beforeWarriors * 0.35);
-  const minLoss = Math.max(1, Math.round(beforeWarriors * 0.22));
-  const maxLoss = Math.max(minLoss, Math.round(beforeWarriors * 0.55));
-  const losses = clamp(simLosses, minLoss, maxLoss);
-
-  const afterWarriorsIntro = Math.max(0, beforeWarriors - losses);
-
-  // Enemy numbers from the sim, or a fallback
-  const enemies = sim && typeof sim.enemies === "number"
-    ? sim.enemies
-    : beforeWarriors + rnd(4, 10);
-
-  // Count this as a fought and won battle, and track kills/records.
-  S.battlesFought = (S.battlesFought || 0) + 1;
-  S.battlesWon = (S.battlesWon || 0) + 1;
-  (function(){
-    const kills = Math.max(0, Math.floor(enemies));
-    if(kills > 0){
-      S.enemiesKilled = (S.enemiesKilled || 0) + kills;
-      if(!S.biggestBattleKill || kills > S.biggestBattleKill){
-        S.biggestBattleKill = kills;
-      }
-    }
-  })();
-
-  // Modest early reward so the opener feels impactful
-  const denGain = 16;
-  const landGain = 0; // Tutorial battle: no land granted
-  const renGain = 4;
-
-  S.gold += denGain;
-  S.lifetimeGold += denGain;
-  // Do NOT grant land for the intro battle – rewards are denarii + renown only.
-  S.renown = (S.renown || 0) + renGain;
-  S.lifetimeRenown = (S.lifetimeRenown || 0) + renGain;
-
-  const rep = {
-    label: "First Defence of the Village",
-    enemies,
-    // Show whatever odds the sim estimated, but the story always counts this as a win.
-    winP: sim && typeof sim.winP === "number" ? sim.winP : 0.56,
-    win: true,
-    beforeWarriors,
-    afterWarriors: afterWarriorsIntro,
-    losses,
-    denDelta: denGain,
-    landDelta: landGain,
-    renDelta: renGain,
-    landSlots: 0,
-    territoryNames: [],
-    note: "You hold the field when it should have broken.",
-    isIntro: true
-  };
-
-  // The visiting warband that saved you marches on; you're left as you were before,
-  // with only the scars and spoils to show for it.
-  S.warriors = prevWarriors;
-  S.population = prevPopulation;
-  S.populationUsed = (S.warriors||0) + (S.archers||0) + (S.cavalry||0);
-
-  const introLines = [
-    "Battle Victory!",
-    "Captured: (tutorial – no new land)",
-    `+${fmt(renGain)} Renown`,
-    `+${fmt(denGain)} Denarii`,
-    `Troops lost: ${fmt(losses)}`
-  ];
-
-  logLine(introLines.join("\n"), "good");
-  logLine("The warband that saved your village marches on, leaving you to build your own legion.", "warn");
-  toast("The village stands. Barely.");
-  showBattleSimulation(rep, 1);
-  render();
-  if(typeof scheduleSave === "function") scheduleSave();
-}
-
-window.startIntroBattle = startIntroBattle;
-
-// --- Battle execution (rank-based) ---
+};
+}// --- Battle execution (rank-based) ---
 // Optional second arg opts: { defence: true } for pop-up defence battles
 function doBattle(slot, opts){
   opts = opts || {};
@@ -11233,17 +11252,17 @@ bumpObjective("winBattle", 1);
 // For offensive battles the player can choose to command tactic...l launch the tactical overlay rather than immediately resolving.
 const btnBattleBandits1 = $("#btnBattleBandits1");
 if(btnBattleBandits1){
-  btnBattleBandits1.addEventListener("click", ()=> startTacticalBattle(0));
+  UI.__on(btnBattleBandits1, "click", ()=> startTacticalBattle(0));
 }
-$("#btnBattleLevy").addEventListener("click", ()=> startTacticalBattle(1));
-$("#btnBattleVillageRaid").addEventListener("click", ()=> startTacticalBattle(2));
-$("#btnBattleSiege").addEventListener("click", ()=> startTacticalBattle(3));
+UI.__on($("#btnBattleLevy"), "click", ()=> startTacticalBattle(1));
+UI.__on($("#btnBattleVillageRaid"), "click", ()=> startTacticalBattle(2));
+UI.__on($("#btnBattleSiege"), "click", ()=> startTacticalBattle(3));
 
 
 // Settlement card actions & pager
 const factionList = $("#factionCardsList");
 if(factionList){
-  factionList.addEventListener("click", (ev)=>{
+  UI.__on(factionList, "click", (ev)=>{
     const target = ev.target;
     if(!target) return;
     const btn = target.closest && target.closest("[data-faction-action]");
@@ -11259,7 +11278,7 @@ if(factionList){
 
 const factionPager = $("#factionCardsPager");
 if(factionPager){
-  factionPager.addEventListener("click", (ev)=>{
+  UI.__on(factionPager, "click", (ev)=>{
     const target = ev.target;
     if(!target) return;
     const btn = target.closest && target.closest(".factionPageBtn");
@@ -11281,7 +11300,7 @@ if(factionPager){
   const btnGloryClose = $("#gloryCloseBtn");
 
   if(btnOpenCastrum && gloryOverlay){
-    btnOpenCastrum.addEventListener("click", ()=>{
+    UI.__on(btnOpenCastrum, "click", ()=>{
       const gloryNow = S.glory || 0;
       const el = $("#gloryOverlayNow");
       if(el) el.textContent = fmt(gloryNow);
@@ -11297,7 +11316,7 @@ if(factionPager){
   }
 
   if(btnGloryClose && gloryOverlay){
-    btnGloryClose.addEventListener("click", ()=>{
+    UI.__on(btnGloryClose, "click", ()=>{
       gloryOverlay.classList.remove("visible");
       gloryOverlay.setAttribute("hidden", "hidden");
     });
@@ -11315,7 +11334,7 @@ if(factionPager){
     else if(kind === "vets")    S.veterans = (S.veterans || 0) + count;
   };
 
-  $("#btnBuyAuxilia").addEventListener("click", (evt)=>{
+  UI.__on($("#btnBuyAuxilia"), "click", (evt)=>{
     const cost = gloryCost("aux");
     if((S.glory || 0) < cost){
       toast("Not enough glory");
@@ -11335,7 +11354,7 @@ if(factionPager){
     render();
   });
 
-  $("#btnBuyEquites").addEventListener("click", (evt)=>{
+  UI.__on($("#btnBuyEquites"), "click", (evt)=>{
     const cost = gloryCost("equites");
     if((S.glory || 0) < cost){
       toast("Not enough glory");
@@ -11355,7 +11374,7 @@ if(factionPager){
     render();
   });
 
-  $("#btnBuyVeterans").addEventListener("click", (evt)=>{
+  UI.__on($("#btnBuyVeterans"), "click", (evt)=>{
     const cost = gloryCost("vets");
     if((S.glory || 0) < cost){
       toast("Not enough glory");
@@ -11377,7 +11396,7 @@ if(factionPager){
 
 // Skirmish: optional combat later (tiny screen footprint)
 
-  $("#btnOffer").addEventListener("click", ()=>{
+  UI.__on($("#btnOffer"), "click", ()=>{
     const c = offerCost();
     if(S.gold < c){ toast("Not enough denarii"); return; }
     S.gold -= c;
@@ -11392,7 +11411,7 @@ if(factionPager){
     render();
   });
 
-  $("#btnBless").addEventListener("click", ()=>{
+  UI.__on($("#btnBless"), "click", ()=>{
     const now = Date.now();
     if(now < S.blessReadyAt){ toast("Cooling down"); return; }
     S.blessReadyAt = now + blessCooldownMs();
@@ -11401,7 +11420,7 @@ if(factionPager){
     render();
   });
 
-  $("#btnAscend").addEventListener("click", ()=>{
+  UI.__on($("#btnAscend"), "click", ()=>{
     const gain = ascendCrownGain();
     if(gain <= 0){ toast("Need 8,000 renown"); return; }
     if(!confirm(`Ascend for +${gain} crowns? (Resets most progress)`)) return;
@@ -11424,7 +11443,7 @@ if(factionPager){
     setView("village");
   });
 
-    $("#btnCashout").addEventListener("click", (e)=>{
+    UI.__on($("#btnCashout"), "click", (e)=>{
     if(!cashoutReady()){ toast("Not ready"); return; }
 
     const payout = cashoutPotential();
@@ -11467,14 +11486,14 @@ const btnPopulation = $("#btnPopulation");
 const btnPopulationClose = $("#populationCloseBtn");
 
 if(btnPopulation && populationOverlay){
-  btnPopulation.addEventListener("click", ()=>{
+  UI.__on(btnPopulation, "click", ()=>{
     populationOverlay.removeAttribute("hidden");
     populationOverlay.classList.add("visible");
   });
 }
 
 if(btnPopulationClose && populationOverlay){
-  btnPopulationClose.addEventListener("click", ()=>{
+  UI.__on(btnPopulationClose, "click", ()=>{
     populationOverlay.classList.remove("visible");
     populationOverlay.setAttribute("hidden","hidden");
   });
@@ -11485,7 +11504,7 @@ const btnConstruction = $("#btnConstruction");
 const btnConstructionClose = $("#constructionCloseBtn");
 
 if(btnConstruction && constructionOverlay){
-  btnConstruction.addEventListener("click", ()=>{
+  UI.__on(btnConstruction, "click", ()=>{
     constructionOverlay.removeAttribute("hidden");
     constructionOverlay.classList.add("visible");
     if(typeof setConstructionTab === "function"){
@@ -11498,7 +11517,7 @@ if(btnConstruction && constructionOverlay){
 }
 
 if(btnConstructionClose && constructionOverlay){
-  btnConstructionClose.addEventListener("click", ()=>{
+  UI.__on(btnConstructionClose, "click", ()=>{
     constructionOverlay.classList.remove("visible");
     constructionOverlay.setAttribute("hidden","hidden");
   });
@@ -11524,12 +11543,11 @@ function setConstructionTab(name){
 
 if(constructionTabButtons.length){
   constructionTabButtons.forEach(btn=>{
-    btn.addEventListener("click", ()=>{
+    UI.__on(btn, "click", ()=>{
       setConstructionTab(btn.dataset.tab);
     });
   });
 }
-
 
 
 function updateConstructionPreviews(){
@@ -11586,7 +11604,7 @@ function updateConstructionPreviews(){
 
 const btnExport = $("#btnExport");
 if(btnExport){
-  btnExport.addEventListener("click", async ()=>{
+  UI.__on(btnExport, "click", async ()=>{
     try{
       await navigator.clipboard.writeText(JSON.stringify(S));
       toast("Copied");
@@ -11598,7 +11616,7 @@ if(btnExport){
 
 const btnReset = $("#btnReset");
 if(btnReset){
-  btnReset.addEventListener("click", ()=>{
+  UI.__on(btnReset, "click", ()=>{
     // Flavour confirm for New Game
     const msg = "Abandon your realm and begin anew?\nYour lands, wealth, and renown will be lost.";
     if(!confirm(msg)) return;
@@ -11633,11 +11651,11 @@ if(btnReset){
 }
 
 
-  const offlineOk = document.getElementById("offlineOkBtn");
+  const offlineOk = UI.el("offlineOkBtn");
   if(offlineOk && !offlineOk._wired){
     offlineOk._wired = true;
-    offlineOk.addEventListener("click", ()=>{
-      const overlay = document.getElementById("offlineOverlay");
+    UI.__on(offlineOk, "click", ()=>{
+      const overlay = UI.el("offlineOverlay");
       if(overlay){
         overlay.classList.remove("visible");
         overlay.setAttribute("hidden","hidden");
@@ -11657,15 +11675,15 @@ if(btnReset){
   }
 
   let _offlineResumeArmed = false;
-  document.addEventListener("visibilitychange", ()=>{
+  UI.__on(document, "visibilitychange", ()=>{
     // When going to background, stamp time.
-    if(document.visibilityState === "hidden"){
+    if(window.UI.visibilityState() === "hidden"){
       _offlineResumeArmed = true;
       stampLastSeenAndSave();
       return;
     }
     // When returning, apply offline if we were actually backgrounded.
-    if(document.visibilityState === "visible" && _offlineResumeArmed){
+    if(window.UI.visibilityState() === "visible" && _offlineResumeArmed){
       _offlineResumeArmed = false;
       try{ applyOfflineProgress(); }catch(e){ console && console.warn && console.warn("Offline progress failed", e); }
       render();
@@ -11673,14 +11691,14 @@ if(btnReset){
   }, {passive:true});
 
   // Some iOS/PWA flows fire pagehide without visibilitychange.
-  window.addEventListener("pagehide", ()=>{
+  UI.__on(window, "pagehide", ()=>{
     _offlineResumeArmed = true;
     stampLastSeenAndSave();
   }, {passive:true});
 
   // Tabs click
   $$(".tab").forEach(btn=>{
-    btn.addEventListener("click", ()=> setView(btn.dataset.go));
+    UI.__on(btn, "click", ()=> setView(btn.dataset.go));
   });
 
   // Passive tick (keeps progression going)
@@ -11810,7 +11828,6 @@ if(btnReset){
         }
 
 
-
         function _prodLoop(nowMS){
           const dtSec = Math.min(0.2, (nowMS - _lastMS) / 1000);
           _lastMS = nowMS;
@@ -11884,7 +11901,7 @@ if(payoutGold > 0){
 
   // Splash only when overlay is open
   if(overlayOpen){
-    const el = document.getElementById("farmSplash");
+    const el = UI.el("farmSplash");
     if(el){
       
       const parts = [];
@@ -11914,7 +11931,7 @@ if(S.buildProgVillaDen >= 5){
   }
 
   if(overlayOpen){
-    const el = document.getElementById("villaSplash");
+    const el = UI.el("villaSplash");
     if(el){
       el.textContent = `+${Math.floor(payoutGold)}💰`;
       el.classList.remove("show");
@@ -11929,8 +11946,8 @@ if(S.buildProgVillaDen >= 5){
 
           if(overlayOpen){
             const pct = Math.max(0, Math.min(1, (S.buildProgFarmDen || 0) / 5));
-            const farmGoldFill = document.getElementById("farmProgressGoldFill");
-            const farmFoodFill = document.getElementById("farmProgressFill") || document.getElementById("farmDenBar");
+            const farmGoldFill = UI.el("farmProgressGoldFill");
+            const farmFoodFill = UI.el("farmProgressFill") || UI.el("farmDenBar");
             if(farmGoldFill){
               farmGoldFill.style.width = "100%";
               farmGoldFill.style.transformOrigin = "0 50%";
@@ -11944,7 +11961,7 @@ if(S.buildProgVillaDen >= 5){
               farmFoodFill.style.transform = "scaleX(" + pct.toFixed(4) + ")";
               farmFoodFill.style.willChange = "transform";
               farmFoodFill.style.transition = "transform 0.016s linear";
-            }const villaFill = document.getElementById("villaProgressFill") || document.getElementById("villaDenBar");
+            }const villaFill = UI.el("villaProgressFill") || UI.el("villaDenBar");
             if(villaFill){
               const pct = Math.max(0, Math.min(1, (S.buildProgVillaDen || 0) / 5));
               villaFill.style.width = "100%";
@@ -12161,10 +12178,10 @@ requestAnimationFrame(_prodLoop);
   function updateTacticalUI(){
     const s = currentTactical;
     if(!s) return;
-    const yourImg  = document.getElementById('tacYourBarImg');
-    const enemyImg = document.getElementById('tacEnemyBarImg');
-    const yourCnt  = document.getElementById('tacYourBarCount');
-    const enemyCnt = document.getElementById('tacEnemyBarCount');
+    const yourImg  = UI.el('tacYourBarImg');
+    const enemyImg = UI.el('tacEnemyBarImg');
+    const yourCnt  = UI.el('tacYourBarCount');
+    const enemyCnt = UI.el('tacEnemyBarCount');
 
     if(yourImg && enemyImg){
       const idxY = tacBarIndex(s.currentPlayer, s.initPlayer);
@@ -12175,12 +12192,12 @@ requestAnimationFrame(_prodLoop);
       if(enemyCnt) enemyCnt.textContent = `${fmt(s.currentEnemy)} / ${fmt(s.initEnemy)}`;
     }
 
-    const eventsEl = document.getElementById('tacEvents');
+    const eventsEl = UI.el('tacEvents');
     if(eventsEl){
       eventsEl.innerHTML = '';
       const start = Math.max(0, s.events.length - 6);
       s.events.slice(start).forEach(line=>{
-        const div = document.createElement('div');
+        const div = UI.ce('div');
         div.innerHTML = line;
         eventsEl.appendChild(div);
       });
@@ -12191,7 +12208,7 @@ requestAnimationFrame(_prodLoop);
     const s = currentTactical;
     if(!s) return;
 
-    const overlay = document.getElementById('tacticalOverlay');
+    const overlay = UI.el('tacticalOverlay');
     if(overlay) overlay.style.display = 'none';
 
     // Work out exact per‑type losses from starting vs remaining pools.
@@ -12452,8 +12469,6 @@ requestAnimationFrame(_prodLoop);
 
     return { pool, exposure };
   }
-
-
 
 
   function tacticalClassifyPlayer(pPool){
@@ -13147,8 +13162,8 @@ const totalTroops = mil + cav + arc + aux + eq + vet + cap;
     factionCardMeta: factionMeta
   };
 
-  const preOverlay = document.getElementById('preBattleOverlay');
-  const summaryEl  = document.getElementById('preBattleSummary');
+  const preOverlay = UI.el('preBattleOverlay');
+  const summaryEl  = UI.el('preBattleSummary');
 
   if(preOverlay && summaryEl){
     const pool = enemyBuilt.pool || {};
@@ -13183,8 +13198,8 @@ const totalTroops = mil + cav + arc + aux + eq + vet + cap;
     preOverlay.style.display = 'flex';
 
     // Wire buttons now that the overlay is shown and elements exist.
-    const backBtn = document.getElementById('preBattleBackBtn');
-    const goBtn   = document.getElementById('preBattleEngageBtn');
+    const backBtn = UI.el('preBattleBackBtn');
+    const goBtn   = UI.el('preBattleEngageBtn');
 
     if(backBtn){
       backBtn.onclick = function(){
@@ -13222,7 +13237,7 @@ function actuallyStartTacticalBattle(){
     factionCardMeta
   } = cfg;
 
-  const overlay = document.getElementById('tacticalOverlay');
+  const overlay = UI.el('tacticalOverlay');
   if(overlay) overlay.style.display = 'flex';
 
   // Initial morale from hidden legionMorale, clamped.
@@ -13286,17 +13301,17 @@ function actuallyStartTacticalBattle(){
     enemyExposure: enemyBuilt.exposure
   };
 
-  const titleEl = document.getElementById("tacticalTitle");
+  const titleEl = UI.el("tacticalTitle");
   if(titleEl){
     const label = sim && sim.label ? sim.label : "Engagement";
     titleEl.textContent = label;
   }
 
   // Wire buttons each time we open to be safe.
-  const btnA     = document.getElementById('tacBtnAttack');
-  const btnD     = document.getElementById('tacBtnOversee');
-  const btnH     = document.getElementById('tacBtnStats');
-  const btnClose = document.getElementById('tacCloseBtn');
+  const btnA     = UI.el('tacBtnAttack');
+  const btnD     = UI.el('tacBtnOversee');
+  const btnH     = UI.el('tacBtnStats');
+  const btnClose = UI.el('tacCloseBtn');
 
   if (btnA) {
     btnA.onclick = () => tacAction('attack');
@@ -13321,9 +13336,6 @@ function actuallyStartTacticalBattle(){
 }
 
 
-
-
-
   function openTacticalOversee(){
     try{
       const s = window.currentTactical;
@@ -13332,19 +13344,19 @@ function actuallyStartTacticalBattle(){
         return;
       }
 
-      const overlay = document.getElementById('tacOrdersOverlay');
+      const overlay = UI.el('tacOrdersOverlay');
       if(!overlay){
         toast("Orders interface missing.");
         return;
       }
 
       // Populate overlay text and button states based on current situation.
-      const titleEl = document.getElementById('tacOrdersTitle');
-      const descEl  = document.getElementById('tacOrdersDesc');
-      const btnMed  = document.getElementById('tacOrdersMedics');
-      const btnEng  = document.getElementById('tacOrdersEngineers');
-      const btnInv  = document.getElementById('tacOrdersInventory');
-      const noteEl  = document.getElementById('tacOrdersNote');
+      const titleEl = UI.el('tacOrdersTitle');
+      const descEl  = UI.el('tacOrdersDesc');
+      const btnMed  = UI.el('tacOrdersMedics');
+      const btnEng  = UI.el('tacOrdersEngineers');
+      const btnInv  = UI.el('tacOrdersInventory');
+      const noteEl  = UI.el('tacOrdersNote');
 
       const sim  = s.sim || {};
       const tier = sim.tier || 1;
@@ -13431,9 +13443,9 @@ function actuallyStartTacticalBattle(){
 // Land tier unlock popup helpers
   
   function showCaptiviUnlockPopup(){
-    const overlay = document.getElementById('captiviUnlockOverlay');
-    const textEl  = document.getElementById('captiviUnlockText');
-    const btn     = document.getElementById('captiviUnlockOkBtn');
+    const overlay = UI.el('captiviUnlockOverlay');
+    const textEl  = UI.el('captiviUnlockText');
+    const btn     = UI.el('captiviUnlockOkBtn');
     if(!overlay || !textEl || !btn) return;
     textEl.textContent = "You have captured captivi in battle. You can now train Captivi Auxiliaries and use captives in the economy.";
     overlay.style.display = 'flex';
@@ -13443,15 +13455,15 @@ function actuallyStartTacticalBattle(){
   }
 
 function showLandTierUnlockPopup(tier, names){
-    const overlay = document.getElementById('landTierOverlay');
-    const listEl  = document.getElementById('landTierList');
-    const textEl  = document.getElementById('landTierText');
-    const btn     = document.getElementById('landTierOkBtn');
+    const overlay = UI.el('landTierOverlay');
+    const listEl  = UI.el('landTierList');
+    const textEl  = UI.el('landTierText');
+    const btn     = UI.el('landTierOkBtn');
     if(!overlay || !listEl || !textEl || !btn) return;
 
     listEl.innerHTML = '';
     names.forEach(n => {
-      const li = document.createElement('li');
+      const li = UI.ce('li');
       li.textContent = n;
       listEl.appendChild(li);
     });
@@ -13512,7 +13524,7 @@ function currentRecruitBatchSize(){
     return (recruitBatchSize && recruitBatchSize > 0) ? recruitBatchSize : 1;
   }
   function updateRecruitGainLabel(){
-    const el = document.getElementById('recruitGain');
+    const el = UI.el('recruitGain');
     if(!el) return;
     const qty = currentRecruitBatchSize();
     el.textContent = `+${fmt(qty)} milites`;
@@ -13570,8 +13582,8 @@ function currentRecruitBatchSize(){
         }
       }
       function apply(type, btnId, infoId, singular, plural){
-        const btn = document.getElementById(btnId);
-        const infoEl = document.getElementById(infoId);
+        const btn = UI.el(btnId);
+        const infoEl = UI.el(infoId);
         if(!btn || !infoEl) return;
         const info = infoByType[type];
         if(info){
@@ -13631,13 +13643,11 @@ function currentRecruitBatchSize(){
   }
 
 
-
-
 function currentRecruitBatchSize(){
     return (recruitBatchSize && recruitBatchSize > 0) ? recruitBatchSize : 1;
   }
   function updateRecruitGainLabel(){
-    const el = document.getElementById('recruitGain');
+    const el = UI.el('recruitGain');
     if(!el) return;
     const qty = currentRecruitBatchSize();
     el.textContent = `+${fmt(qty)} milites`;
@@ -13646,8 +13656,8 @@ function currentRecruitBatchSize(){
 
   function showTradeOverlay(fName){
     currentTradeSettlementName = fName || "neighboring faction";
-    const overlay = document.getElementById('tradeOverlay');
-    const titleEl = document.getElementById('tradeOverlayTitle');
+    const overlay = UI.el('tradeOverlay');
+    const titleEl = UI.el('tradeOverlayTitle');
     if(titleEl) titleEl.textContent = 'Trade with ' + currentTradeSettlementName;
     if(overlay){
       // Ensure trade items state and populate options before showing
@@ -13660,7 +13670,7 @@ function currentRecruitBatchSize(){
         // Render options for the default tab
         renderTradeOptions();
         // Attach click handlers to trade tab buttons on first open
-        const tabs = document.querySelectorAll('.tradeTabBtn');
+        const tabs = UI.qa('.tradeTabBtn');
         tabs.forEach(btn => {
           btn.onclick = function(){
             const tab = btn.getAttribute('data-tab');
@@ -13674,7 +13684,7 @@ function currentRecruitBatchSize(){
     }
   }
   function closeTradeOverlay(){
-    const overlay = document.getElementById('tradeOverlay');
+    const overlay = UI.el('tradeOverlay');
     if(overlay){
       overlay.classList.remove('visible');
       // Hide the overlay by setting display:none
@@ -13727,8 +13737,8 @@ function currentRecruitBatchSize(){
   function renderTradeOptions(){
     // Ensure trade item state exists
     ensureTradeItemsState();
-    const container = document.getElementById('tradeOptionsContainer');
-    const noteEl = document.getElementById('tradeOverlayNote');
+    const container = UI.el('tradeOptionsContainer');
+    const noteEl = UI.el('tradeOverlayNote');
     if(!container) return;
 
     const gold = (S && typeof S.gold === 'number') ? S.gold : 0;
@@ -13768,7 +13778,7 @@ function currentRecruitBatchSize(){
     container.innerHTML = '';
 
     for(const item of display){
-      const row = document.createElement('div');
+      const row = UI.ce('div');
       row.style.display = 'flex';
       row.style.alignItems = 'center';
       row.style.justifyContent = 'space-between';
@@ -13777,16 +13787,16 @@ function currentRecruitBatchSize(){
       row.style.borderBottom = '1px solid rgba(255,255,255,.08)';
 
       // Left: label + price/desc
-      const leftCol = document.createElement('div');
+      const leftCol = UI.ce('div');
       leftCol.style.display = 'flex';
       leftCol.style.flexDirection = 'column';
       leftCol.style.minWidth = '0';
 
       const def = (typeof ITEM_DEFS !== 'undefined' && ITEM_DEFS[item.id]) ? ITEM_DEFS[item.id] : { label: item.name || item.id, icon: '' };
 
-      const nameSpan = document.createElement('div');
+      const nameSpan = UI.ce('div');
       nameSpan.textContent = `${def.icon || ''} ${def.label}`;
-      const descSpan = document.createElement('div');
+      const descSpan = UI.ce('div');
       descSpan.style.fontSize = '.8rem';
       descSpan.style.color = 'var(--muted)';
 
@@ -13800,13 +13810,13 @@ function currentRecruitBatchSize(){
       leftCol.appendChild(descSpan);
 
       // Right: button + owned
-      const rightCol = document.createElement('div');
+      const rightCol = UI.ce('div');
       rightCol.style.display = 'flex';
       rightCol.style.flexDirection = 'column';
       rightCol.style.alignItems = 'flex-end';
       rightCol.style.gap = '6px';
 
-      const btn = document.createElement('button');
+      const btn = UI.ce('button');
       btn.className = 'smallBtn';
 
       const owned = (S.items && typeof S.items[item.id] === 'number') ? S.items[item.id] : 0;
@@ -13815,7 +13825,7 @@ function currentRecruitBatchSize(){
         btn.textContent = 'Buy';
         const price = item.buyPrice;
         btn.disabled = !(typeof price === 'number') || (gold < price);
-        btn.addEventListener('click', ()=>{
+        UI.__on(btn, 'click', ()=>{
           if(!(typeof price === 'number')) return;
           if(S.gold < price) return;
           S.gold -= price;
@@ -13828,7 +13838,7 @@ function currentRecruitBatchSize(){
         btn.textContent = 'Sell';
         const price = item.sellPrice;
         btn.disabled = !(typeof price === 'number') || (owned <= 0);
-        btn.addEventListener('click', ()=>{
+        UI.__on(btn, 'click', ()=>{
           if(!(typeof price === 'number')) return;
           if((S.items[item.id] || 0) <= 0) return;
           S.items[item.id] -= 1;
@@ -13838,7 +13848,7 @@ function currentRecruitBatchSize(){
         });
       }
 
-      const ownedSpan = document.createElement('div');
+      const ownedSpan = UI.ce('div');
       ownedSpan.style.fontSize = '.8rem';
       ownedSpan.style.color = 'var(--muted)';
       ownedSpan.textContent = `Owned: ${fmt(owned)}`;
@@ -13855,7 +13865,7 @@ function currentRecruitBatchSize(){
   // Update the active state on trade tab buttons. Called whenever the current
   // tab changes. Toggles the 'active' class based on currentTradeTab.
   function updateTradeTabButtons(){
-    const tabs = document.querySelectorAll('.tradeTabBtn');
+    const tabs = UI.qa('.tradeTabBtn');
     tabs.forEach(btn => {
       const tab = btn.getAttribute('data-tab');
       if(!tab) return;
@@ -13886,11 +13896,11 @@ function currentRecruitBatchSize(){
   // immediately after script load and will have access to the static DOM
   // because the legion view exists in the page even if it's hidden.
   (function initRecruitQty(){
-    const bar = document.getElementById('recruitQtyBar');
+    const bar = UI.el('recruitQtyBar');
     if(!bar) return;
     const buttons = bar.querySelectorAll('.qtyBtn');
     buttons.forEach(btn => {
-      btn.addEventListener('click', ()=>{
+      UI.__on(btn, 'click', ()=>{
         const val = parseInt(btn.getAttribute('data-qty')) || 1;
         recruitBatchSize = val;
         buttons.forEach(b => b.classList.remove('active'));
@@ -13909,8 +13919,8 @@ function currentRecruitBatchSize(){
   })();
   function showDiplomacyOverlay(cardData){
     currentDiplomacyCardData = cardData || {};
-    const overlay = document.getElementById('diplomacyOverlay');
-    const titleEl = document.getElementById('diplomacyOverlayTitle');
+    const overlay = UI.el('diplomacyOverlay');
+    const titleEl = UI.el('diplomacyOverlayTitle');
     if(titleEl){
       const nm = cardData && cardData.name ? cardData.name : 'neighboring faction';
       titleEl.textContent = 'Diplomacy with ' + nm;
@@ -13929,11 +13939,11 @@ function currentRecruitBatchSize(){
     const renGain2 = Math.max(1, Math.round(popVal / 100)) + Math.max(0, Math.round(landVal));
     currentDiplomacyAllianceParams = { renCost: renCost2, goldCost: goldCost2, renGain: renGain2 };
     // Update descriptions
-    const intDesc = document.getElementById('diplomacyIntegrateDesc');
+    const intDesc = UI.el('diplomacyIntegrateDesc');
     if(intDesc){
       intDesc.textContent = `Cost: ${fmt(renCost)} renown, ${fmt(goldCost)} denarii • Gain: +${fmt(popGain)} population, +${fmt(landGain)} land`;
     }
-    const alliDesc = document.getElementById('diplomacyAllianceDesc');
+    const alliDesc = UI.el('diplomacyAllianceDesc');
     if(alliDesc){
       alliDesc.textContent = `Cost: ${fmt(renCost2)} renown, ${fmt(goldCost2)} denarii • Gain: +${fmt(renGain2)} renown`;
     }
@@ -13944,7 +13954,7 @@ function currentRecruitBatchSize(){
     }
   }
   function closeDiplomacyOverlay(){
-    const overlay = document.getElementById('diplomacyOverlay');
+    const overlay = UI.el('diplomacyOverlay');
     if(overlay){
       overlay.classList.remove('visible');
       overlay.style.display = 'none';
@@ -13964,8 +13974,8 @@ function currentRecruitBatchSize(){
     // Keep trade items initialized (does NOT delete other keys)
     if(typeof ensureTradeItemsState === "function") ensureTradeItemsState();
 
-    const listEl = document.getElementById('inventoryList');
-    const countEl = document.getElementById('inventoryCount');
+    const listEl = UI.el('inventoryList');
+    const countEl = UI.el('inventoryCount');
     if(!listEl) return;
 
     // Build a display order:
@@ -13986,28 +13996,28 @@ function currentRecruitBatchSize(){
       if(!qty && !(ITEM_DEFS && ITEM_DEFS[id])) continue; // hide unknown zeros
       if(qty > 0) totalCount += qty;
 
-      const row = document.createElement('div');
+      const row = UI.ce('div');
       row.style.display = 'flex';
       row.style.justifyContent = 'space-between';
       row.style.alignItems = 'center';
       row.style.gap = '10px';
 
-      const label = document.createElement('div');
+      const label = UI.ce('div');
       label.style.flex = '1';
       const def = (typeof ITEM_DEFS !== 'undefined' && ITEM_DEFS[id]) ? ITEM_DEFS[id] : { label: id, icon: '' };
       label.textContent = `${def.icon ? (def.icon + ' ') : ''}${def.label}`;
 
-      const qtyEl = document.createElement('div');
+      const qtyEl = UI.ce('div');
       qtyEl.style.minWidth = '70px';
       qtyEl.style.textAlign = 'right';
       qtyEl.style.fontFamily = 'var(--mono)';
       qtyEl.textContent = fmt(qty);
 
-      const btn = document.createElement('button');
+      const btn = UI.ce('button');
       btn.className = 'smallBtn';
       btn.textContent = 'Drop';
       btn.disabled = qty <= 0;
-      btn.addEventListener('click', () => {
+      UI.__on(btn, 'click', () => {
         if(!S.items || typeof S.items !== "object") return;
         const cur = Number(S.items[id] || 0);
         if(cur <= 0) return;
@@ -14030,23 +14040,23 @@ function currentRecruitBatchSize(){
 
   function renderBattleInventory(){
     ensureTradeItemsState();
-    const listEl = document.getElementById('battleInventoryList');
+    const listEl = UI.el('battleInventoryList');
     if(!listEl) return;
     listEl.innerHTML = '';
     for(const item of tradeItems){
       const qty = S.items[item.id] || 0;
-      const row = document.createElement('div');
+      const row = UI.ce('div');
       row.style.display = 'flex';
       row.style.justifyContent = 'space-between';
       row.style.alignItems = 'center';
-      const label = document.createElement('div');
+      const label = UI.ce('div');
       label.style.flex = '1';
       label.textContent = `${item.name}: ${fmt(qty)}`;
-      const dropBtn = document.createElement('button');
+      const dropBtn = UI.ce('button');
       dropBtn.className = 'smallBtn';
       dropBtn.textContent = 'Drop';
       dropBtn.disabled = (qty <= 0);
-      dropBtn.addEventListener('click', function(){
+      UI.__on(dropBtn, 'click', function(){
         if((S.items[item.id] || 0) <= 0) return;
         S.items[item.id] = (S.items[item.id] || 0) - 1;
         logLine(`You dropped 1 ${item.name} during battle.`, 'warn');
@@ -14063,7 +14073,7 @@ function currentRecruitBatchSize(){
   // Show the battle inventory overlay. This will populate its list and
   // display the overlay atop the battle screen.
   function showBattleInventoryOverlay(){
-    const overlay = document.getElementById('battleInventoryOverlay');
+    const overlay = UI.el('battleInventoryOverlay');
     if(!overlay) return;
     renderBattleInventory();
     overlay.style.display = 'flex';
@@ -14072,7 +14082,7 @@ function currentRecruitBatchSize(){
 
   // Hide the battle inventory overlay.
   function closeBattleInventoryOverlay(){
-    const overlay = document.getElementById('battleInventoryOverlay');
+    const overlay = UI.el('battleInventoryOverlay');
     if(!overlay) return;
     overlay.classList.remove('visible');
     overlay.style.display = 'none';
@@ -14081,10 +14091,10 @@ function currentRecruitBatchSize(){
 
   // Attach event handlers for diplomacy options
   (function(){
-    const integrateBtn = document.getElementById('diplomacyIntegrateBtn');
-    const allianceBtn  = document.getElementById('diplomacyAllianceBtn');
+    const integrateBtn = UI.el('diplomacyIntegrateBtn');
+    const allianceBtn  = UI.el('diplomacyAllianceBtn');
     if(integrateBtn){
-      integrateBtn.addEventListener('click', function(){
+      UI.__on(integrateBtn, 'click', function(){
         const params = currentDiplomacyIntegrateParams || {};
         const renCost = params.renCost || 0;
         const goldCost = params.goldCost || 0;
@@ -14124,7 +14134,7 @@ function currentRecruitBatchSize(){
       });
     }
     if(allianceBtn){
-      allianceBtn.addEventListener('click', function(){
+      UI.__on(allianceBtn, 'click', function(){
         const params = currentDiplomacyAllianceParams || {};
         const renCost = params.renCost || 0;
         const goldCost = params.goldCost || 0;
@@ -14161,6 +14171,202 @@ function currentRecruitBatchSize(){
       if(typeof updateRecruitTrainingUI === "function") updateRecruitTrainingUI();
     }catch(e){}
   }, 1000);
+
+
+
+  // Ensure UI wiring runs after DOM is ready (no addEventListener here by design)
+  (function(){
+    try{
+      if(window.UI.readyState() === "loading"){
+        const prev = UI.getReadyHandler();
+        UI.setReadyHandler(function(){
+          try{ if(prev) prev.apply(this, arguments); }catch(e){}
+          if(window.UI.readyState() !== "loading"){
+            UI.setReadyHandler(null);
+            initUI();
+          }
+        });
+      }else{
+        initUI();
+      }
+    }catch(e){}
+  })();
+
+
+// === Fallback safety wiring for faction actions (Conquer / Pillage etc) ===
+UI.__on(document, "click", function(ev){
+  try{
+    const btn = ev.target && ev.target.closest ? ev.target.closest("[data-faction-action]") : null;
+    if(!btn) return;
+    const card = btn.closest && btn.closest("[data-battle-slot]");
+    if(!card) return;
+
+    const slot = card.getAttribute("data-battle-slot");
+    const index = card.getAttribute("data-faction-index");
+    const action = btn.getAttribute("data-faction-action");
+
+    if(typeof handleSettlementCardAction === "function"){
+      handleSettlementCardAction(slot, action, index, card, btn);
+    }
+  }catch(e){}
+}, true);
+
+
+  // === [SYS] SYSTEM OBJECT MAPPING (preserve existing function names) ===
+  (function(){
+    const UI = window.UI;
+    if(typeof landItemRates==="function" && !Economy.landItemRates) Economy.landItemRates = landItemRates;
+    if(typeof landPopRate==="function" && !Economy.landPopRate) Economy.landPopRate = landPopRate;
+    if(typeof passiveLandItemTick==="function" && !Economy.passiveLandItemTick) Economy.passiveLandItemTick = passiveLandItemTick;
+    if(typeof passiveLandPopTick==="function" && !Economy.passiveLandPopTick) Economy.passiveLandPopTick = passiveLandPopTick;
+    if(typeof landMult==="function" && !Economy.landMult) Economy.landMult = landMult;
+    if(typeof totalLandPlots==="function" && !Economy.totalLandPlots) Economy.totalLandPlots = totalLandPlots;
+    if(typeof usedLandPlots==="function" && !Economy.usedLandPlots) Economy.usedLandPlots = usedLandPlots;
+    if(typeof freeLandPlots==="function" && !Economy.freeLandPlots) Economy.freeLandPlots = freeLandPlots;
+    if(typeof landAllocIncomeMult==="function" && !Economy.landAllocIncomeMult) Economy.landAllocIncomeMult = landAllocIncomeMult;
+    if(typeof landAllocPopMult==="function" && !Economy.landAllocPopMult) Economy.landAllocPopMult = landAllocPopMult;
+    if(typeof landAllocRenownMult==="function" && !Economy.landAllocRenownMult) Economy.landAllocRenownMult = landAllocRenownMult;
+    if(typeof incomePerSec==="function" && !Economy.incomePerSec) Economy.incomePerSec = incomePerSec;
+    if(typeof populationCap==="function" && !Economy.populationCap) Economy.populationCap = populationCap;
+    if(typeof hasVillageCapacity==="function" && !Economy.hasVillageCapacity) Economy.hasVillageCapacity = hasVillageCapacity;
+    if(typeof tapGain==="function" && !Economy.tapGain) Economy.tapGain = tapGain;
+    if(typeof costHut==="function" && !Economy.costHut) Economy.costHut = costHut;
+    if(typeof costFarm==="function" && !Economy.costFarm) Economy.costFarm = costFarm;
+    if(typeof costVilla==="function" && !Economy.costVilla) Economy.costVilla = costVilla;
+    if(typeof generateSettlementCard==="function" && !Economy.generateSettlementCard) Economy.generateSettlementCard = generateSettlementCard;
+    if(typeof totalTypeWorkers==="function" && !Economy.totalTypeWorkers) Economy.totalTypeWorkers = totalTypeWorkers;
+    if(typeof landWorkersIncome==="function" && !Economy.landWorkersIncome) Economy.landWorkersIncome = landWorkersIncome;
+    if(typeof adjustTypeWorkers==="function" && !Economy.adjustTypeWorkers) Economy.adjustTypeWorkers = adjustTypeWorkers;
+    if(typeof landDevelopmentBonuses==="function" && !Economy.landDevelopmentBonuses) Economy.landDevelopmentBonuses = landDevelopmentBonuses;
+    if(typeof territoryIcon==="function" && !Economy.territoryIcon) Economy.territoryIcon = territoryIcon;
+    if(typeof rollTerritoryTrait==="function" && !Economy.rollTerritoryTrait) Economy.rollTerritoryTrait = rollTerritoryTrait;
+    if(typeof totalTerritoryWorkers==="function" && !Economy.totalTerritoryWorkers) Economy.totalTerritoryWorkers = totalTerritoryWorkers;
+    if(typeof stepTerritory==="function" && !Economy.stepTerritory) Economy.stepTerritory = stepTerritory;
+    if(typeof currentTerritoryRef==="function" && !Economy.currentTerritoryRef) Economy.currentTerritoryRef = currentTerritoryRef;
+    if(typeof startTerritoryDevelopment==="function" && !Economy.startTerritoryDevelopment) Economy.startTerritoryDevelopment = startTerritoryDevelopment;
+    if(typeof adjustTerritoryWorkers==="function" && !Economy.adjustTerritoryWorkers) Economy.adjustTerritoryWorkers = adjustTerritoryWorkers;
+    if(typeof territoryCount==="function" && !Economy.territoryCount) Economy.territoryCount = territoryCount;
+    if(typeof pickTerritoryTemplate==="function" && !Economy.pickTerritoryTemplate) Economy.pickTerritoryTemplate = pickTerritoryTemplate;
+    if(typeof captureTerritory==="function" && !Economy.captureTerritory) Economy.captureTerritory = captureTerritory;
+    if(typeof offerCost==="function" && !Economy.offerCost) Economy.offerCost = offerCost;
+    if(typeof offerFaithGain==="function" && !Economy.offerFaithGain) Economy.offerFaithGain = offerFaithGain;
+    if(typeof blessCooldownMs==="function" && !Economy.blessCooldownMs) Economy.blessCooldownMs = blessCooldownMs;
+    if(typeof blessDurationMs==="function" && !Economy.blessDurationMs) Economy.blessDurationMs = blessDurationMs;
+    if(typeof ascendCrownGain==="function" && !Economy.ascendCrownGain) Economy.ascendCrownGain = ascendCrownGain;
+    if(typeof rankTributeBonus==="function" && !Economy.rankTributeBonus) Economy.rankTributeBonus = rankTributeBonus;
+    if(typeof triggerTributeFever==="function" && !Economy.triggerTributeFever) Economy.triggerTributeFever = triggerTributeFever;
+    if(typeof defenceIgnoreCostDen==="function" && !Economy.defenceIgnoreCostDen) Economy.defenceIgnoreCostDen = defenceIgnoreCostDen;
+    if(typeof defenceIgnoreCostRen==="function" && !Economy.defenceIgnoreCostRen) Economy.defenceIgnoreCostRen = defenceIgnoreCostRen;
+    if(typeof adjustLandAllocation==="function" && !Economy.adjustLandAllocation) Economy.adjustLandAllocation = adjustLandAllocation;
+    if(typeof __e2kRollFood==="function" && !Economy.__e2kRollFood) Economy.__e2kRollFood = __e2kRollFood;
+    if(typeof playRecruitAnimation==="function" && !Battles.playRecruitAnimation) Battles.playRecruitAnimation = playRecruitAnimation;
+    if(typeof processRecruitQueue==="function" && !Battles.processRecruitQueue) Battles.processRecruitQueue = processRecruitQueue;
+    if(typeof deliverRecruit==="function" && !Battles.deliverRecruit) Battles.deliverRecruit = deliverRecruit;
+    if(typeof processRecruitQueueOffline==="function" && !Battles.processRecruitQueueOffline) Battles.processRecruitQueueOffline = processRecruitQueueOffline;
+    if(typeof landAllocLegionMult==="function" && !Battles.landAllocLegionMult) Battles.landAllocLegionMult = landAllocLegionMult;
+    if(typeof recruitCost==="function" && !Battles.recruitCost) Battles.recruitCost = recruitCost;
+    if(typeof cavalryRecruitCost==="function" && !Battles.cavalryRecruitCost) Battles.cavalryRecruitCost = cavalryRecruitCost;
+    if(typeof archerRecruitCost==="function" && !Battles.archerRecruitCost) Battles.archerRecruitCost = archerRecruitCost;
+    if(typeof captiviAuxRecruitCost==="function" && !Battles.captiviAuxRecruitCost) Battles.captiviAuxRecruitCost = captiviAuxRecruitCost;
+    if(typeof recruitStrengthGain==="function" && !Battles.recruitStrengthGain) Battles.recruitStrengthGain = recruitStrengthGain;
+    if(typeof recalcLegionStrength==="function" && !Battles.recalcLegionStrength) Battles.recalcLegionStrength = recalcLegionStrength;
+    if(typeof battleTierFromTitleIdx==="function" && !Battles.battleTierFromTitleIdx) Battles.battleTierFromTitleIdx = battleTierFromTitleIdx;
+    if(typeof battleDifficultyForTier==="function" && !Battles.battleDifficultyForTier) Battles.battleDifficultyForTier = battleDifficultyForTier;
+    if(typeof battleRarityFromStars==="function" && !Battles.battleRarityFromStars) Battles.battleRarityFromStars = battleRarityFromStars;
+    if(typeof battleSettlementMetaForTier==="function" && !Battles.battleSettlementMetaForTier) Battles.battleSettlementMetaForTier = battleSettlementMetaForTier;
+    if(typeof battleOutcomeLabel==="function" && !Battles.battleOutcomeLabel) Battles.battleOutcomeLabel = battleOutcomeLabel;
+    if(typeof renderSettlementCardsFromCurrentBattles==="function" && !Battles.renderSettlementCardsFromCurrentBattles) Battles.renderSettlementCardsFromCurrentBattles = renderSettlementCardsFromCurrentBattles;
+    if(typeof battleContractLabel==="function" && !Battles.battleContractLabel) Battles.battleContractLabel = battleContractLabel;
+    if(typeof makeBattleContext==="function" && !Battles.makeBattleContext) Battles.makeBattleContext = makeBattleContext;
+    if(typeof getBattleContext==="function" && !Battles.getBattleContext) Battles.getBattleContext = getBattleContext;
+    if(typeof battleArchetypeFor==="function" && !Battles.battleArchetypeFor) Battles.battleArchetypeFor = battleArchetypeFor;
+    if(typeof clearBattleSetCache==="function" && !Battles.clearBattleSetCache) Battles.clearBattleSetCache = clearBattleSetCache;
+    if(typeof currentBattleSet==="function" && !Battles.currentBattleSet) Battles.currentBattleSet = currentBattleSet;
+    if(typeof battleSim==="function" && !Battles.battleSim) Battles.battleSim = battleSim;
+    if(typeof updateMilitesIcon==="function" && !Battles.updateMilitesIcon) Battles.updateMilitesIcon = updateMilitesIcon;
+    if(typeof showBattleReport==="function" && !Battles.showBattleReport) Battles.showBattleReport = showBattleReport;
+    if(typeof closeBattleReport==="function" && !Battles.closeBattleReport) Battles.closeBattleReport = closeBattleReport;
+    if(typeof battleTierFoeLabel==="function" && !Battles.battleTierFoeLabel) Battles.battleTierFoeLabel = battleTierFoeLabel;
+    if(typeof battleFlavorByTier==="function" && !Battles.battleFlavorByTier) Battles.battleFlavorByTier = battleFlavorByTier;
+    if(typeof showBattleSimulation==="function" && !Battles.showBattleSimulation) Battles.showBattleSimulation = showBattleSimulation;
+    if(typeof doBattle==="function" && !Battles.doBattle) Battles.doBattle = doBattle;
+    if(typeof updateTacticalUI==="function" && !Battles.updateTacticalUI) Battles.updateTacticalUI = updateTacticalUI;
+    if(typeof finishTacticalBattle==="function" && !Battles.finishTacticalBattle) Battles.finishTacticalBattle = finishTacticalBattle;
+    if(typeof tacticalQualityForPlayer==="function" && !Battles.tacticalQualityForPlayer) Battles.tacticalQualityForPlayer = tacticalQualityForPlayer;
+    if(typeof tacticalQualityForEnemy==="function" && !Battles.tacticalQualityForEnemy) Battles.tacticalQualityForEnemy = tacticalQualityForEnemy;
+    if(typeof tacticalSumPool==="function" && !Battles.tacticalSumPool) Battles.tacticalSumPool = tacticalSumPool;
+    if(typeof tacticalSplitLosses==="function" && !Battles.tacticalSplitLosses) Battles.tacticalSplitLosses = tacticalSplitLosses;
+    if(typeof tacticalBuildEnemyPools==="function" && !Battles.tacticalBuildEnemyPools) Battles.tacticalBuildEnemyPools = tacticalBuildEnemyPools;
+    if(typeof tacticalClassifyPlayer==="function" && !Battles.tacticalClassifyPlayer) Battles.tacticalClassifyPlayer = tacticalClassifyPlayer;
+    if(typeof tacticalClassifyEnemy==="function" && !Battles.tacticalClassifyEnemy) Battles.tacticalClassifyEnemy = tacticalClassifyEnemy;
+    if(typeof describeEnemyLosses==="function" && !Battles.describeEnemyLosses) Battles.describeEnemyLosses = describeEnemyLosses;
+    if(typeof startTacticalBattle==="function" && !Battles.startTacticalBattle) Battles.startTacticalBattle = startTacticalBattle;
+    if(typeof actuallyStartTacticalBattle==="function" && !Battles.actuallyStartTacticalBattle) Battles.actuallyStartTacticalBattle = actuallyStartTacticalBattle;
+    if(typeof openTacticalOversee==="function" && !Battles.openTacticalOversee) Battles.openTacticalOversee = openTacticalOversee;
+    if(typeof toggleTacticalStats==="function" && !Battles.toggleTacticalStats) Battles.toggleTacticalStats = toggleTacticalStats;
+    if(typeof currentRecruitBatchSize==="function" && !Battles.currentRecruitBatchSize) Battles.currentRecruitBatchSize = currentRecruitBatchSize;
+    if(typeof updateRecruitGainLabel==="function" && !Battles.updateRecruitGainLabel) Battles.updateRecruitGainLabel = updateRecruitGainLabel;
+    if(typeof updateRecruitTrainingUI==="function" && !Battles.updateRecruitTrainingUI) Battles.updateRecruitTrainingUI = updateRecruitTrainingUI;
+    if(typeof initRecruitQty==="function" && !Battles.initRecruitQty) Battles.initRecruitQty = initRecruitQty;
+    if(typeof renderBattleInventory==="function" && !Battles.renderBattleInventory) Battles.renderBattleInventory = renderBattleInventory;
+    if(typeof showBattleInventoryOverlay==="function" && !Battles.showBattleInventoryOverlay) Battles.showBattleInventoryOverlay = showBattleInventoryOverlay;
+    if(typeof closeBattleInventoryOverlay==="function" && !Battles.closeBattleInventoryOverlay) Battles.closeBattleInventoryOverlay = closeBattleInventoryOverlay;
+    if(typeof initUI==="function" && !UI.initUI) UI.initUI = initUI;
+    if(typeof toast==="function" && !UI.toast) UI.toast = toast;
+    if(typeof logLine==="function" && !UI.logLine) UI.logLine = logLine;
+    if(typeof updatePlayerNameHud==="function" && !UI.updatePlayerNameHud) UI.updatePlayerNameHud = updatePlayerNameHud;
+    if(typeof maybeShowIntro==="function" && !UI.maybeShowIntro) UI.maybeShowIntro = maybeShowIntro;
+    if(typeof sparkAt==="function" && !UI.sparkAt) UI.sparkAt = sparkAt;
+    if(typeof showRankUpPopup==="function" && !UI.showRankUpPopup) UI.showRankUpPopup = showRankUpPopup;
+    if(typeof renderSubjugatedSettlementsList==="function" && !UI.renderSubjugatedSettlementsList) UI.renderSubjugatedSettlementsList = renderSubjugatedSettlementsList;
+    if(typeof updateTerritoryProjects==="function" && !UI.updateTerritoryProjects) UI.updateTerritoryProjects = updateTerritoryProjects;
+    if(typeof openTerritoryOverlay==="function" && !UI.openTerritoryOverlay) UI.openTerritoryOverlay = openTerritoryOverlay;
+    if(typeof closeTerritoryOverlay==="function" && !UI.closeTerritoryOverlay) UI.closeTerritoryOverlay = closeTerritoryOverlay;
+    if(typeof renderTerritoryDetail==="function" && !UI.renderTerritoryDetail) UI.renderTerritoryDetail = renderTerritoryDetail;
+    if(typeof renderObjectives==="function" && !UI.renderObjectives) UI.renderObjectives = renderObjectives;
+    if(typeof showChest==="function" && !UI.showChest) UI.showChest = showChest;
+    if(typeof renderTabs==="function" && !UI.renderTabs) UI.renderTabs = renderTabs;
+    if(typeof updateTitleProgress==="function" && !UI.updateTitleProgress) UI.updateTitleProgress = updateTitleProgress;
+    if(typeof showOfflineOverlay==="function" && !UI.showOfflineOverlay) UI.showOfflineOverlay = showOfflineOverlay;
+    if(typeof render==="function" && !UI.render) UI.render = render;
+    if(typeof openDefencePopup==="function" && !UI.openDefencePopup) UI.openDefencePopup = openDefencePopup;
+    if(typeof closeDefencePopup==="function" && !UI.closeDefencePopup) UI.closeDefencePopup = closeDefencePopup;
+    if(typeof showSettlementAssimilationPopup==="function" && !UI.showSettlementAssimilationPopup) UI.showSettlementAssimilationPopup = showSettlementAssimilationPopup;
+    if(typeof closeSettlementAssimilation==="function" && !UI.closeSettlementAssimilation) UI.closeSettlementAssimilation = closeSettlementAssimilation;
+    if(typeof setConstructionTab==="function" && !UI.setConstructionTab) UI.setConstructionTab = setConstructionTab;
+    if(typeof updateConstructionPreviews==="function" && !UI.updateConstructionPreviews) UI.updateConstructionPreviews = updateConstructionPreviews;
+    if(typeof showCaptiviUnlockPopup==="function" && !UI.showCaptiviUnlockPopup) UI.showCaptiviUnlockPopup = showCaptiviUnlockPopup;
+    if(typeof showLandTierUnlockPopup==="function" && !UI.showLandTierUnlockPopup) UI.showLandTierUnlockPopup = showLandTierUnlockPopup;
+    if(typeof showRenownToast==="function" && !UI.showRenownToast) UI.showRenownToast = showRenownToast;
+    if(typeof showTradeOverlay==="function" && !UI.showTradeOverlay) UI.showTradeOverlay = showTradeOverlay;
+    if(typeof closeTradeOverlay==="function" && !UI.closeTradeOverlay) UI.closeTradeOverlay = closeTradeOverlay;
+    if(typeof renderTradeOptions==="function" && !UI.renderTradeOptions) UI.renderTradeOptions = renderTradeOptions;
+    if(typeof updateTradeTabButtons==="function" && !UI.updateTradeTabButtons) UI.updateTradeTabButtons = updateTradeTabButtons;
+    if(typeof selectTradeTab==="function" && !UI.selectTradeTab) UI.selectTradeTab = selectTradeTab;
+    if(typeof showDiplomacyOverlay==="function" && !UI.showDiplomacyOverlay) UI.showDiplomacyOverlay = showDiplomacyOverlay;
+    if(typeof closeDiplomacyOverlay==="function" && !UI.closeDiplomacyOverlay) UI.closeDiplomacyOverlay = closeDiplomacyOverlay;
+    if(typeof renderInventory==="function" && !UI.renderInventory) UI.renderInventory = renderInventory;
+    if(typeof openSaveDB==="function" && !Save.openSaveDB) Save.openSaveDB = openSaveDB;
+    if(typeof idbSet==="function" && !Save.idbSet) Save.idbSet = idbSet;
+    if(typeof idbGet==="function" && !Save.idbGet) Save.idbGet = idbGet;
+    if(typeof save==="function" && !Save.save) Save.save = save;
+    if(typeof load==="function" && !Save.load) Save.load = load;
+    if(typeof recoverSaveFromIDB==="function" && !Save.recoverSaveFromIDB) Save.recoverSaveFromIDB = recoverSaveFromIDB;
+    if(typeof setupReliableSaves==="function" && !Save.setupReliableSaves) Save.setupReliableSaves = setupReliableSaves;
+    if(typeof storageWritable==="function" && !Save.storageWritable) Save.storageWritable = storageWritable;
+    if(typeof scheduleSave==="function" && !Save.scheduleSave) Save.scheduleSave = scheduleSave;
+    if(typeof flushSave==="function" && !Save.flushSave) Save.flushSave = flushSave;
+    if(typeof landBaseIncome==="function" && !Save.landBaseIncome) Save.landBaseIncome = landBaseIncome;
+    if(typeof landBasePopCap==="function" && !Save.landBasePopCap) Save.landBasePopCap = landBasePopCap;
+    if(typeof stampLastSeenAndSave==="function" && !Save.stampLastSeenAndSave) Save.stampLastSeenAndSave = stampLastSeenAndSave;
+    if(typeof normalizeState==="function" && !Game.normalizeState) Game.normalizeState = normalizeState;
+    if(typeof _prodLoop==="function" && !Game._prodLoop) Game._prodLoop = _prodLoop;
+  })();
+
+
+// ===== LEGACY / DEPRECATED =====
+// (nothing moved safely)
+// =================================
 
 </script>
 
@@ -14362,7 +14568,7 @@ function currentRecruitBatchSize(){
     <div class="card" style="position:relative;width:min(420px, calc(100vw - 26px));border-radius:24px;overflow:hidden;">
       <div class="sectionTitle" style="justify-content:space-between;">
         <span id="tacOrdersTitle" style="color:var(--accent);font-weight:900;">Oversee the Battle</span>
-        <button class="tab" style="padding:6px 10px;" type="button" onclick="document.getElementById('tacOrdersOverlay').style.display='none'">Close</button>
+        <button class="tab" style="padding:6px 10px;" type="button" onclick="UI.id('tacOrdersOverlay').style.display='none'">Close</button>
       </div>
       <div class="cardBody" style="padding:14px;display:flex;flex-direction:column;gap:10px;">
         <div id="tacOrdersDesc" style="font-size:14px;opacity:0.9;">
@@ -14442,7 +14648,6 @@ ttleBar"> <img id="battleSimYourBarImg" class="battleBarSprite" src="Sprites/pla
       </div>
     </div>
   </div>
-
 
 
 <!-- === Battle Variety & Land Plausibility Patch (appended) === -->
