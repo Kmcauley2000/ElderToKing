@@ -646,7 +646,102 @@ body::after{
       font-size:.78rem;
       min-width:30px;
     }
-    .territoryCard .t{
+    
+    /* Inventory list styling */
+    
+    .invList{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+    .invSection{
+      padding:0;
+    }
+    .invSectionHeader{
+      font-family:var(--sans);
+      font-weight:800;
+      letter-spacing:.02em;
+      font-size:.85rem;
+      color:rgba(40,26,16,.85);
+      margin:2px 2px 8px;
+      text-transform:uppercase;
+    }
+    .invSectionRows{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .invRow{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      padding:10px 12px;
+      border:1px solid rgba(158,104,54,.45);
+      border-radius:14px;
+      background: linear-gradient(180deg,#fbf5ea,#f3e4cf);
+    }
+    .invQty{
+      font-family:var(--mono);
+      font-weight:800;
+      color:rgba(40,26,16,.9);
+      min-width:76px;
+      text-align:right;
+    }
+
+    .invLabel{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      min-width:0;
+      font-family:var(--sans);
+      font-size:1.02rem;
+      color: rgba(40,26,16,.92);
+    }
+    .invLabel .invIcon,
+    .invLabel img.invIcon{
+      width:22px;
+      height:22px;
+      image-rendering: pixelated;
+      flex:0 0 auto;
+    }
+    .invLabel .invName{
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .invQty{
+      min-width:72px;
+      text-align:right;
+      font-family:var(--mono);
+      font-weight:900;
+      color:var(--text);
+    }
+    .invActions{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      justify-content:flex-end;
+    }
+    .invActionBtn{
+      border-radius:999px;
+      border:1px solid rgba(158,104,54,.55);
+      padding:4px 10px;
+      background:rgba(255,255,255,0.88);
+      font-family:var(--mono);
+      font-size:.78rem;
+      line-height:1;
+      cursor:pointer;
+      transition: transform .08s ease, filter .15s ease, opacity .15s ease;
+      touch-action: manipulation;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .invActionBtn:active{ transform: translateY(1px); }
+    .invActionBtn:hover{ filter:brightness(1.06); }
+    .invActionBtn[disabled]{ opacity:.45; cursor:not-allowed; filter:saturate(.6); transform:none; }
+
+.territoryCard .t{
       font-size:.9rem;
     }
     .territoryCard .d{
@@ -1723,7 +1818,8 @@ header{
   background: rgba(255,255,255,0.35);
   border:1px solid rgba(244,176,74,.95);
   border-radius:8px;
-  overflow:hidden;
+  overflow:visible;
+  position:relative;
 }
 #constructionOverlay .e2kBarFill{
   height:100%;
@@ -2023,88 +2119,130 @@ header{
           <div id="constructionTab-economy" class="constructionTabPanel">
             <div class="e2kConstructGrid">
 
-              <!-- FARMS -->
-              <div class="e2kBuildCard" id="farmCard">
+              <!-- TIER 1 BUILDINGS -->
+              <div class="e2kBuildCard" id="smallFarmCard">
                 <div class="e2kBuildTop">
                   <div>
-                    <div class="e2kBuildName">Farms</div>
-                    <div class="e2kBuildDesc" id="farmDesc">Produces food and denarii.</div>
+                    <div class="e2kBuildName">Small Farm</div>
+                    <div class="e2kBuildDesc" id="smallFarmDesc">Basic food + tiny denarii.</div>
                   </div>
-                  <div class="e2kBuildIcon">🌾</div>
+                  <div class="e2kBuildIcon"><img src="Sprites/Small Farm.png" alt="Small Farm" class="e2kBuildIconImg"></div>
                 </div>
                 <div class="e2kBuildMeta">
-                  <span>Cost: <b id="farmCostPreview">?</b></span>
-                  <span>Owned: <b id="farmOwnedPreview">?</b></span>
-                  <span>Produces: +<b id="farmIncomePreview">?</b> 💰 / 5s</span>
+                  <span>Cost: <b id="smallFarmCostPreview">?</b></span>
+                  <span>Owned: <b id="smallFarmOwnedPreview">?</b></span>
+                  <span>Produces: +<b id="smallFarmIncomePreview">?</b> 💰 / 5s</span>
+                  <span>Food: +<b id="smallFarmFoodPreview">?</b> / 5s</span>
                 </div>
                 <div class="e2kBuildActions">
-                  <button class="btn" id="btnFarm" type="button">Buy Farm</button>
+                  <button class="btn" id="btnSmallFarm" type="button">Buy Small Farm</button>
                 </div>
                 <div class="e2kBars">
                   <div class="e2kBarRow">
                     <span class="e2kBarIcon">💰</span>
                     <div class="e2kBarWrap">
-                      <div id="farmProgressGoldFill" class="e2kBarFill"></div>
-                      <div class="e2kSplash" id="farmSplash">+0</div>
+                      <div id="smallFarmProgressGoldFill" class="e2kBarFill"></div>
+                      <div class="e2kSplash" id="smallFarmSplash">+0</div>
                     </div>
                   </div>
                   <div class="e2kBarRow">
-                    <span class="e2kBarIcon">🍅</span>
+                    <span class="e2kBarIcon">🌾</span>
                     <div class="e2kBarWrap">
-                      <div id="farmProgressFill" class="e2kBarFill e2kBarFood"></div>
+                      <div id="smallFarmProgressFoodFill" class="e2kBarFill e2kBarFood"></div>
+                      <div class="e2kSplash" id="smallFarmFoodSplash">+0</div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- VILLAS -->
-              <div class="e2kBuildCard" id="villaCard">
+              <div class="e2kBuildCard" id="huntingCampCard">
                 <div class="e2kBuildTop">
                   <div>
-                    <div class="e2kBuildName">Villas</div>
-                    <div class="e2kBuildDesc" id="villaDesc">Big income.</div>
+                    <div class="e2kBuildName">Hunting Camp</div>
+                    <div class="e2kBuildDesc" id="huntingCampDesc">Food burst + RNG bonus.</div>
                   </div>
-                  <div class="e2kBuildIcon">🏛️</div>
+                  <div class="e2kBuildIcon"><img src="Sprites/Hunting Camp.png" alt="Hunting Camp" class="e2kBuildIconImg"></div>
                 </div>
                 <div class="e2kBuildMeta">
-                  <span>Cost: <b id="villaCostPreview">?</b></span>
-                  <span>Owned: <b id="villaOwnedPreview">?</b></span>
-                  <span>Produces: +<b id="villaIncomePreview">?</b> 💰 / 5s</span>
+                  <span>Cost: <b id="huntingCampCostPreview">?</b></span>
+                  <span>Owned: <b id="huntingCampOwnedPreview">?</b></span>
+                  <span>Produces: +<b id="huntingCampIncomePreview">?</b> 💰 / 5s</span>
+                  <span>Food: <b id="huntingCampFoodPreview">?</b> / 5s</span>
                 </div>
                 <div class="e2kBuildActions">
-                  <button class="btn" id="btnVilla" type="button">Buy Villa</button>
+                  <button class="btn" id="btnHuntingCamp" type="button">Buy Hunting Camp</button>
                 </div>
                 <div class="e2kBars">
                   <div class="e2kBarRow">
                     <span class="e2kBarIcon">💰</span>
                     <div class="e2kBarWrap">
-                      <div id="villaProgressFill" class="e2kBarFill"></div>
-                      <div class="e2kSplash" id="villaSplash">+0</div>
+                      <div id="huntingCampProgressGoldFill" class="e2kBarFill"></div>
+                      <div class="e2kSplash" id="huntingCampSplash">+0</div>
+                    </div>
+                  </div>
+                  <div class="e2kBarRow">
+                    <span class="e2kBarIcon">🥩</span>
+                    <div class="e2kBarWrap">
+                      <div id="huntingCampProgressFoodFill" class="e2kBarFill e2kBarFood"></div>
+                      <div class="e2kSplash" id="huntingCampFoodSplash">+0</div>
                     </div>
                   </div>
                 </div>
               </div>
+
+              <div class="e2kBuildCard" id="hutCard">
+                <div class="e2kBuildTop">
+                  <div>
+                    <div class="e2kBuildName">Hut</div>
+                    <div class="e2kBuildDesc" id="hutDesc">Tiny passive denarii.</div>
+                  </div>
+                  <div class="e2kBuildIcon"><img src="Sprites/Hut.png" alt="Hut" class="e2kBuildIconImg"></div>
+                </div>
+                <div class="e2kBuildMeta">
+                  <span>Cost: <b id="hutCostPreview">?</b></span>
+                  <span>Owned: <b id="hutOwnedPreview">?</b></span>
+                  <span>Produces: +<b id="hutIncomePreview">?</b> 💰 / 5s</span>
+                </div>
+                <div class="e2kBuildActions">
+                  <button class="btn" id="btnHut" type="button">Buy Hut</button>
+                </div>
+                <div class="e2kBars">
+                  <div class="e2kBarRow">
+                    <span class="e2kBarIcon">💰</span>
+                    <div class="e2kBarWrap">
+                      <div id="hutProgressGoldFill" class="e2kBarFill"></div>
+                      <div class="e2kSplash" id="hutSplash">+0</div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-            </div>
-          </div>
-
-          <div id="constructionTab-war" class="constructionTabPanel" hidden>
-            <div class="e2kBuildCard">
-              <div class="e2kBuildName">War</div>
-              <div class="e2kBuildDesc">Coming soon.</div>
-            </div>
-          </div>
-
-          <div id="constructionTab-other" class="constructionTabPanel" hidden>
-            <div class="e2kBuildCard">
-              <div class="e2kBuildName">Other</div>
-              <div class="e2kBuildDesc">No extra panels here.</div>
-            </div>
-          
-          </div>
-          </div>
-        </div>
+              <div class="e2kBuildCard" id="marketStallCard">
+                <div class="e2kBuildTop">
+                  <div>
+                    <div class="e2kBuildName">Market Stall</div>
+                    <div class="e2kBuildDesc" id="marketStallDesc">Tiny commerce income.</div>
+                  </div>
+                  <div class="e2kBuildIcon"><img src="Sprites/Market Stall.png" alt="Market Stall" class="e2kBuildIconImg"></div>
+                </div>
+                <div class="e2kBuildMeta">
+                  <span>Cost: <b id="marketStallCostPreview">?</b></span>
+                  <span>Owned: <b id="marketStallOwnedPreview">?</b></span>
+                  <span>Produces: +<b id="marketStallDenPreview">?</b> 💰 / 5s</span>
+                </div>
+                <div class="e2kBuildActions">
+                  <button class="btn" id="btnMarketStall" type="button">Buy Market Stall</button>
+                </div>
+                <div class="e2kBars">
+                  <div class="e2kBarRow">
+                    <span class="e2kBarIcon">💰</span>
+                    <div class="e2kBarWrap">
+                      <div id="marketStallProgressGoldFill" class="e2kBarFill"></div>
+                      <div class="e2kSplash" id="marketStallSplash">+0</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
       </div>
 
       
@@ -2570,9 +2708,9 @@ header{
       </div>
       <div class="cardBody">
         <p style="margin:0 0 10px;font-size:.78rem;color:var(--muted);">
-          Your collected goods. Drop items to remove them from your pack; dropped items are permanently discarded.
+          Your collected goods. This is a read-only tracker.
         </p>
-        <div id="inventoryList" style="display:flex;flex-direction:column;gap:10px;">
+        <div id="inventoryList" class="invList">
           <!-- Filled dynamically by renderInventory() -->
         </div>
       </div>
@@ -2594,6 +2732,18 @@ header{
 <script>
   "use strict";
   const DEBUG = false;
+
+  // Tier-1 building production tuning (per-second, 5s cycle payout)
+  const SMALL_FARM_DEN_PER_SEC = 0.24; // 1.2 / 5s
+  const SMALL_FARM_FOOD_PER_CYCLE = 2;
+
+  const HUNT_DEN_PER_SEC = 0.16; // 0.8 / 5s
+  const HUNT_FOOD_BASE = 2;
+  const HUNT_FOOD_RNG_MAX = 3; // +0..3 per camp per cycle
+
+  const HUT_DEN_PER_SEC = 0.50; // 2.5 / 5s
+  const MARKET_STALL_DEN_PER_SEC = 1.20; // 6.0 / 5s
+
 
   // === [SYS] SYSTEM OBJECTS (NON-BEHAVIOUR REFACTOR) ===
   window.UI = window.UI || {};
@@ -2773,9 +2923,10 @@ UI.visibilityState = UI.visibilityState || (()=> UI.doc().visibilityState);
     potato: { label: "Potatoes", icon: "🥔" },
     tomato: { label: "Tomatoes", icon: "🍅" },
     beans:  { label: "Beans",    icon: "🫘" },
+        meat:   { label: "Meat",     icon: "🥩" },
     timber: { label: "Timber",   icon: "🪵" },
     stone:  { label: "Stone",    icon: "🪨" },
-    livestock: { label: "Livestock", icon: '<img src="Sprites/Inventory/Sheep Icon.png" class="invIcon">' },
+    livestock: { label: "Livestock", icon: '<img src="Sprites/Inventory/Sheep%20Icon.png" class="invIcon">' },
     fish:   { label: "Fish",     icon: "🐟" },
     ore:    { label: "Ore",      icon: "⛏️" },
     fruit:  { label: "Fruit",    icon: "🍎" },
@@ -3228,8 +3379,19 @@ function processRecruitQueue(){
   // ============================================================================
     // village economy
     tribute: 1,
+    // tier-1 buildings
+    smallFarmCount: 0,
+    huntingCampCount: 0,
+    hutCount: 0,
+    marketStallCount: 0,
+    // legacy (unused now)
     farmCount: 0,
     villaCount: 0,
+
+    // construction production bars
+    buildProgSmallFarm: 0,
+    buildProgHunting: 0,
+    buildProgHut: 0,
 // ========================================================================
     // [SYS] LEGION & BATTLES
     //
@@ -3464,14 +3626,14 @@ function processRecruitQueue(){
     }
 
     // Ensure farm food items exist in inventory (construction loot)
-    for(const fid of ["potato","tomato","beans","grain"]){
+    for(const fid of ["potato","tomato","beans","grain","meat"]){
       if(typeof state.items[fid] !== "number") state.items[fid] = 0;
       if(typeof state.itemFrac[fid] !== "number") state.itemFrac[fid] = 0;
     }
 
     // Dedicated farm food inventory (prevents other systems from collapsing food into grain only)
     if(!state.foodInv || typeof state.foodInv !== "object") state.foodInv = {};
-    for(const fid of ["potato","tomato","beans","grain"]){
+    for(const fid of ["potato","tomato","beans","grain","meat"]){
       state.foodInv[fid] = Number(state.foodInv[fid] || 0);
       if(!Number.isFinite(state.foodInv[fid])) state.foodInv[fid] = 0;
     }
@@ -4195,25 +4357,29 @@ function decreeMult(){
   }
 
   function incomePerSec(){
-    let farm = S.farmCount * 0.75;
+    let baseVillage = (S.smallFarmCount||0) * SMALL_FARM_DEN_PER_SEC;
+    baseVillage += (S.huntingCampCount||0) * HUNT_DEN_PER_SEC;
+    baseVillage += (S.hutCount||0) * HUT_DEN_PER_SEC;
+    baseVillage += (S.marketStallCount||0) * MARKET_STALL_DEN_PER_SEC;
+
     // Captivi work your fields as forced labour. Each captivi contributes
     // income equivalent to a territory labourer (0.4 denarii per second).
     if(typeof S.captivi === "number" && S.captivi > 0){
-      farm += (S.captivi || 0) * 0.4;
+      baseVillage += (S.captivi || 0) * 0.4;
     }
-    // Soft cap: without land, extra farms become less effective (nudges you into the land loop)
-    const softCap = 6 + (S.land * 2);
-    if(S.farmCount > softCap){
-      farm *= Math.max(0.60, 1 - (S.farmCount - softCap) * 0.04);
+
+    // Soft cap: without land, extra small farms become less effective (nudges you into the land loop)
+    const sf = (S.smallFarmCount||0);
+    const softCap = 10 + (S.land * 2);
+    if(sf > softCap){
+      baseVillage *= Math.max(0.60, 1 - (sf - softCap) * 0.03);
     }
-    const villa = S.villaCount * 3.0;
+
     const landWork = landWorkersIncome();
-    // Land denarii: base income from each tile plus tax. Worker yield is already
-    // accounted for via landWork above.
     const landDen = landBaseIncome() + ((Array.isArray(S.controlledRegions) ? S.controlledRegions.length : 0) * LAND_TAX_RATE);
-    const base = farm + villa + landWork + landDen;
+
+    const base = baseVillage + landWork + landDen;
     const prosper = (Date.now() < (S.prosperUntil||0)) ? 1.5 : 1.0;
-    // Land allocation (Agriculture) further boosts income.
     return base * landMult() * landAllocIncomeMult() * decreeMult() * crownMult() * prosper;
   }
 
@@ -4255,12 +4421,8 @@ function decreeMult(){
 
   // ---- Village Economy Loop ----
   function populationCap(){
-    // Farms provide housing; villas attract families; land improves efficiency.
-    // Simple + readable:
-    // - Each farm supports 5 people
-    // - Each villa supports 14 people (bigger households)
-    // - Land boosts overall capacity a bit more
-    const base = (S.farmCount * 5) + (S.villaCount * 14);
+    // Small farms provide basic support; huts provide housing.
+    const base = (S.smallFarmCount * 3) + (S.hutCount * 6);
     return Math.floor(base * (1 + S.land * 0.10) * landAllocPopMult());
   }
   function hasVillageCapacity(){
@@ -4302,19 +4464,53 @@ function decreeMult(){
   function isBuffed(){ return Date.now() < S.buffUntil; }
 
   function tapGain(){
-    const base = S.tribute + rankTributeBonus(titleInfo().idx) + rushBonus();
-    const streakBonus = 1 + Math.min(0.35, (S.streak-1)*0.018);
+    // Tribute scaling:
+    // - Early game: behaves like the original flat tribute system (S.tribute + bonuses).
+    // - Mid/Late game: becomes "X seconds of empire income" so it never becomes pointless.
+    const baseFlat = (S.tribute || 1) + rankTributeBonus(titleInfo().idx) + rushBonus();
+
+    // Gross income keeps taps feeling good even if upkeep temporarily exceeds income.
+    const grossInc = Math.max(0, incomePerSec());
+
+    // X seconds-worth of income (scales with progression).
+    const TributeSecondsWorth =
+      10 +
+      (S.renown * 0.15) +
+      ((S.crowns || 0) * 2);
+
+    const scaledBase = grossInc > 0 ? (grossInc * TributeSecondsWorth) : 0;
+
+    // Use whichever is stronger: classic flat tribute or scaled income-chunk.
+    let base = Math.max(baseFlat, scaledBase);
+
+    // Preserve existing economy multipliers (land/decrees/crowns etc.).
     const pMult = landMult() * decreeMult() * crownMult();
+    base *= pMult;
+
+    // Streak multiplier: stronger than before, no hard cap (dopamine), but still linear and controllable.
+    const streakCount = Math.max(1, S.streak || 1);
+    const StreakMultiplier = 1 + (Math.max(0, streakCount - 1) * 0.03); // +3% per streak
+    base *= StreakMultiplier;
+
+    // Fever is a burst multiplier layered on top.
     const feverMult = (Date.now() < (S.feverUntil || 0)) ? 2.5 : 1;
+    base *= feverMult;
+
     const didCrit = chance(critChance());
     let critMult = 1;
     if(didCrit){
       // Variable crits: feels spikier than a flat 2x.
       critMult = rnd(2, 4); // 2x–4x, inclusive
     }
-    const gain = Math.round(base * streakBonus * pMult * feverMult * critMult);
+    base *= critMult;
+
+    // Safety: if everything is zero, still give at least 1.
+    const gain = Math.max(1, Math.round(base));
+
     return { gain, crit: didCrit, critMult };
   }
+
+
 
 
   // ---- Streak timer + Gold Rush ----
@@ -4343,18 +4539,26 @@ function decreeMult(){
 
 
   // ---- Costs (ramp hard so it isn't beaten in 2 mins) ----
-function costFarm(){
-    // Cost of a farm scales with the realm. Returning the base cost; dynamic scaling
-    // occurs elsewhere via costFarm() logic.
-    return 320;
+function costSmallFarm(){
+    return 180;
   }
-function costVilla(){
-    // Base cost of a villa. The scaling logic resides elsewhere.
-    return 5200;
+  function costHuntingCamp(){
+    return 260;
   }
+  function costHut(){
+    return 300;
+  }
+  function costMarketStall(){
+    return 650;
+  }
+  // Legacy (unused): keep stubs to avoid accidental reference errors if any old path calls them
+  function costFarm(){ return costSmallFarm(); }
+  function costVilla(){ return costHut() * 17; }
 
-
-  function recruitCost(){
+  function marketSellMult(){
+    return 1;
+  }
+function recruitCost(){
     return 220;
   }
 
@@ -7201,9 +7405,15 @@ function handleRankUps(){
     const raw = (4 + curve) * kicker * timing * rush;
     let payout = Math.round(raw * cashoutMultiplier());
 
-    // Hard cap: tie cashout to current empire power instead of infinite streaks.
-    const baseIncome = Math.max(10, (S.tribute || 1) * landMult());
-    const cap = Math.round(baseIncome * 80); // roughly 80 taps worth at current strength
+    // Hard cap: tie cashout to current empire power (tap strength) instead of infinite streak hoarding.
+    const baseFlat = (S.tribute || 1) + rankTributeBonus(titleInfo().idx) + rushBonus();
+    const grossInc = Math.max(0, incomePerSec());
+    const TributeSecondsWorth = 10 + (S.renown * 0.15) + ((S.crowns || 0) * 2);
+    const scaledBase = grossInc > 0 ? (grossInc * TributeSecondsWorth) : 0;
+    const pMult = landMult() * decreeMult() * crownMult();
+    const tapPowerNoStreak = Math.max(baseFlat, scaledBase) * pMult;
+
+    const cap = Math.round(Math.max(10, tapPowerNoStreak) * 80); // roughly ~80 taps worth at current power
     if(payout > cap) payout = cap;
 
     return payout;
@@ -9205,14 +9415,7 @@ const totalTroops =
   }
 
   function renderInventoryInner(){
-    if (typeof tradeItems !== "undefined" && typeof renderInventoryInner === "function") {
-      try {
-        renderInventoryInner();
-      } catch (err) {
-        // Silently ignore errors during early load; inventory will render once
-        // all dependencies are available.
-      }
-    }
+    try{ if(typeof renderInventory === "function") renderInventory(); }catch(e){}
   }
 
   function renderOverlays(){// global
@@ -9328,27 +9531,44 @@ const totalTroops =
     render();
 
   });
-  UI.__on($("#btnFarm"), "click", ()=>{
-    const c = costFarm();
+  UI.__on($("#btnSmallFarm"), "click", ()=>{
+    const c = costSmallFarm();
     if(S.gold < c){ toast("Not enough denarii"); return; }
     S.gold -= c;
-    S.farmCount += 1;
+    S.smallFarmCount += 1;
     bumpObjective("buildFarm", 1);
-    // Renown removed here; battles now grant renown.
-    logLine("A farm feeds your people. (+income)", "good");
+    logLine("A small farm feeds your people. (+income)", "good");
     toast("Village capacity grows");
     render();
   });
 
-  UI.__on($("#btnVilla"), "click", ()=>{
-    const c = costVilla();
+  UI.__on($("#btnHuntingCamp"), "click", ()=>{
+    const c = costHuntingCamp();
     if(S.gold < c){ toast("Not enough denarii"); return; }
     S.gold -= c;
-    S.villaCount += 1;
+    S.huntingCampCount += 1;
+    bumpObjective("buildFarm", 1);
+    logLine("A hunting camp is set. (RNG food)", "good");
+    render();
+  });
+
+  UI.__on($("#btnHut"), "click", ()=>{
+    const c = costHut();
+    if(S.gold < c){ toast("Not enough denarii"); return; }
+    S.gold -= c;
+    S.hutCount += 1;
     bumpObjective("buildVilla", 1);
-    // Renown removed here; battles now grant renown.
-    logLine("A villa rises. The taxes flow.", "good");
+    logLine("A hut is built. (Passive denarii)", "good");
     toast("Village capacity grows");
+    render();
+  });
+
+  UI.__on($("#btnMarketStall"), "click", ()=>{
+    const c = costMarketStall();
+    if(S.gold < c){ toast("Not enough denarii"); return; }
+    S.gold -= c;
+    S.marketStallCount += 1;
+    logLine("A market stall opens. (+commerce income)", "good");
     render();
   });
   UI.__on($("#btnRecruit"), "click", (e)=>{
@@ -11565,29 +11785,58 @@ if(constructionTabButtons.length){
 
 
 function updateConstructionPreviews(){
-const farmCostEl = $("#farmCostPreview");
-  const villaCostEl = $("#villaCostPreview");
-const farmOwnedEl = $("#farmOwnedPreview");
-  const villaOwnedEl = $("#villaOwnedPreview");
-if(typeof costFarm === "function" && farmCostEl) farmCostEl.textContent = fmt(costFarm());
-  if(typeof costVilla === "function" && villaCostEl) villaCostEl.textContent = fmt(costVilla());
-if(farmOwnedEl) farmOwnedEl.textContent = fmt(S.farmCount||0);
-  if(villaOwnedEl) villaOwnedEl.textContent = fmt(S.villaCount||0);
-
-  const farmIncEl = $("#farmIncomePreview");
-  const villaIncEl = $("#villaIncomePreview");
-  if(farmIncEl){
-    const farmsNow = S.farmCount || 0;
-    const per5 = farmsNow > 0 ? (farmsNow * 0.75 * 5) : 0;
-    farmIncEl.textContent = fmtDec(per5);
+  // Small Farm
+  const sfCostEl = $("#smallFarmCostPreview");
+  const sfOwnedEl = $("#smallFarmOwnedPreview");
+  const sfIncEl = $("#smallFarmIncomePreview");
+  const sfFoodEl = $("#smallFarmFoodPreview");
+  if(sfCostEl) sfCostEl.textContent = fmt(costSmallFarm());
+  if(sfOwnedEl) sfOwnedEl.textContent = fmt(S.smallFarmCount||0);
+  if(sfIncEl){
+    const n = S.smallFarmCount||0;
+    sfIncEl.textContent = fmtDec(n > 0 ? (SMALL_FARM_DEN_PER_SEC * 5 * n) : 0);
   }
-  if(villaIncEl){
-    const villasNow = S.villaCount || 0;
-    const per5 = villasNow > 0 ? (villasNow * 3.0 * 5) : 0;
-    villaIncEl.textContent = fmtDec(per5);
+  if(sfFoodEl){
+    const n = S.smallFarmCount||0;
+    sfFoodEl.textContent = fmt(n > 0 ? (SMALL_FARM_FOOD_PER_CYCLE * n) : 0);
   }
 
-  // Update Construction HUD pills (safe if elements exist)
+  // Hunting Camp
+  const hcCostEl = $("#huntingCampCostPreview");
+  const hcOwnedEl = $("#huntingCampOwnedPreview");
+  const hcIncEl = $("#huntingCampIncomePreview");
+  const hcFoodEl = $("#huntingCampFoodPreview");
+  if(hcCostEl) hcCostEl.textContent = fmt(costHuntingCamp());
+  if(hcOwnedEl) hcOwnedEl.textContent = fmt(S.huntingCampCount||0);
+  if(hcIncEl){
+    const n = S.huntingCampCount||0;
+    hcIncEl.textContent = fmtDec(n > 0 ? (HUNT_DEN_PER_SEC * 5 * n) : 0);
+  }
+  if(hcFoodEl){
+    const n = S.huntingCampCount||0;
+    hcFoodEl.textContent = n > 0 ? `${HUNT_FOOD_BASE*n}–${(HUNT_FOOD_BASE+HUNT_FOOD_RNG_MAX)*n}` : "0";
+  }
+
+  // Hut
+  const hutCostEl = $("#hutCostPreview");
+  const hutOwnedEl = $("#hutOwnedPreview");
+  const hutIncEl = $("#hutIncomePreview");
+  if(hutCostEl) hutCostEl.textContent = fmt(costHut());
+  if(hutOwnedEl) hutOwnedEl.textContent = fmt(S.hutCount||0);
+  if(hutIncEl){
+    const n = S.hutCount||0;
+    hutIncEl.textContent = fmtDec(n > 0 ? (HUT_DEN_PER_SEC * 5 * n) : 0);
+  }
+
+  // Market Stall
+  const msCostEl = $("#marketStallCostPreview");
+  const msOwnedEl = $("#marketStallOwnedPreview");
+  const msDenEl = $("#marketStallDenPreview");
+  if(msCostEl) msCostEl.textContent = fmt(costMarketStall());
+  if(msOwnedEl) msOwnedEl.textContent = fmt(S.marketStallCount||0);
+  if(msDenEl) msDenEl.textContent = fmtDec(6);
+
+  // HUD pills
   const denPill = $("#constructDenarii");
   const popPill = $("#constructPop");
   if(denPill){
@@ -11809,28 +12058,85 @@ if(btnReset){
         const __E2K_FOOD_TOTAL_PER_FARM_PER_CYCLE = 4; // units per farm per 5s
 
         function __e2kRollFood(units){
-          // Deterministic weighted roll (avoids "all grain" outcomes and matches splash/inventory 1:1).
-          // Builds a repeating weighted bag once, then distributes units across it.
+          // Deterministic but varied weighted roll.
+          // Uses a shuffled weighted bag + a rolling cursor stored in save-state so small payouts still mix items.
           const out = { potato:0, tomato:0, grain:0, beans:0 };
           units = Math.floor(Number(units) || 0);
           if(units <= 0) return out;
 
-          // Build a small weighted bag (scaled) for stable distribution.
-          // Ratio roughly follows weights: potato 1.15, tomato 0.85, grain 1.35, beans 1.00
-          const bag = [];
-          const pushN = (key, n)=>{ for(let i=0;i<n;i++) bag.push(key); };
+          // Ensure state slot
+          if(typeof S.__foodRollCursor !== "number") S.__foodRollCursor = 0;
 
-          pushN("potato", 23);
-          pushN("tomato", 17);
-          pushN("grain",  27);
-          pushN("beans",  20);
+          // Build/shuffle the weighted bag once per session (deterministic shuffle)
+          if(!window.__e2kFoodBag || !Array.isArray(window.__e2kFoodBag) || window.__e2kFoodBag.length === 0){
+            const bag = [];
+            const pushN = (key, n)=>{ for(let i=0;i<n;i++) bag.push(key); };
 
+            // Weight ratios (kept similar to prior tuning)
+            pushN("potato", 23);
+            pushN("tomato", 17);
+            pushN("grain",  27);
+            pushN("beans",  20);
+
+            // Deterministic Fisher-Yates shuffle (xorshift32)
+            let seed = 0x9e3779b9; // fixed seed
+            const rnd = ()=>{
+              seed ^= seed << 13; seed >>>= 0;
+              seed ^= seed >> 17; seed >>>= 0;
+              seed ^= seed << 5;  seed >>>= 0;
+              return seed / 0x100000000;
+            };
+            for(let i=bag.length-1;i>0;i--){
+              const j = Math.floor(rnd() * (i+1));
+              const tmp = bag[i]; bag[i] = bag[j]; bag[j] = tmp;
+            }
+            window.__e2kFoodBag = bag;
+          }
+
+          const bag = window.__e2kFoodBag;
           const L = bag.length || 1;
+          let cursor = (S.__foodRollCursor|0) % L;
+
           for(let i=0;i<units;i++){
-            const key = bag[i % L];
+            const key = bag[(cursor + i) % L];
             out[key] = (out[key] || 0) + 1;
           }
+
+          // Advance cursor so the next payout starts at a different point in the bag
+          S.__foodRollCursor = (cursor + units) % L;
           return out;
+        }
+
+        function __e2kFmtAlloc(alloc, denarii){
+          const parts = [];
+
+          const den = Number(denarii);
+          if(Number.isFinite(den) && den > 0){
+            parts.push(`+${Math.floor(den)}💰`);
+          }
+
+          // If someone passes a pre-formatted string (legacy), keep it.
+          if(typeof alloc === "string"){
+            const s = alloc.trim();
+            if(s) parts.push(s);
+            return parts.join(" ");
+          }
+
+          if(alloc && typeof alloc === "object"){
+            const push = (k, icon)=>{
+              const n = Number(alloc[k]);
+              if(!Number.isFinite(n)) return;
+              const v = Math.floor(n);
+              if(v > 0) parts.push(`+${v}${icon}`);
+            };
+            push("potato","🥔");
+            push("tomato","🍅");
+            push("grain","🌾");
+            push("beans","🫘");
+            push("meat","🥩");
+          }
+
+          return parts.join(" ");
         }
 
 
@@ -11838,8 +12144,10 @@ if(btnReset){
           const dtSec = Math.min(0.2, (nowMS - _lastMS) / 1000);
           _lastMS = nowMS;
 
-          const farmCount = S.farmCount || 0;
-          const villaCount = S.villaCount || 0;
+          const smallFarmCount = S.smallFarmCount || 0;
+          const huntingCampCount = S.huntingCampCount || 0;
+          const hutCount = S.hutCount || 0;
+          const marketStallCount = S.marketStallCount || 0;
 
           // Construction overlay visibility (prevents ReferenceError / TDZ)
           const overlayOpen = (typeof constructionOverlay !== "undefined")
@@ -11847,157 +12155,241 @@ if(btnReset){
             && constructionOverlay.classList.contains("visible")
             && !constructionOverlay.hasAttribute("hidden");
 
+          const cycleSec = 5;
 
-          // Income-per-second must match your construction preview numbers.
-          const farmIncome = farmCount * 0.75; // denarii/sec
-          const villaIncome = villaCount * 3.0; // denarii/sec
+          // Init progress holders
+          if(typeof S.buildProgSmallFarm !== "number") S.buildProgSmallFarm = 0;
+          if(typeof S.buildProgHunting !== "number") S.buildProgHunting = 0;
+          if(typeof S.buildProgHut !== "number") S.buildProgHut = 0;
+          if(typeof S.buildProgMarketStall !== "number") S.buildProgMarketStall = 0;
 
           // Advance progress only if producing
-          if(farmCount > 0 && farmIncome > 0){
-            S.buildProgFarmDen += dtSec;
-          }else{
-            S.buildProgFarmDen = 0;
+          S.buildProgSmallFarm = (smallFarmCount > 0) ? (S.buildProgSmallFarm + dtSec) : 0;
+          S.buildProgHunting   = (huntingCampCount > 0) ? (S.buildProgHunting + dtSec) : 0;
+          S.buildProgHut       = (hutCount > 0) ? (S.buildProgHut + dtSec) : 0;
+          S.buildProgMarketStall = (marketStallCount > 0) ? (S.buildProgMarketStall + dtSec) : 0;
+
+          // Small Farm payout
+          if(S.buildProgSmallFarm >= cycleSec){
+            const intervals = Math.floor(S.buildProgSmallFarm / cycleSec);
+            const payoutGold = (smallFarmCount * SMALL_FARM_DEN_PER_SEC) * cycleSec * intervals;
+
+            const totalFoodUnits = Math.max(0, Math.floor((smallFarmCount || 0) * SMALL_FARM_FOOD_PER_CYCLE)) * intervals;
+            const alloc = (typeof __e2kRollFood === "function") ? __e2kRollFood(totalFoodUnits) : { potato:0, tomato:0, grain:0, beans:0 };
+
+            if(!S.items || typeof S.items !== "object") S.items = {};
+            for(const k of ["potato","tomato","grain","beans","meat"]){
+              if(typeof S.items[k] !== "number") S.items[k] = 0;
+            }
+            S.items.potato += alloc.potato;
+            S.items.tomato += alloc.tomato;
+            S.items.grain  += alloc.grain;
+            S.items.beans  += alloc.beans;
+
+            if(!S.foodInv || typeof S.foodInv !== "object") S.foodInv = { potato:0, tomato:0, grain:0, beans:0, meat:0 };
+            for(const k of ["potato","tomato","grain","beans","meat"]){
+              if(typeof S.foodInv[k] !== "number") S.foodInv[k] = 0;
+            }
+            S.foodInv.potato += alloc.potato;
+            S.foodInv.tomato += alloc.tomato;
+            S.foodInv.grain  += alloc.grain;
+            S.foodInv.beans  += alloc.beans;
+
+            if(payoutGold > 0){
+              S.gold += payoutGold;
+              if(typeof S.lifetimeGold === "number") S.lifetimeGold += payoutGold;
+            }
+
+            if(overlayOpen){
+              const el = UI.el("smallFarmSplash");
+              if(el){
+                const _sfTxt = __e2kFmtAlloc(alloc, payoutGold);
+                if((smallFarmCount > 0) && _sfTxt && _sfTxt.trim().length){
+                  el.textContent = _sfTxt;
+                  el.classList.remove("show"); void el.offsetWidth; el.classList.add("show");
+                }else{
+                  el.classList.remove("show");
+                }
+              }
+              const fel = UI.el("smallFarmFoodSplash");
+              if(fel){
+                // Unified splash now renders denarii + food on the main (gold) splash line.
+                fel.textContent = "";
+                fel.classList.remove("show");
+              }
+            }
+
+            S.buildProgSmallFarm -= intervals * cycleSec;
           }
 
-          if(villaCount > 0 && villaIncome > 0){
-            S.buildProgVillaDen += dtSec;
-          }else{
-            S.buildProgVillaDen = 0;
+          // Hunting Camp payout
+          if(S.buildProgHunting >= cycleSec){
+            const intervals = Math.floor(S.buildProgHunting / cycleSec);
+            const payoutGold = (huntingCampCount * HUNT_DEN_PER_SEC) * cycleSec * intervals;
+
+            let totalFoodUnits = 0;
+            for(let i=0;i<intervals;i++){
+              const bonus = Math.floor(Math.random() * (HUNT_FOOD_RNG_MAX * huntingCampCount + 1));
+              totalFoodUnits += (huntingCampCount * HUNT_FOOD_BASE) + bonus;
+            }
+            totalFoodUnits = Math.max(0, Math.floor(totalFoodUnits));
+
+            if(!S.items || typeof S.items !== "object") S.items = {};
+            if(typeof S.items.meat !== "number") S.items.meat = 0;
+            S.items.meat += totalFoodUnits;
+
+            if(!S.foodInv || typeof S.foodInv !== "object") S.foodInv = { potato:0, tomato:0, grain:0, beans:0, meat:0 };
+            if(typeof S.foodInv.meat !== "number") S.foodInv.meat = 0;
+            S.foodInv.meat += totalFoodUnits;
+
+            if(payoutGold > 0){
+              S.gold += payoutGold;
+              if(typeof S.lifetimeGold === "number") S.lifetimeGold += payoutGold;
+            }
+
+            if(overlayOpen){
+              const el = UI.el("huntingCampSplash");
+              if(el){
+                if(huntingCampCount > 0){
+                  const _txt = __e2kFmtAlloc({ meat: totalFoodUnits }, payoutGold);
+                  if(_txt && _txt.trim().length){
+                    el.textContent = _txt;
+                    el.classList.remove("show"); void el.offsetWidth; el.classList.add("show");
+                  }else{
+                    el.classList.remove("show");
+                  }
+                }else{
+                  el.classList.remove("show");
+                }
+              }
+              const fel = UI.el("huntingCampFoodSplash");
+              if(fel){
+                // Unified splash now renders denarii + food on the main (gold) splash line.
+                fel.textContent = "";
+                fel.classList.remove("show");
+              }
+            }
+
+            S.buildProgHunting -= intervals * cycleSec;
           }
 
-          // Payout on cycle completion (exactly like the prototype: payout only when bar completes)
-          
-if(S.buildProgFarmDen >= 5){
-  const intervals = Math.floor(S.buildProgFarmDen / 5);
-  const payoutGold = farmIncome * 5 * intervals;
+          // Hut payout
+          if(S.buildProgHut >= cycleSec){
+            const intervals = Math.floor(S.buildProgHut / cycleSec);
+            const payoutGold = (hutCount * HUT_DEN_PER_SEC) * cycleSec * intervals;
 
-  
-  // Food loot per cycle (matches the Construction Menu Only prototype): rolls into inventory on completion.
-  const totalFoodUnits = Math.max(0, Math.floor((farmCount || 0) * __E2K_FOOD_TOTAL_PER_FARM_PER_CYCLE)) * intervals;
-  const alloc = __e2kRollFood(totalFoodUnits);
+            if(payoutGold > 0){
+              S.gold += payoutGold;
+              if(typeof S.lifetimeGold === "number") S.lifetimeGold += payoutGold;
+            }
 
-  if(!S.items || typeof S.items !== "object") S.items = {};
-  for(const k of ["potato","tomato","grain","beans"]){
-    if(typeof S.items[k] !== "number") S.items[k] = 0;
-  }
-  // Add rolled loot
-  S.items.potato += alloc.potato;
-  S.items.tomato += alloc.tomato;
-  S.items.grain  += alloc.grain;
-  S.items.beans  += alloc.beans;
+            if(overlayOpen){
+              const el = UI.el("hutSplash");
+              if(el){
+                if((hutCount > 0) && (payoutGold > 0)){
+                  el.textContent = `+${Math.floor(payoutGold)}💰`;
+                  el.classList.remove("show"); void el.offsetWidth; el.classList.add("show");
+                }else{
+                  el.classList.remove("show");
+                }
+              }
+            }
 
-  // Also mirror into dedicated farm inventory (used by Construction menu inventory UI)
-  if(!S.foodInv || typeof S.foodInv !== "object") S.foodInv = { potato:0, tomato:0, grain:0, beans:0 };
-  for(const k of ["potato","tomato","grain","beans"]){
-    if(typeof S.foodInv[k] !== "number") S.foodInv[k] = 0;
-  }
-  S.foodInv.potato += alloc.potato;
-  S.foodInv.tomato += alloc.tomato;
-  S.foodInv.grain  += alloc.grain;
-  S.foodInv.beans  += alloc.beans;
+            S.buildProgHut -= intervals * cycleSec;
+          }
 
-  const tomato = alloc.tomato;
-  const potato = alloc.potato;
-  const grain  = alloc.grain;
-  const beans  = alloc.beans;
-if(payoutGold > 0){
-    S.gold += payoutGold;
-    if(typeof S.lifetimeGold === "number") S.lifetimeGold += payoutGold;
-  }
+          // Market Stall payout
+          if(S.buildProgMarketStall >= cycleSec){
+            const intervals = Math.floor(S.buildProgMarketStall / cycleSec);
+            const payoutGold = (marketStallCount * MARKET_STALL_DEN_PER_SEC) * cycleSec * intervals;
 
-  // Splash only when overlay is open
-  if(overlayOpen){
-    const el = UI.el("farmSplash");
-    if(el){
-      
-      
-      // Guard: do not show splash when no farms / no payout (prevents new-game ghost splashes)
-      if((farmCount > 0) && (payoutGold > 0 || tomato || potato || grain || beans)){
-const parts = [];
-      if(tomato) parts.push("🍅x"+tomato);
-      if(potato) parts.push("🥔x"+potato);
-      if(grain)  parts.push("🌾x"+grain);
-      if(beans)  parts.push("🫘x"+beans);
-      const loot = parts.length ? ("  " + parts.join("  ")) : "";
-      el.textContent = `+${Math.floor(payoutGold)}💰${loot}`;
-      el.classList.remove("show");
-      void el.offsetWidth;
-      el.classList.add("show");
-      }else{
-        // Ensure splash is hidden when not producing
-        el.classList.remove("show");
-      }
+            if(payoutGold > 0){
+              S.gold += payoutGold;
+              if(typeof S.lifetimeGold === "number") S.lifetimeGold += payoutGold;
+            }
 
-    }
-  }
+            if(overlayOpen){
+              const el = UI.el("marketStallSplash");
+              if(el){
+                if((marketStallCount > 0) && (payoutGold > 0)){
+                  el.textContent = `+${Math.floor(payoutGold)}💰`;
+                  el.classList.remove("show"); void el.offsetWidth; el.classList.add("show");
+                }else{
+                  el.classList.remove("show");
+                }
+              }
+            }
 
-  S.buildProgFarmDen -= intervals * 5;
-}
+            S.buildProgMarketStall -= intervals * cycleSec;
+          }
 
-          
-if(S.buildProgVillaDen >= 5){
-  const intervals = Math.floor(S.buildProgVillaDen / 5);
-  const payoutGold = villaIncome * 5 * intervals;
 
-  if(payoutGold > 0){
-    S.gold += payoutGold;
-    if(typeof S.lifetimeGold === "number") S.lifetimeGold += payoutGold;
-  }
-
-  if(overlayOpen){
-    const el = UI.el("villaSplash");
-    if(el){
-      
-      // Guard: do not show splash when no villas / no payout (prevents new-game ghost splashes)
-      if((villaCount > 0) && (payoutGold > 0)){
-el.textContent = `+${Math.floor(payoutGold)}💰`;
-      el.classList.remove("show");
-      void el.offsetWidth;
-      el.classList.add("show");
-      }else{
-        el.classList.remove("show");
-      }
-
-    }
-  }
-
-  S.buildProgVillaDen -= intervals * 5;
-}
           // Update bar visuals only when the construction overlay is open
-
           if(overlayOpen){
-            const pct = Math.max(0, Math.min(1, (S.buildProgFarmDen || 0) / 5));
-            const farmGoldFill = UI.el("farmProgressGoldFill");
-            const farmFoodFill = UI.el("farmProgressFill") || UI.el("farmDenBar");
-            if(farmGoldFill){
-              farmGoldFill.style.width = "100%";
-              farmGoldFill.style.transformOrigin = "0 50%";
-              farmGoldFill.style.transform = "scaleX(" + pct.toFixed(4) + ")";
-              farmGoldFill.style.willChange = "transform";
-              farmGoldFill.style.transition = "transform 0.016s linear";
+            const sfGoldFill = UI.el("smallFarmProgressGoldFill");
+            const sfFoodFill = UI.el("smallFarmProgressFoodFill");
+            if(sfGoldFill){
+              const pct = Math.max(0, Math.min(1, (S.buildProgSmallFarm || 0) / cycleSec));
+              sfGoldFill.style.width = "100%";
+              sfGoldFill.style.transformOrigin = "0 50%";
+              sfGoldFill.style.transform = "scaleX(" + pct.toFixed(4) + ")";
+              sfGoldFill.style.willChange = "transform";
+              sfGoldFill.style.transition = "transform 0.016s linear";
             }
-            if(farmFoodFill){
-              farmFoodFill.style.width = "100%";
-              farmFoodFill.style.transformOrigin = "0 50%";
-              farmFoodFill.style.transform = "scaleX(" + pct.toFixed(4) + ")";
-              farmFoodFill.style.willChange = "transform";
-              farmFoodFill.style.transition = "transform 0.016s linear";
-            }const villaFill = UI.el("villaProgressFill") || UI.el("villaDenBar");
-            if(villaFill){
-              const pct = Math.max(0, Math.min(1, (S.buildProgVillaDen || 0) / 5));
-              villaFill.style.width = "100%";
-              villaFill.style.transformOrigin = "0 50%";
-              villaFill.style.transform = "scaleX(" + pct.toFixed(4) + ")";
-              villaFill.style.willChange = "transform";
-              villaFill.style.transition = "transform 0.016s linear";
+            if(sfFoodFill){
+              const pct = Math.max(0, Math.min(1, (S.buildProgSmallFarm || 0) / cycleSec));
+              sfFoodFill.style.width = "100%";
+              sfFoodFill.style.transformOrigin = "0 50%";
+              sfFoodFill.style.transform = "scaleX(" + pct.toFixed(4) + ")";
+              sfFoodFill.style.willChange = "transform";
+              sfFoodFill.style.transition = "transform 0.016s linear";
+            }
+
+            const hcGoldFill = UI.el("huntingCampProgressGoldFill");
+            const hcFoodFill = UI.el("huntingCampProgressFoodFill");
+            if(hcGoldFill){
+              const pct = Math.max(0, Math.min(1, (S.buildProgHunting || 0) / cycleSec));
+              hcGoldFill.style.width = "100%";
+              hcGoldFill.style.transformOrigin = "0 50%";
+              hcGoldFill.style.transform = "scaleX(" + pct.toFixed(4) + ")";
+              hcGoldFill.style.willChange = "transform";
+              hcGoldFill.style.transition = "transform 0.016s linear";
+            }
+            if(hcFoodFill){
+              const pct = Math.max(0, Math.min(1, (S.buildProgHunting || 0) / cycleSec));
+              hcFoodFill.style.width = "100%";
+              hcFoodFill.style.transformOrigin = "0 50%";
+              hcFoodFill.style.transform = "scaleX(" + pct.toFixed(4) + ")";
+              hcFoodFill.style.willChange = "transform";
+              hcFoodFill.style.transition = "transform 0.016s linear";
+            }
+
+            const hutFill = UI.el("hutProgressGoldFill");
+            if(hutFill){
+              const pct = Math.max(0, Math.min(1, (S.buildProgHut || 0) / cycleSec));
+              hutFill.style.width = "100%";
+              hutFill.style.transformOrigin = "0 50%";
+              hutFill.style.transform = "scaleX(" + pct.toFixed(4) + ")";
+              hutFill.style.willChange = "transform";
+              hutFill.style.transition = "transform 0.016s linear";
+            }
+
+            const msFill = UI.el("marketStallProgressGoldFill");
+            if(msFill){
+              const pct = Math.max(0, Math.min(1, (S.buildProgMarketStall || 0) / cycleSec));
+              msFill.style.width = "100%";
+              msFill.style.transformOrigin = "0 50%";
+              msFill.style.transform = "scaleX(" + pct.toFixed(4) + ")";
+              msFill.style.willChange = "transform";
+              msFill.style.transition = "transform 0.016s linear";
             }
           }
 
-          
-          // Keep Construction HUD + previews live while the menu is open (so you don't need to close/reopen).
+          // Keep Construction HUD + previews live while the menu is open
           if(overlayOpen && typeof updateConstructionPreviews === "function"){
             updateConstructionPreviews();
           }
+
 requestAnimationFrame(_prodLoop);
         }
 
@@ -13750,7 +14142,8 @@ function currentRecruitBatchSize(){
       potato: { buy: 30, sell: 20 },
       tomato: { buy: 35, sell: 24 },
       beans:  { buy: 28, sell: 19 },
-      grain:  { buy: 50, sell: 35 }
+      grain:  { buy: 50, sell: 35 },
+      meat:   { buy: 60, sell: 42 }
     };
 
     const def = (typeof ITEM_DEFS !== "undefined" && ITEM_DEFS[id]) ? ITEM_DEFS[id] : { label: id, icon: "" };
@@ -13809,7 +14202,7 @@ function currentRecruitBatchSize(){
 
     // Build a display list that includes ALL inventory items (always tradable)
     const tradeList = Array.isArray(tradeItems) ? tradeItems : [];
-    const baseFood = ["potato","tomato","beans","grain"];
+    const baseFood = ["potato","tomato","beans","grain","meat"];
 
     // Compose an ordered list:
     // 1) Base food loot
@@ -14029,141 +14422,143 @@ function currentRecruitBatchSize(){
   }
 
 
-  // Render the player's inventory tab. This function builds a list of items the
-  // player owns and provides drop buttons to discard individual units. It
-  // updates the inventory count in the header as well. Called by the main
-  // render() loop and also after drop actions.
+  // Inventory (read-only tracker) + Battle inventory (drop-only)
+
   function renderInventory(){
-    // Ensure inventory objects exist
-    if(!S.items || typeof S.items !== "object") S.items = {};
-    if(!S.itemFrac || typeof S.itemFrac !== "object") S.itemFrac = {};
+    try{
+      ensureTradeItemsState();
+      const listEl = UI.el('inventoryList');
+      if(!listEl) return;
 
-    // Keep trade items initialized (does NOT delete other keys)
-    if(typeof ensureTradeItemsState === "function") ensureTradeItemsState();
+      // Total quantity across all items
+      let total = 0;
+      for(const k in (S.items||{})){
+        total += (S.items[k]||0);
+      }
+      const countEl = UI.el('inventoryCount');
+      if(countEl) countEl.textContent = `${fmt(total)} items`;
 
-    const listEl = UI.el('inventoryList');
-    const countEl = UI.el('inventoryCount');
-    if(!listEl) return;
+      const metaById = new Map();
+      if(Array.isArray(tradeItems)){
+        for(const it of tradeItems){
+          if(it && it.id) metaById.set(it.id, it);
+        }
+      }
 
-    // Build a display order:
-    // 1) Food items (potato/tomato/grain/beans)
-    // 2) Trade items list
-    // 3) Any other item keys that exist in S.items
-    const baseFood = ["potato","tomato","grain","beans"];
-    const tradeIds = (Array.isArray(tradeItems) ? tradeItems.map(t=>t.id) : []);
-    const extra = Object.keys(S.items).filter(k => !baseFood.includes(k) && !tradeIds.includes(k));
-    const order = [...baseFood, ...tradeIds, ...extra];
+      const FOOD = ['potato','tomato','grain','beans','meat','fish','fruit','wine'];
+      const MATERIALS = ['timber','stone','ore','iron'];
+      const ANIMALS = ['livestock','horses'];
+      const GOODS = ['goods'];
+      const LUX = ['luxe','luxuries'];
 
-    // Render only items that have a definition OR a nonzero quantity
-    listEl.innerHTML = '';
-    let totalCount = 0;
+      const showIds = new Set([...FOOD, ...MATERIALS, ...ANIMALS, ...GOODS, ...LUX]);
+      for(const k in (S.items||{})) showIds.add(k);
+      if(Array.isArray(tradeItems)) for(const it of tradeItems) if(it && it.id) showIds.add(it.id);
 
-    for(const id of order){
-      const qty = Number(S.items[id] || 0);
-      if(!qty && !(ITEM_DEFS && ITEM_DEFS[id])) continue; // hide unknown zeros
-      if(qty > 0) totalCount += qty;
+      listEl.innerHTML = '';
 
-      const row = UI.ce('div');
-      row.style.display = 'flex';
-      row.style.justifyContent = 'space-between';
-      row.style.alignItems = 'center';
-      row.style.gap = '10px';
+      const renderSection = (title, ids) => {
+        const section = UI.ce('div');
+        section.className = 'invSection';
 
-      const label = UI.ce('div');
-      label.style.flex = '1';
-      const def = (typeof ITEM_DEFS !== 'undefined' && ITEM_DEFS[id]) ? ITEM_DEFS[id] : { label: id, icon: '' };
-      label.innerHTML = `${def.icon ? (def.icon + ' ') : ''}${def.label}`;
+        const head = UI.ce('div');
+        head.className = 'invSectionHeader';
+        head.textContent = title;
 
-      const qtyEl = UI.ce('div');
-      qtyEl.style.minWidth = '70px';
-      qtyEl.style.textAlign = 'right';
-      qtyEl.style.fontFamily = 'var(--mono)';
-      qtyEl.textContent = fmt(qty);
+        const rowsWrap = UI.ce('div');
+        rowsWrap.className = 'invSectionRows';
 
-      const td = (typeof _tradeDefById === "function") ? _tradeDefById(id) : null;
-      const buyPrice = td && typeof td.buyPrice === "number" ? td.buyPrice : 100;
-      const sellPrice = td && typeof td.sellPrice === "number" ? td.sellPrice : 70;
+        let any = false;
+        for(const id of ids){
+          if(!showIds.has(id)) continue;
+          const qty = (S.items && S.items[id]) ? S.items[id] : 0;
 
-      const btnRow = UI.ce('div');
-      btnRow.style.display = 'flex';
-      btnRow.style.alignItems = 'center';
-      btnRow.style.gap = '6px';
+          const meta = metaById.get(id) || {};
 
-      const btnSell = UI.ce('button');
-      btnSell.className = 'smallBtn';
-      btnSell.textContent = 'Sell';
-      btnSell.disabled = qty <= 0;
-      UI.__on(btnSell, 'click', ()=>{
-        const cur = Number(S.items[id] || 0);
-        if(cur <= 0) return;
-        S.items[id] = Math.max(0, cur - 1);
-        S.gold = (S.gold || 0) + sellPrice;
-        toast(`Sold 1 ${def.label} for ${fmt(sellPrice)} denarii.`);
-        save();
-        render();
-      });
+          const def = (typeof ITEM_DEFS === 'object' && ITEM_DEFS && ITEM_DEFS[id]) ? ITEM_DEFS[id] : {};
+          const iconStr = (def && def.icon != null) ? def.icon : (meta.icon || '📦');
+          const nameStr = (def && def.label) ? def.label : (meta.name || ((id||'').charAt(0).toUpperCase() + (id||'').slice(1)));
 
-      const btnBuy = UI.ce('button');
-      btnBuy.className = 'smallBtn';
-      btnBuy.textContent = 'Buy';
-      btnBuy.disabled = (S.gold || 0) < buyPrice;
-      UI.__on(btnBuy, 'click', ()=>{
-        const g = Number(S.gold || 0);
-        if(g < buyPrice) return;
-        S.gold = g - buyPrice;
-        S.items[id] = Number(S.items[id] || 0) + 1;
-        toast(`Bought 1 ${def.label} for ${fmt(buyPrice)} denarii.`);
-        save();
-        render();
-      });
+          const row = UI.ce('div');
+          row.className = 'invRow';
 
-      const btnDrop = UI.ce('button');
-      btnDrop.className = 'smallBtn';
-      btnDrop.textContent = 'Drop';
-      btnDrop.disabled = qty <= 0;
-      UI.__on(btnDrop, 'click', () => {
-        if(!S.items || typeof S.items !== "object") return;
-        const cur = Number(S.items[id] || 0);
-        if(cur <= 0) return;
-        S.items[id] = Math.max(0, cur - 1);
-        toast(`Dropped 1 ${def.label}.`);
-        save();
-        render();
-      });
+          const label = UI.ce('div');
+          label.className = 'invLabel';
 
-      btnRow.appendChild(btnSell);
-      btnRow.appendChild(btnBuy);
-      btnRow.appendChild(btnDrop);
+          const icon = UI.ce('span');
+          icon.className = 'invIcon';
+          icon.innerHTML = (iconStr != null ? iconStr : '📦');
 
-      row.appendChild(label);
-      row.appendChild(qtyEl);
-      row.appendChild(btnRow);
-      listEl.appendChild(row);
-    }
+          const name = UI.ce('span');
+          name.className = 'invName';
+          name.textContent = nameStr;
 
-    if(countEl){
-      countEl.textContent = `${fmt(totalCount)} items`;
+          label.appendChild(icon);
+          label.appendChild(name);
+
+          const qtyEl = UI.ce('div');
+          qtyEl.className = 'invQty';
+          qtyEl.textContent = fmt(qty || 0);
+
+          row.appendChild(label);
+          row.appendChild(qtyEl);
+          rowsWrap.appendChild(row);
+          any = true;
+        }
+
+        if(any){
+          section.appendChild(head);
+          section.appendChild(rowsWrap);
+          listEl.appendChild(section);
+        }
+      };
+
+      renderSection('Food', FOOD);
+      renderSection('Materials', MATERIALS);
+      renderSection('Animals', ANIMALS);
+      renderSection('Goods', GOODS);
+      renderSection('Luxuries', LUX);
+
+      // Other: anything not in the above lists
+      const known = new Set([...FOOD, ...MATERIALS, ...ANIMALS, ...GOODS, ...LUX]);
+      const otherIds = [];
+      for(const id of showIds){
+        if(!id || known.has(id)) continue;
+        otherIds.push(id);
+      }
+      otherIds.sort();
+
+      if(otherIds.length){
+        renderSection('Other', otherIds);
+      }
+    }catch(e){
+      // fail-safe: never block the game loop
     }
   }
 
+  // Battle inventory list (drop items during battle only) (drop items during battle only)
   function renderBattleInventory(){
     ensureTradeItemsState();
     const listEl = UI.el('battleInventoryList');
     if(!listEl) return;
     listEl.innerHTML = '';
+
     for(const item of tradeItems){
       const qty = S.items[item.id] || 0;
       const row = UI.ce('div');
       row.style.display = 'flex';
       row.style.justifyContent = 'space-between';
       row.style.alignItems = 'center';
+
       const label = UI.ce('div');
       label.style.flex = '1';
       label.textContent = `${item.name}: ${fmt(qty)}`;
+
       const dropBtn = UI.ce('button');
       dropBtn.className = 'smallBtn';
       dropBtn.textContent = 'Drop';
       dropBtn.disabled = (qty <= 0);
+
       UI.__on(dropBtn, 'click', function(){
         if((S.items[item.id] || 0) <= 0) return;
         S.items[item.id] = (S.items[item.id] || 0) - 1;
@@ -14172,6 +14567,7 @@ function currentRecruitBatchSize(){
         renderBattleInventory();
         if(typeof render === 'function') render();
       });
+
       row.appendChild(label);
       row.appendChild(dropBtn);
       listEl.appendChild(row);
