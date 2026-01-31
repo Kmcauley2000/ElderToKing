@@ -259,52 +259,59 @@ body::after{
       color:var(--muted);
     }
     .factionCardStats{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px 12px;
+      margin-top:4px;
+      font-family:var(--mono);
+      font-size:.74rem;
+    }
+    .factionCardStat{
+      display:flex;
+      gap:4px;
+      align-items:center;
+    }
+    .factionCardLeader{
+      margin-top:4px;
+      font-family:var(--sans);
+      font-size:.76rem;
+    }
+    
+    /* Settlement stats strip (population + military) — anchored, no background, never overlaps buttons */
+    .smallBtn.factionCard:not(.provinceCard) .settlementStatsStrip{
       position:absolute;
-      right:26px;
-      top:50%;
-      transform: translateY(48px); /* drop below title/leader area into empty holder space */
-
+      right:28px;
+      bottom:18px;
       display:flex;
       gap:12px;
       align-items:center;
       justify-content:flex-end;
-
-      /* no pill/background */
       padding:0 !important;
       margin:0 !important;
       border:0 !important;
       border-radius:0 !important;
       background:transparent !important;
       box-shadow:none !important;
-
       font-family:var(--mono);
       font-size:.78rem;
       line-height:1;
-      pointer-events:none;
       white-space:nowrap;
+      pointer-events:none;
       color: rgba(20,12,6,.92);
+      text-shadow:none;
     }
-
-.factionCardStat{
+    .smallBtn.factionCard:not(.provinceCard) .settlementStatsStrip .settlementStat{
       display:flex;
-      align-items:center;
       gap:6px;
+      align-items:center;
     }
-    .factionCardStat .factionStatIcon{
-      font-size:.85rem;
-      opacity:.9;
+    .smallBtn.factionCard:not(.provinceCard) .settlementStatsStrip .settlementStat img{
+      width:18px;
+      height:18px;
+      image-rendering:pixelated;
+      vertical-align:middle;
     }
-    .factionCardStat b{
-      font-weight:900;
-      letter-spacing:.02em;
-    }
-
-    .factionCardLeader{
-      margin-top:4px;
-      font-family:var(--sans);
-      font-size:.76rem;
-    }
-    .factionCardActions{
+.factionCardActions{
       margin-top:6px;
       display:grid;
       grid-template-columns:repeat(2,minmax(0,1fr));
@@ -5269,9 +5276,9 @@ const totalPages = Math.max(1, Math.ceil(cards.length / PAGE_SIZE));
     '<button type="button" class="factionActionBtn" data-faction-action="diplomacy">Diplomacy</button>',
     '<button type="button" class="factionActionBtn" data-faction-action="raid">Pillage</button>',
   "</div>",
-  '<div class="factionCardStats">',
-    '<div class="factionCardStat"><span class="factionStatIcon">👥</span><b>', fmt(card.population), "</b></div>",
-    '<div class="factionCardStat"><span class="factionStatIcon">⚔️</span><b>', fmt(card.military), "</b></div>",
+  '<div class="settlementStatsStrip">',
+    '<div class="settlementStat"><b>', fmt(card.population), "</b></div>",
+    '<div class="settlementStat"><b>', fmt(card.military), "</b></div>",
   "</div>"
 ].join("");
 
