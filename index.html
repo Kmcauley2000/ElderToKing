@@ -5136,6 +5136,9 @@ function renderSubjugatedSettlementsList(){
   let totalTribute = 0;
   let loyaltySum = 0;
 
+  // If the province has its own population, prefer that and do not double-count legacy settlements.
+  let useProvincePop = false;
+
   // Pull aggregated stats from the province if it exists. Note: province
   // properties are optional; fall back gracefully if missing.
   if(S.province && typeof S.province === "object"){
@@ -5145,8 +5148,7 @@ function renderSubjugatedSettlementsList(){
     totalTribute += (p.tributePerSec || 0);
     // Loyalty from province stability (0–100 scale). Default to 50.
     loyaltySum += (typeof p.stability === "number" ? p.stability : 50);
-
-  const useProvincePop = !!(S.province && typeof S.province === "object" && typeof S.province.population === "number" && S.province.population > 0);
+    useProvincePop = !!(S.province && typeof S.province === "object" && typeof S.province.population === "number" && S.province.population > 0);
   }
 
   // Add stats from any legacy subjugated settlements array. Even though the UI
@@ -5661,9 +5663,11 @@ const LAND_TYPE_EFFECTS = {
 
 
 function landBaseIncome(){
+  if(typeof LAND_TYPE_EFFECTS === "undefined" || !LAND_TYPE_EFFECTS) return 0;
   if(!Array.isArray(S.controlledRegions)) return 0;
   let sum = 0;
   for(const r of S.controlledRegions){
+    if(!r || !r.name) continue;
     const eff = LAND_TYPE_EFFECTS[r.name];
     if(eff && eff.den) sum += eff.den;
   }
@@ -5671,9 +5675,11 @@ function landBaseIncome(){
 }
 
 function landBasePopCap(){
+  if(typeof LAND_TYPE_EFFECTS === "undefined" || !LAND_TYPE_EFFECTS) return 0;
   if(!Array.isArray(S.controlledRegions)) return 0;
   let sum = 0;
   for(const r of S.controlledRegions){
+    if(!r || !r.name) continue;
     const eff = LAND_TYPE_EFFECTS[r.name];
     if(eff && eff.pop) sum += eff.pop;
   }
