@@ -330,9 +330,13 @@ body::after{
     .factionCardActions{ gap:10px; }
 
     :root{
-      /* Scales nicely on desktop while staying readable on mobile */
-      --nearbyBtnW: clamp(130px, 11vw, 170px);
+      /* Control HEIGHT so the art never looks stretched on desktop */
+      --nearbyBtnH: clamp(40px, 6vw, 54px);
     }
+    @media (min-width: 900px){
+      :root{ --nearbyBtnH: 46px; }
+    }
+
 
     @keyframes nearbyBtnBounce{
       0%{ transform: scale(1); }
@@ -349,10 +353,8 @@ body::after{
       background-position:center !important;
 
       /* Preserve the button art's native aspect ratio so it never looks stretched */
-      width: var(--nearbyBtnW);
-      aspect-ratio: 170 / 64;
-      height: auto;
-
+      height: var(--nearbyBtnH);
+      width: calc(var(--nearbyBtnH) * 170 / 64);
       background-size: contain !important;
 
       padding:0 !important;
