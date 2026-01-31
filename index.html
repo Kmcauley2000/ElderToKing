@@ -216,14 +216,19 @@ body::after{
       background: transparent !important;
       border: none !important;
       box-shadow: none !important;
-      min-height: 132px;
+
+      /* Let the content (buttons/stats) fit inside the PNG holder */
+      min-height: 178px;
+      padding: 14px 22px 18px 26px; /* keeps layout similar, pulls content inside frame */
       overflow: hidden;
     }
     .smallBtn.factionCard::before{
       content:"";
       position:absolute;
       inset:0;
-      background: url("Sprites/settlement%20holder%20card.png") 18% center/150% 155% no-repeat;
+
+      /* Fit the whole holder image to the card area (no right-side crop) */
+      background: url("Sprites/settlement%20holder%20card.png") center/100% 100% no-repeat;
       image-rendering: pixelated;
       pointer-events:none;
       z-index:0;
