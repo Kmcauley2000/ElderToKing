@@ -217,10 +217,11 @@ body::after{
       border: none !important;
       box-shadow: none !important;
 
-      /* Let the content (buttons/stats) fit inside the PNG holder */
-      min-height: 178px;
-      padding: 14px 22px 18px 26px; /* keeps layout similar, pulls content inside frame */
-      overflow: hidden;
+      /* Card drives size; PNG holder is the skin */
+      min-height: 220px;
+
+      /* Safe area inside the holder frame (push content away from left post + top/bottom borders) */
+      padding: 18px 24px 22px 62px;
     }
     .smallBtn.factionCard::before{
       content:"";
