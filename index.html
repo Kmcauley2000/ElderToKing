@@ -5165,10 +5165,10 @@ const totalPages = Math.max(1, Math.ceil(cards.length / PAGE_SIZE));
   '<div class="factionCardActions">',
     // Allow trading regardless of troop count; only attack/raid should be gated by available troops.
     '<button type="button" class="factionActionBtn" data-faction-action="trade">Trade</button>',
-    '<button type="button" class="factionActionBtn" data-faction-action="attack"',   hasTroops ? "" : " disabled", ">Conquer</button>",
+    '<button type="button" class="factionActionBtn" data-faction-action="attack">Conquer</button>',
     // Diplomacy does not require troops. Always enable this button.
     '<button type="button" class="factionActionBtn" data-faction-action="diplomacy">Diplomacy</button>',
-    '<button type="button" class="factionActionBtn" data-faction-action="raid"',     hasTroops ? "" : " disabled", ">Pillage</button>",
+    '<button type="button" class="factionActionBtn" data-faction-action="raid">Pillage</button>',
   "</div>",
   '<div class="factionCardStats">',
     '<div class="factionCardStat"><span>Population</span><b>', fmt(card.population), "</b></div>",
