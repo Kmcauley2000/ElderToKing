@@ -330,15 +330,8 @@ body::after{
     .factionCardActions{ gap:10px; }
 
     :root{
-      --nearbyBtnW: 170px;
-      --nearbyBtnH: 64px;
-    }
-    @media (min-width: 900px){
-      :root{
-        /* desktop: give the art more vertical room so it doesn't look squashed */
-        --nearbyBtnW: 200px;
-        --nearbyBtnH: 80px;
-      }
+      /* Scales nicely on desktop while staying readable on mobile */
+      --nearbyBtnW: clamp(130px, 11vw, 170px);
     }
 
     @keyframes nearbyBtnBounce{
@@ -354,12 +347,15 @@ body::after{
       background-color:transparent !important;
       background-repeat:no-repeat !important;
       background-position:center !important;
-      background-size: 100% 100% !important; /* avoid "contained" shrink on desktop */
+
+      /* Preserve the button art's native aspect ratio so it never looks stretched */
+      width: var(--nearbyBtnW);
+      aspect-ratio: 170 / 64;
+      height: auto;
+
+      background-size: contain !important;
 
       padding:0 !important;
-      width: var(--nearbyBtnW);
-      height: var(--nearbyBtnH);
-
       display:inline-block !important;
       line-height: 0 !important;
       font-size: 0 !important; /* hide label visually (images contain text) */
@@ -395,8 +391,7 @@ body::after{
     }
     .factionActionBtn[data-faction-action="raid"]{
       background-image:url("Sprites/Nearby%20Settlement%20Buttons/Pillage%20button.png");
-    }
-    .factionPageBtn{
+    }    .factionPageBtn{
       min-width:32px;
     }
     .factionPageBtn.is-active,
