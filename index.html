@@ -213,6 +213,7 @@ body::after{
     /* === Custom settlement card holder (PNG) === */
     .smallBtn.factionCard{
       position:relative;
+      position:relative;
       background: transparent !important;
       border: none !important;
       box-shadow: none !important;
@@ -259,25 +260,34 @@ body::after{
     }
     .factionCardStats{
       position:absolute;
-      left:62px;
-      right:24px;
-      bottom:18px;
+      right:26px;
+      bottom:12px;
+
+      /* keep it out of the button cluster */
+      left:auto !important;
+
       display:flex;
-      gap:14px;
+      gap:12px;
       align-items:center;
-      justify-content:flex-start;
-      padding:6px 10px;
-      border-radius:12px;
-      border:1px solid rgba(158,104,54,.35);
-      background: rgba(255,255,255,0.55);
+      justify-content:flex-end;
+
+      /* no pill/background */
+      padding:0 !important;
+      margin:0 !important;
+      border:0 !important;
+      border-radius:0 !important;
+      background:transparent !important;
+      box-shadow:none !important;
+
       font-family:var(--mono);
       font-size:.78rem;
-      color:var(--text);
       line-height:1;
       pointer-events:none;
       white-space:nowrap;
+      color: rgba(20,12,6,.92);
     }
-    .factionCardStat{
+
+.factionCardStat{
       display:flex;
       align-items:center;
       gap:6px;
