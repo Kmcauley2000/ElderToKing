@@ -5219,6 +5219,7 @@ function renderSubjugatedSettlementsList(){
   let totalPop = 0;
   let totalTribute = 0;
   let loyaltySum = 0;
+  let useProvincePop = false;
 
   // Pull aggregated stats from the province if it exists. Note: province
   // properties are optional; fall back gracefully if missing.
@@ -5229,8 +5230,7 @@ function renderSubjugatedSettlementsList(){
     totalTribute += (p.tributePerSec || 0);
     // Loyalty from province stability (0–100 scale). Default to 50.
     loyaltySum += (typeof p.stability === "number" ? p.stability : 50);
-
-  const useProvincePop = !!(S.province && typeof S.province === "object" && typeof S.province.population === "number" && S.province.population > 0);
+    useProvincePop = !!(S.province && typeof S.province === "object" && typeof S.province.population === "number" && S.province.population > 0);
   }
 
   // Add stats from any legacy subjugated settlements array. Even though the UI
