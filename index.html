@@ -210,6 +210,28 @@ body::after{
       border-radius:16px;
       width:100%;
     }
+    /* === Custom settlement card holder (PNG) === */
+    .smallBtn.factionCard{
+      position:relative;
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      overflow: hidden;
+    }
+    .smallBtn.factionCard::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: url("Sprites/settlement%20holder%20card.png") center/100% 100% no-repeat;
+      image-rendering: pixelated;
+      pointer-events:none;
+      z-index:0;
+    }
+    .smallBtn.factionCard > *{
+      position:relative;
+      z-index:1;
+    }
+
     .factionCardHeader{
       display:flex;
       justify-content:space-between;
