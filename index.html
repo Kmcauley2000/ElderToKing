@@ -329,32 +329,56 @@ body::after{
     /* --- Nearby settlement custom PNG buttons --- */
     .factionCardActions{ gap:10px; }
 
+    :root{
+      --nearbyBtnW: 170px;
+      --nearbyBtnH: 64px;
+    }
+    @media (min-width: 900px){
+      :root{
+        /* desktop: give the art more vertical room so it doesn't look squashed */
+        --nearbyBtnW: 200px;
+        --nearbyBtnH: 80px;
+      }
+    }
+
+    @keyframes nearbyBtnBounce{
+      0%{ transform: scale(1); }
+      35%{ transform: scale(0.92); }
+      70%{ transform: scale(1.06); }
+      100%{ transform: scale(1); }
+    }
+
     /* Render the button as an image-skin while keeping semantics + click handlers */
     .factionActionBtn{
       border:0 !important;
       background-color:transparent !important;
       background-repeat:no-repeat !important;
       background-position:center !important;
-      background-size:contain !important;
+      background-size: 100% 100% !important; /* avoid "contained" shrink on desktop */
 
       padding:0 !important;
-      width: 170px;
-      height: 64px;
+      width: var(--nearbyBtnW);
+      height: var(--nearbyBtnH);
 
       display:inline-block !important;
-      line-height: normal;
+      line-height: 0 !important;
       font-size: 0 !important; /* hide label visually (images contain text) */
       color: transparent !important;
       text-shadow:none !important;
       box-shadow:none !important;
       border-radius: 0 !important;
       filter:none !important;
-      transform: none;
       cursor:pointer;
       user-select:none;
       -webkit-tap-highlight-color: transparent;
+      transform: translateZ(0); /* stable scaling on desktop */
     }
-    .factionActionBtn:active{ transform: translateY(1px); }
+    .factionActionBtn.nearby-bounce{
+      animation: nearbyBtnBounce 180ms ease-out;
+    }
+    .factionActionBtn:active{
+      animation: nearbyBtnBounce 180ms ease-out;
+    }
     .factionActionBtn:focus-visible{
       outline: 2px solid rgba(244,208,111,.75);
       outline-offset: 2px;
@@ -11634,6 +11658,13 @@ if(factionList){
     if(!target) return;
     const btn = target.closest && target.closest("[data-faction-action]");
     if(!btn) return;
+
+    // tap feedback for custom PNG buttons
+    btn.classList.remove("nearby-bounce");
+    // force reflow so repeated taps replay animation
+    void btn.offsetWidth;
+    btn.classList.add("nearby-bounce");
+    window.setTimeout(()=>{ btn.classList.remove("nearby-bounce"); }, 220);
     const card = btn.closest && btn.closest("[data-battle-slot]");
     if(!card) return;
     const slot = card.getAttribute("data-battle-slot");
