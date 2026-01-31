@@ -213,7 +213,6 @@ body::after{
     /* === Custom settlement card holder (PNG) === */
     .smallBtn.factionCard{
       position:relative;
-      position:relative;
       background: transparent !important;
       border: none !important;
       box-shadow: none !important;
@@ -259,59 +258,45 @@ body::after{
       color:var(--muted);
     }
     .factionCardStats{
+      position:absolute;
+      left:62px;
+      right:24px;
+      bottom:18px;
       display:flex;
-      flex-wrap:wrap;
-      gap:8px 12px;
-      margin-top:4px;
+      gap:14px;
+      align-items:center;
+      justify-content:flex-start;
+      padding:6px 10px;
+      border-radius:12px;
+      border:1px solid rgba(158,104,54,.35);
+      background: rgba(255,255,255,0.55);
       font-family:var(--mono);
-      font-size:.74rem;
+      font-size:.78rem;
+      color:var(--text);
+      line-height:1;
+      pointer-events:none;
+      white-space:nowrap;
     }
     .factionCardStat{
       display:flex;
-      gap:4px;
       align-items:center;
+      gap:6px;
     }
+    .factionCardStat .factionStatIcon{
+      font-size:.85rem;
+      opacity:.9;
+    }
+    .factionCardStat b{
+      font-weight:900;
+      letter-spacing:.02em;
+    }
+
     .factionCardLeader{
       margin-top:4px;
       font-family:var(--sans);
       font-size:.76rem;
     }
-    
-    /* Settlement stats strip (population + military) — anchored, no background, never overlaps buttons */
-    .smallBtn.factionCard:not(.provinceCard) .settlementStatsStrip{
-      position:absolute;
-      right:28px;
-      bottom:18px;
-      display:flex;
-      gap:12px;
-      align-items:center;
-      justify-content:flex-end;
-      padding:0 !important;
-      margin:0 !important;
-      border:0 !important;
-      border-radius:0 !important;
-      background:transparent !important;
-      box-shadow:none !important;
-      font-family:var(--mono);
-      font-size:.78rem;
-      line-height:1;
-      white-space:nowrap;
-      pointer-events:none;
-      color: rgba(20,12,6,.92);
-      text-shadow:none;
-    }
-    .smallBtn.factionCard:not(.provinceCard) .settlementStatsStrip .settlementStat{
-      display:flex;
-      gap:6px;
-      align-items:center;
-    }
-    .smallBtn.factionCard:not(.provinceCard) .settlementStatsStrip .settlementStat img{
-      width:18px;
-      height:18px;
-      image-rendering:pixelated;
-      vertical-align:middle;
-    }
-.factionCardActions{
+    .factionCardActions{
       margin-top:6px;
       display:grid;
       grid-template-columns:repeat(2,minmax(0,1fr));
@@ -2847,6 +2832,33 @@ img[src*="market"] {
         <div id="territoryList" style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">
           <!-- Filled by render() with cards for each territory -->
         </div>
+
+        <!-- Holdings + Land Allocation (post-conquest) -->
+        <div id="holdingsContainer" class="factionCardsWrap" style="margin-top:10px;">
+          <div class="sectionTitle" style="border-radius:14px 14px 0 0;">
+            <span>Holdings</span>
+            <span style="font-size:.72rem;color:var(--muted);">Allocate finite land to conquered settlements.</span>
+          </div>
+          <div class="cardBody" style="padding:10px 12px;border-radius:0 0 14px 14px;background:linear-gradient(180deg,rgba(255,255,255,0.12),rgba(190,160,120,0.12));">
+            <div class="territorySummaryRow" style="margin:0 0 8px;">
+              <span class="territorySummaryTag"><b>Total:</b> <span id="holdLandTotal">0</span></span>
+              <span class="territorySummaryTag"><b>Unassigned:</b> <span id="holdLandUnassigned">0</span></span>
+              <span class="territorySummaryTag" style="margin-left:auto;"><b>Holdings:</b> <span id="holdingsCount">0</span></span>
+            </div>
+
+            <div id="holdingsEmpty" style="margin:4px 0 0;font-size:.78rem;color:var(--muted);display:none;">
+              You have no holdings yet. Conquer a settlement to create one.
+            </div>
+
+            <div id="holdingsList" style="display:flex;flex-direction:column;gap:8px;"></div>
+
+            <div id="holdingsPager" class="factionPager" style="margin-top:10px;display:none;">
+              <button type="button" class="factionPageBtn" id="holdingsPrevBtn">‹</button>
+              <span id="holdingsPageInfo">1 / 1</span>
+              <button type="button" class="factionPageBtn" id="holdingsNextBtn">›</button>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -3272,6 +3284,381 @@ UI.visibilityState = UI.visibilityState || (()=> UI.doc().visibilityState);
     }
   }
 
+  // ---------------------------------------------------------------------
+  // [SYS] HOLDINGS & LAND (post-conquest) — passive production (NO UI)
+  // Land is finite (capacity), allocations live on each holding.land.* and are capped by holding.land.max.
+  // Outputs respect holding mode, loyalty, and tax rate.
+  // Routing:
+  //   - vassal  -> holding.tributeBank (denarii-weighted, fractional safe)
+  //   - annexed -> S.items + S.denarii (fractional safe)
+  //   - ruins   -> reduced output
+  // ---------------------------------------------------------------------
+
+  function clamp01(x){ return x < 0 ? 0 : (x > 1 ? 1 : x); }
+
+  function landObj(){
+    // Back-compat: S.land used to be a number. Now it's { total, unassigned }.
+    if(!S.land || typeof S.land !== "object"){
+      const n = (typeof S.land === "number") ? S.land : 0;
+      S.land = { total: n, unassigned: n };
+    }else{
+      if(typeof S.land.total !== "number") S.land.total = 0;
+      if(typeof S.land.unassigned !== "number") S.land.unassigned = 0;
+    }
+    return S.land;
+  }
+  function landTotal(){
+    const L = landObj();
+    return (typeof L.total === "number") ? L.total : 0;
+  }
+  function landUnassigned(){
+    const L = landObj();
+    return (typeof L.unassigned === "number") ? L.unassigned : 0;
+  }
+  function holdingAssigned(h){
+    if(!h || !h.land) return 0;
+    const L = h.land;
+    return (L.farmland||0) + (L.pasture||0) + (L.woodland||0) + (L.quarry||0) + (L.mine||0);
+  }
+  function clampHoldingLandToMax(h){
+    if(!h || !h.land) return;
+    const max = Math.max(0, h.land.max||0);
+    let assigned = holdingAssigned(h);
+    if(assigned <= max) return;
+    // If over-assigned (old/bad save), spill back into unassigned in a stable order.
+    let overflow = assigned - max;
+    const keys = ["mine","quarry","woodland","pasture","farmland"];
+    for(const k of keys){
+      if(overflow<=0) break;
+      const v = Math.max(0, h.land[k]||0);
+      const take = Math.min(v, overflow);
+      if(take>0){
+        h.land[k] = v - take;
+        overflow -= take;
+      }
+    }
+    const L = landObj();
+    L.unassigned += (assigned - holdingAssigned(h));
+    if(L.unassigned > L.total) L.unassigned = L.total;
+  }
+
+  function adjustHoldingAllocation(holdingId, kind, delta){
+    if(!holdingId || !kind || !delta) return 0;
+    const arr = Array.isArray(S.holdings) ? S.holdings : (S.holdings = []);
+    const h = arr.find(x=>x && x.id === holdingId);
+    if(!h) return 0;
+    ensureHoldingShape(h);
+    clampHoldingLandToMax(h);
+
+    const allowedKinds = {farmland:1,pasture:1,woodland:1,quarry:1,mine:1};
+    if(!allowedKinds[kind]) return 0;
+
+    const L = landObj();
+
+    const cur = Math.max(0, h.land[kind]||0);
+    const max = Math.max(0, h.land.max||0);
+    const assigned = holdingAssigned(h);
+
+    let applied = 0;
+
+    if(delta > 0){
+      const space = Math.max(0, max - assigned);
+      const free = Math.max(0, L.unassigned||0);
+      applied = Math.min(delta, space, free);
+      if(applied > 0){
+        h.land[kind] = cur + applied;
+        L.unassigned = free - applied;
+      }
+    }else{
+      const want = Math.min(cur, Math.abs(delta));
+      applied = want;
+      if(applied > 0){
+        h.land[kind] = cur - applied;
+        L.unassigned = (L.unassigned||0) + applied;
+        if(L.unassigned > L.total) L.unassigned = L.total;
+      }
+      applied = -applied;
+    }
+
+    return applied;
+  }
+
+  function ensureHoldingShape(h){
+    if(!h || typeof h !== "object") return null;
+
+    if(typeof h.loyalty !== "number") h.loyalty = 50;
+    if(typeof h.taxRate !== "number") h.taxRate = 0.25;
+    if(typeof h.garrison !== "number") h.garrison = 0;
+    if(typeof h.devLevel !== "number") h.devLevel = 0;
+
+    if(!h.land || typeof h.land !== "object"){
+      h.land = { max: 0, farmland: 0, pasture: 0, woodland: 0, quarry: 0, mine: 0 };
+    }else{
+      if(typeof h.land.max !== "number") h.land.max = 0;
+      if(typeof h.land.farmland !== "number") h.land.farmland = 0;
+      if(typeof h.land.pasture !== "number") h.land.pasture = 0;
+      if(typeof h.land.woodland !== "number") h.land.woodland = 0;
+      if(typeof h.land.quarry !== "number") h.land.quarry = 0;
+      if(typeof h.land.mine !== "number") h.land.mine = 0;
+    }
+
+    // Keep allocations non-negative
+    h.land.farmland = Math.max(0, h.land.farmland);
+    h.land.pasture  = Math.max(0, h.land.pasture);
+    h.land.woodland = Math.max(0, h.land.woodland);
+    h.land.quarry   = Math.max(0, h.land.quarry);
+    h.land.mine     = Math.max(0, h.land.mine);
+    h.land.max      = Math.max(0, h.land.max);
+
+    // Cap allocation to max (scale down proportionally if overflow)
+    const assigned = (h.land.farmland + h.land.pasture + h.land.woodland + h.land.quarry + h.land.mine);
+    if(assigned > h.land.max && assigned > 0){
+      const k = h.land.max / assigned;
+      h.land.farmland = h.land.farmland * k;
+      h.land.pasture  = h.land.pasture  * k;
+      h.land.woodland = h.land.woodland * k;
+      h.land.quarry   = h.land.quarry   * k;
+      h.land.mine     = h.land.mine     * k;
+    }
+
+    // tributeBank: allow legacy numeric, normalize to object
+    if(typeof h.tributeBank === "number"){
+      h.tributeBank = { denarii: h.tributeBank };
+    }else if(!h.tributeBank || typeof h.tributeBank !== "object"){
+      h.tributeBank = { denarii: 0 };
+    }else{
+      if(typeof h.tributeBank.denarii !== "number") h.tributeBank.denarii = 0;
+    }
+
+    // cooldowns container used as a safe place for fractional buffers (NO UI)
+    if(!h.cooldowns || typeof h.cooldowns !== "object" || Array.isArray(h.cooldowns)) h.cooldowns = {};
+      if(!h.cooldowns._frac || typeof h.cooldowns._frac !== "object" || Array.isArray(h.cooldowns._frac)) h.cooldowns._frac = {};
+    if(!h.cooldowns._frac || typeof h.cooldowns._frac !== "object") h.cooldowns._frac = {};
+
+    // Mode safety
+    if(h.mode !== "vassal" && h.mode !== "annexed" && h.mode !== "ruins"){
+      h.mode = "vassal";
+    }
+    return h;
+  }
+
+  function holdingsModeMult(mode){
+    if(mode === "annexed") return 1.00;
+    if(mode === "vassal")  return 0.80;
+    if(mode === "ruins")   return 0.15;
+    return 0.75;
+  }
+
+  function holdingsLoyaltyMult(loy){
+    // Strict multiplier only (no tuning UI): 0..100 -> 0..1
+    return clamp01((loy || 0) / 100);
+  }
+
+  function holdingsTaxEffMult(taxRate){
+    // Higher tax reduces production efficiency (but increases vassal denarii weighting separately).
+    const t = clamp01(taxRate || 0);
+    return 1 - 0.50 * t;
+  }
+
+  function holdingsVassalDenariiWeight(taxRate){
+    // Denarii-weighted routing: higher tax pushes more value into tributeBank.
+    const t = clamp01(taxRate || 0);
+    return 0.25 + 0.75 * t;
+  }
+
+  // Base output per 1 land capacity per second (minimal + deterministic; not final balance)
+  const HOLDING_LAND_BASE = {
+    farmland: { items: { grain: 0.20 }, value: 1.0 },
+    pasture:  { items: { livestock: 0.08 }, value: 2.0 },
+    woodland: { items: { timber: 0.12 }, value: 2.0 },
+    quarry:   { items: { stone: 0.10 }, value: 2.0 },
+    mine:     { items: { ore: 0.07 }, value: 3.0 },
+  };
+
+  function addHoldingFrac(h, key, amount){
+    if(amount <= 0) return 0;
+    const fracMap = h.cooldowns && h.cooldowns._frac ? h.cooldowns._frac : (h.cooldowns._frac = {});
+    let frac = (typeof fracMap[key] === "number" ? fracMap[key] : 0) + amount;
+    const whole = Math.floor(frac);
+    fracMap[key] = frac - whole;
+    return whole;
+  }
+
+  function passiveHoldingsLandTick(dt){
+    if(!Array.isArray(S.holdings) || !S.holdings.length) return;
+
+    // Ensure inventory exists for annexed routing
+    if(typeof ensureTradeItemsState === "function"){
+      ensureTradeItemsState();
+    }
+    if(!S.items || typeof S.items !== "object") S.items = {};
+
+    for(const h0 of S.holdings){
+      const h = ensureHoldingShape(h0);
+      if(!h) continue;
+
+      const assigned = (h.land.farmland + h.land.pasture + h.land.woodland + h.land.quarry + h.land.mine);
+      if(assigned <= 0) continue;
+
+      const modeMult = holdingsModeMult(h.mode);
+      const loyMult  = holdingsLoyaltyMult(h.loyalty);
+      const taxMult  = holdingsTaxEffMult(h.taxRate);
+
+      const eff = modeMult * loyMult * taxMult;
+      if(eff <= 0) continue;
+
+      const alloc = {
+        farmland: h.land.farmland,
+        pasture:  h.land.pasture,
+        woodland: h.land.woodland,
+        quarry:   h.land.quarry,
+        mine:     h.land.mine,
+      };
+
+      // Compute outputs as fractional per dt
+      let totalValue = 0;
+
+      for(const k in alloc){
+        const cap = alloc[k];
+        if(cap <= 0) continue;
+        const base = HOLDING_LAND_BASE[k];
+        if(!base) continue;
+
+        totalValue += (base.value || 0) * cap * eff * dt;
+
+        // Annexed: produce items directly (fractional safe)
+        if(h.mode === "annexed"){
+          const items = base.items || {};
+          for(const itemId in items){
+            const rate = items[itemId] || 0;
+            if(rate <= 0) continue;
+            const whole = addHoldingFrac(h, "annexed:" + itemId, rate * cap * eff * dt);
+            if(whole > 0){
+              S.items[itemId] = (S.items[itemId] || 0) + whole;
+            }
+          }
+        }
+      }
+
+      // Route outputs (after all land types computed)
+      if(totalValue <= 0) continue;
+
+      if(h.mode === "vassal"){
+        const w = holdingsVassalDenariiWeight(h.taxRate);
+        const add = totalValue * w;
+        // tributeBank uses fractional safe buffer too
+        const whole = addHoldingFrac(h, "tribute:denarii", add);
+        if(whole > 0){
+          h.tributeBank.denarii += whole;
+        }
+      }else if(h.mode === "annexed"){
+        // Annexed also yields some direct denarii (fractional safe)
+        const whole = addHoldingFrac(h, "annexed:denarii", totalValue * 0.15);
+        if(whole > 0){
+          S.denarii = (S.denarii || 0) + whole;
+        }
+      }else if(h.mode === "ruins"){
+        // Ruins: reduced output already applied via modeMult; route as denarii decay into tributeBank
+        const whole = addHoldingFrac(h, "ruins:denarii", totalValue * 0.05);
+        if(whole > 0){
+          h.tributeBank.denarii += whole;
+        }
+      }
+    }
+  }
+
+
+  // --- Holdings governance loop (loyalty / rebellion) ---
+  function passiveHoldingsGovernanceTick(dt){
+    if(!Array.isArray(S.holdings) || !S.holdings.length) return;
+
+    // Simple, readable parameters (no balance tuning yet)
+    const LOYALTY_MIN = 0;
+    const LOYALTY_MAX = 100;
+
+    // Rebellion threshold + chance scaling
+    const REBEL_THRESH = 12;          // below this, unrest can ignite
+    const REBEL_BASE_PPS = 0.002;     // base per-second chance at 0 loyalty
+
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const clamp01 = (v) => clamp(v, 0, 1);
+
+    for(const h0 of S.holdings){
+      const h = ensureHoldingShape(h0);
+      if(!h) continue;
+
+      if(!h.cooldowns) h.cooldowns = {};
+      if(typeof h.cooldowns.rebelCd !== "number") h.cooldowns.rebelCd = 0;
+      if(h.cooldowns.rebelCd > 0){
+        h.cooldowns.rebelCd = Math.max(0, h.cooldowns.rebelCd - dt);
+      }
+
+      // --- Loyalty drift ---
+      // Target loyalty by mode (annexed tends to stabilize higher than vassal; ruins stays low)
+      const target =
+        (h.mode === "annexed") ? 55 :
+        (h.mode === "vassal")  ? 45 :
+        12;
+
+      const tax = clamp01(h.taxRate);
+      const garrison = Math.max(0, h.garrison|0);
+
+      // Drift toward target, plus a tiny garrison stabilizer, minus tax pressure
+      let delta =
+        (target - h.loyalty) * 0.002 * dt +
+        (garrison * 0.00025) * dt -
+        (tax * 0.020) * dt;
+
+      h.loyalty = clamp(h.loyalty + delta, LOYALTY_MIN, LOYALTY_MAX);
+
+      // --- Rebellion trigger (no new battle UI) ---
+      if(h.cooldowns.rebelCd > 0) continue;
+      if(h.mode === "ruins") continue; // ruins already "lost"
+
+      if(h.loyalty < REBEL_THRESH){
+        const severity = clamp01((REBEL_THRESH - h.loyalty) / REBEL_THRESH); // 0..1
+        const p = (REBEL_BASE_PPS * severity) * dt;
+        if(Math.random() < p){
+          // Suppression requirement based on tier + assigned land
+          const assigned = (h.land.farmland + h.land.pasture + h.land.woodland + h.land.quarry + h.land.mine) | 0;
+          const req = 5 + (h.tier|0) * 2 + Math.floor(assigned / 5);
+
+          logLine(`Rebellion in ${h.name}!`, "warn");
+
+          if(garrison >= req){
+            // Suppressed
+            const loss = Math.max(1, Math.ceil(req * 0.25));
+            h.garrison = Math.max(0, garrison - loss);
+            h.loyalty = clamp(Math.max(h.loyalty, 20) + 12, LOYALTY_MIN, LOYALTY_MAX);
+            h.cooldowns.rebelCd = 180; // 3 minutes calm
+            logLine(`Rebellion suppressed in ${h.name} (lost ${loss} garrison).`, "good");
+          }else{
+            // Lost control: downgrade to ruins, release land back to pool
+            if(S.land && typeof S.land === "object" && typeof S.land.unassigned === "number"){
+              const release = (h.land.farmland + h.land.pasture + h.land.woodland + h.land.quarry + h.land.mine) | 0;
+              if(release > 0) S.land.unassigned += release;
+            }
+            h.land.farmland = 0;
+            h.land.pasture  = 0;
+            h.land.woodland = 0;
+            h.land.quarry   = 0;
+            h.land.mine     = 0;
+
+            h.mode = "ruins";
+            h.taxRate = 0.10;
+            h.loyalty = 12;
+            h.tributeBank = h.tributeBank || { denarii: 0 };
+            h.tributeBank.denarii = 0;
+            h.garrison = 0;
+
+            h.cooldowns.rebelCd = 600;
+            logLine(`${h.name} has fallen into ruins.`, "bad");
+          }
+        }
+      }
+    }
+  }
+
 
   // Compute training time per unit (in milliseconds) for each recruitment type.
   function trainingTimePerUnitMs(type){
@@ -3543,7 +3930,29 @@ function processRecruitQueue(){
     { name: "Emperor", need: 6000 }
   ];
 
-  const defaultState = () => ({
+  
+  // ---------------------------------------------------------------------------
+  // [SYS] HOLDINGS & LAND POOL (state-only helpers)
+  //
+  // Land is now stored as an object { total, unassigned } but must remain usable
+  // anywhere older code expects a numeric land value. We attach non-enumerable
+  // valueOf/toString so arithmetic and formatting continue to work.
+  // ---------------------------------------------------------------------------
+  function makeLandPool(total=0, unassigned){
+    total = Number(total);
+    if(!Number.isFinite(total)) total = 0;
+    if(typeof unassigned === "undefined" || unassigned === null) unassigned = total;
+    unassigned = Number(unassigned);
+    if(!Number.isFinite(unassigned)) unassigned = 0;
+    const o = { total, unassigned };
+    try{
+      Object.defineProperty(o, "valueOf", { value: ()=> Number(o.total)||0, enumerable: false });
+      Object.defineProperty(o, "toString", { value: ()=> String(Number(o.total)||0), enumerable: false });
+    }catch(e){}
+    return o;
+  }
+
+const defaultState = () => ({
     created: Date.now(),
     gold: 18,
     renown: 0,
@@ -3623,7 +4032,8 @@ function processRecruitQueue(){
     lastUpkeepWarnAt: 0,
 
     // land & politics
-    land: 0,
+    land: makeLandPool(0, 0),
+    holdings: [],
     // Subjugated settlements and land specialisation
     subjugatedSettlements: [],
     landFarmland: 0,
@@ -3747,6 +4157,25 @@ function processRecruitQueue(){
       }
     }
 
+
+    // --- Land pool normalization (numeric-compatible) ---
+    // Old saves stored `land` as a number. New saves store `land` as an object
+    // { total, unassigned }. We re-wrap here so any later code that reads
+    // or does math with `land` continues to work.
+    if(typeof state.land === "number"){
+      const legacy = Number(state.land);
+      const v = Number.isFinite(legacy) ? legacy : 0;
+      state.land = makeLandPool(v, v);
+    }else if(!state.land || typeof state.land !== "object" || Array.isArray(state.land)){
+      state.land = makeLandPool(0, 0);
+    }else{
+      const t = Number(state.land.total);
+      const total = Number.isFinite(t) ? t : 0;
+      const u0 = (typeof state.land.unassigned === "undefined") ? total : Number(state.land.unassigned);
+      const unassigned = Number.isFinite(u0) ? u0 : 0;
+      state.land = makeLandPool(total, unassigned);
+    }
+
     // Province baseline (separate population pool for conquered settlements)
     if(!state.province || typeof state.province !== "object"){
       state.province = { name: "Province", population: 0, stability: 50 };
@@ -3835,6 +4264,50 @@ function processRecruitQueue(){
     if(!Array.isArray(state.subjugatedSettlements)) state.subjugatedSettlements = [];
     if(typeof state.landFarmland !== "number") state.landFarmland = 0;
     if(typeof state.landUrban !== "number") state.landUrban = 0;
+    // --- Holdings (post-conquest system) ---
+
+    // Holdings array migration:
+    if(!Array.isArray(state.holdings)) state.holdings = [];
+    // Normalise holding objects (additive only)
+    const _holds = [];
+    for(let i=0;i<state.holdings.length;i++){
+      const h0 = state.holdings[i];
+      if(!h0 || typeof h0 !== "object") continue;
+
+      const h = h0; // mutate in place (keeps references stable)
+
+      if(typeof h.id !== "string" || !h.id) h.id = "hold-" + Date.now() + "-" + i;
+      if(typeof h.name !== "string") h.name = "";
+      h.tier = Number(h.tier); if(!Number.isFinite(h.tier)) h.tier = 1;
+
+      const mode = String(h.mode || "vassal");
+      h.mode = (mode === "vassal" || mode === "annexed" || mode === "ruins") ? mode : "vassal";
+
+      h.loyalty = Number(h.loyalty); if(!Number.isFinite(h.loyalty)) h.loyalty = 50;
+      h.taxRate = Number(h.taxRate); if(!Number.isFinite(h.taxRate)) h.taxRate = 0.2;
+      h.garrison = Number(h.garrison); if(!Number.isFinite(h.garrison)) h.garrison = 0;
+      h.devLevel = Number(h.devLevel); if(!Number.isFinite(h.devLevel)) h.devLevel = 0;
+
+      if(!h.land || typeof h.land !== "object" || Array.isArray(h.land)) h.land = {};
+      h.land.max = Number(h.land.max); if(!Number.isFinite(h.land.max)) h.land.max = 0;
+      for(const k of ["farmland","pasture","woodland","quarry","mine"]){
+        h.land[k] = Number(h.land[k]); if(!Number.isFinite(h.land[k])) h.land[k] = 0;
+      }
+
+      if(!h.tributeBank || typeof h.tributeBank !== "object" || Array.isArray(h.tributeBank)) h.tributeBank = {};
+      // Migrate legacy `gold` -> `denarii` if present (additive, preserves old key).
+      const _tbLegacyGold = (typeof h.tributeBank.gold === "number") ? h.tributeBank.gold : 0;
+      h.tributeBank.denarii = Number(h.tributeBank.denarii);
+      if(!Number.isFinite(h.tributeBank.denarii)) h.tributeBank.denarii = _tbLegacyGold || 0;
+      h.tributeBank.gold = Number(h.tributeBank.gold); if(!Number.isFinite(h.tributeBank.gold)) h.tributeBank.gold = 0;
+      if(!h.tributeBank.items || typeof h.tributeBank.items !== "object" || Array.isArray(h.tributeBank.items)) h.tributeBank.items = {};
+
+      if(!h.cooldowns || typeof h.cooldowns !== "object" || Array.isArray(h.cooldowns)) h.cooldowns = {};
+
+      _holds.push(h);
+    }
+    state.holdings = _holds;
+
 
     return state;
   }
@@ -5276,9 +5749,9 @@ const totalPages = Math.max(1, Math.ceil(cards.length / PAGE_SIZE));
     '<button type="button" class="factionActionBtn" data-faction-action="diplomacy">Diplomacy</button>',
     '<button type="button" class="factionActionBtn" data-faction-action="raid">Pillage</button>',
   "</div>",
-  '<div class="settlementStatsStrip">',
-    '<div class="settlementStat"><b>', fmt(card.population), "</b></div>",
-    '<div class="settlementStat"><b>', fmt(card.military), "</b></div>",
+  '<div class="factionCardStats">',
+    '<div class="factionCardStat"><span class="factionStatIcon">👥</span><b>', fmt(card.population), "</b></div>",
+    '<div class="factionCardStat"><span class="factionStatIcon">⚔️</span><b>', fmt(card.military), "</b></div>",
   "</div>"
 ].join("");
 
@@ -6581,6 +7054,12 @@ let territoryUIState = {
   name: null,
   indices: [],
   idx: 0
+};
+
+// Holdings list paging (Land menu)
+let holdingsUIState = {
+  page: 0,
+  perPage: 4
 };
 
 function openTerritoryOverlay(name){
@@ -9397,8 +9876,9 @@ const totalTroops =
     if($("#landOutputPop")) $("#landOutputPop").textContent = `+${fmt(landPop)} Cap`;
 
     // HUD Land counters show numeric land
-    if($("#landHud"))    $("#landHud").textContent = fmt(S.land||0);
-    if($("#landLegion")) $("#landLegion").textContent = fmt(S.land||0);
+        // HUD Land counters show numeric land (back-compat)
+    if($("#landHud"))    $("#landHud").textContent = fmt(landTotal());
+    if($("#landLegion")) $("#landLegion").textContent = fmt(landTotal());
 
     
     const listEl  = $("#territoryList");
@@ -9576,6 +10056,118 @@ const totalTroops =
       });
     }
 
+
+    // --- Holdings (post-conquest) render (limited/paged; no DOM bloat) ---
+    const holdListEl = $("#holdingsList");
+    const holdEmptyEl = $("#holdingsEmpty");
+    const holdPagerEl = $("#holdingsPager");
+    const holdTotalEl = $("#holdLandTotal");
+    const holdUnassignedEl = $("#holdLandUnassigned");
+    const holdingsCountEl = $("#holdingsCount");
+    const holdPageInfoEl = $("#holdingsPageInfo");
+
+    const holdingsArr = Array.isArray(S.holdings) ? S.holdings : [];
+
+    if(holdTotalEl) holdTotalEl.textContent = fmt(landTotal());
+    if(holdUnassignedEl) holdUnassignedEl.textContent = fmt(landUnassigned());
+    if(holdingsCountEl) holdingsCountEl.textContent = fmt(holdingsArr.length);
+
+    if(holdListEl){
+      holdListEl.innerHTML = "";
+
+      if(holdEmptyEl){
+        holdEmptyEl.style.display = holdingsArr.length ? "none" : "block";
+      }
+
+      // Clamp paging
+      const perPage = Math.max(1, (holdingsUIState.perPage||4));
+      const totalPages = Math.max(1, Math.ceil(holdingsArr.length / perPage));
+      holdingsUIState.page = clamp(holdingsUIState.page||0, 0, totalPages-1);
+
+      if(holdPagerEl){
+        holdPagerEl.style.display = (holdingsArr.length > perPage) ? "flex" : "none";
+      }
+      if(holdPageInfoEl){
+        holdPageInfoEl.textContent = (totalPages ? ( (holdingsUIState.page+1) + " / " + totalPages ) : "1 / 1");
+      }
+
+      const start = holdingsUIState.page * perPage;
+      const slice = holdingsArr.slice(start, start + perPage);
+
+      const modeLabel = (m)=>{
+        if(m==="vassal") return "Vassal";
+        if(m==="annexed") return "Annexed";
+        if(m==="ruins") return "Ruins";
+        return "Holding";
+      };
+
+      const iconMap = {farmland:"🌾",pasture:"🐑",woodland:"🪵",quarry:"🪨",mine:"⛏️"};
+      const keys = ["farmland","pasture","woodland","quarry","mine"];
+
+      for(const h0 of slice){
+        const h = ensureHoldingShape(h0);
+        if(!h) continue;
+        clampHoldingLandToMax(h);
+
+        const assigned = holdingAssigned(h);
+        const max = Math.max(0, h.land.max||0);
+
+        const allocRows = keys.map(k=>{
+          const v = Math.max(0, h.land[k]||0);
+          return `
+            <div class="territoryWorkersRow" style="margin-top:6px;">
+              <button type="button" class="tinyBtn" data-hold-land="1" data-hid="${h.id}" data-kind="${k}" data-delta="-1">−</button>
+              <div class="territoryWorkersMeta">
+                <div class="territoryWorkersValue">
+                  <b>${iconMap[k]||""} ${fmt(v)}</b>
+                </div>
+                <span class="territoryWorkersHint">${k}</span>
+              </div>
+              <button type="button" class="tinyBtn" data-hold-land="1" data-hid="${h.id}" data-kind="${k}" data-delta="1">+</button>
+            </div>
+          `;
+        }).join("");
+
+        const topMeta = `
+          <div class="territorySummaryRow" style="margin:6px 0 0;">
+            <span class="territorySummaryTag"><b>Land:</b> ${fmt(assigned)} / ${fmt(max)}</span>
+            <span class="territorySummaryTag"><b>Loyalty:</b> ${fmt(h.loyalty||0)}</span>
+            <span class="territorySummaryTag"><b>Tax:</b> ${Math.round((h.taxRate||0)*100)}%</span>
+          </div>
+        `;
+
+        const tributeLine = (h.mode==="vassal")
+          ? `<span class="territorySummaryTag"><b>Tribute Bank:</b> ${fmt(h.tributeBank||0)}</span>`
+          : ``;
+
+        const card = document.createElement("button");
+        card.type = "button";
+        card.className = "smallBtn territoryCard";
+        card.style.minHeight = "0";
+        card.style.padding = "12px 12px";
+        card.innerHTML = `
+          <div class="territoryCardHeader">
+            <div class="t">${h.name || "Holding"} <span style="font-size:.72rem;color:var(--muted);">(${modeLabel(h.mode)})</span></div>
+            <span class="territoryOwnedTag">Tier ${fmt(h.tier||1)}</span>
+          </div>
+          <div class="d" style="margin-top:2px;">
+            Development: <b>${fmt(h.devLevel||0)}</b> · Garrison: <b>${fmt(h.garrison||0)}</b>
+          </div>
+          ${topMeta}
+          ${tributeLine ? `<div class="territorySummaryRow" style="margin:6px 0 0;">${tributeLine}</div>` : ``}
+          ${allocRows}
+        `;
+        // Make the card itself non-interactive (only +/- buttons should handle clicks)
+        card.setAttribute("aria-label", "Holding");
+        card.addEventListener("click", (e)=>{ 
+          // prevent click stealing; allow inner buttons to work
+          const innerBtn = e.target && e.target.closest ? e.target.closest("[data-hold-land]") : null;
+          if(innerBtn) return;
+          e.preventDefault();
+        });
+        holdListEl.appendChild(card);
+      }
+    }
 // Stats
     const body = $("#statsTable");
     if(body){
@@ -10467,6 +11059,63 @@ window.closeBattleReport = closeBattleReport;
 window.showBattleReport = showBattleReport;
 
 // --- Settlement assimilation popup (after faction-card battles) ---
+
+// --- Post-conquest choice popup (Pillage / Subjugate / Annex) ---
+// Reuses the existing settlement assimilation overlay elements.
+function showPostConquestHoldingChoicePopup(meta, cb){
+  const overlay = UI.el("factionAssimOverlay");
+  const body = UI.el("factionAssimBody");
+  const title = UI.el("factionAssimTitle");
+  if(!overlay || !body || !title) return;
+
+  const name = meta && meta.name ? meta.name : "A neighbouring settlement";
+  const settlementType = meta && meta.type ? meta.type : null;
+
+  title.textContent = "Settlement Captured";
+
+  const typeLabel = settlementType === "Town"
+    ? "Captured Town"
+    : (settlementType === "Village" ? "Captured Village" : "Captured Settlement");
+
+  const icon = settlementType === "Town" ? "⚓" : "🌾";
+
+  body.innerHTML = [
+    '<div class="assimSplash">',
+      '<div class="assimSplashIcon">', icon, '</div>',
+      '<div class="assimSplashText">',
+        '<div class="assimSplashTitle">', name, '</div>',
+        '<div class="assimSplashSubtitle">', typeLabel, '</div>',
+      '</div>',
+    '</div>',
+    '<div class="assimDetails">',
+      '<div style="margin-bottom:10px;">Choose what to do with this holding:</div>',
+      '<div style="display:flex;flex-direction:column;gap:10px;">',
+        '<button type="button" class="primaryContinueBtn" id="postConquestBtnPillage" style="min-width:unset;width:100%;">Pillage — Ruins</button>',
+        '<button type="button" class="primaryContinueBtn" id="postConquestBtnSubjugate" style="min-width:unset;width:100%;">Subjugate — Vassal</button>',
+        '<button type="button" class="primaryContinueBtn" id="postConquestBtnAnnex" style="min-width:unset;width:100%;">Annex — Annexed</button>',
+      '</div>',
+      '<div style="margin-top:10px;font-size:.78rem;color:var(--muted);">You can manage land and tribute later from the Land menu.</div>',
+    '</div>'
+  ].join("");
+
+  overlay.style.display = "flex";
+  overlay.classList.add("visible");
+
+  const done = (mode)=>{
+    try{ closeSettlementAssimilation(); }catch(e){}
+    try{ if(typeof cb === "function") cb(mode); }catch(e){}
+  };
+
+  const btnP = UI.el("postConquestBtnPillage");
+  const btnS = UI.el("postConquestBtnSubjugate");
+  const btnA = UI.el("postConquestBtnAnnex");
+
+  if(btnP) UI.__on(btnP, "click", ()=>done("ruins"));
+  if(btnS) UI.__on(btnS, "click", ()=>done("vassal"));
+  if(btnA) UI.__on(btnA, "click", ()=>done("annexed"));
+}
+window.showPostConquestHoldingChoicePopup = showPostConquestHoldingChoicePopup;
+
 function showSettlementAssimilationPopup(meta, gained){
   const overlay = UI.el("factionAssimOverlay");
   const body = UI.el("factionAssimBody");
@@ -11331,35 +11980,20 @@ bumpObjective("winBattle", 1);
         const rawLand = typeof factionBattleMeta.land === "number" ? factionBattleMeta.land : 0;
         const popGain = Math.max(0, Math.round(rawPop));
         const landTilesFromSettlement = Math.max(0, Math.round(rawLand));
+        // Prepare post-conquest holding data (choice prompt happens after rewards are applied).
+        const settlementType = (factionBattleMeta && factionBattleMeta.type === "Town") ? "Town" : "Village";
+        const settlementName = (factionBattleMeta && factionBattleMeta.name) ? factionBattleMeta.name : "A neighbouring settlement";
+        const holdingTier = Math.max(1, Math.round(sim && sim.tier ? sim.tier : 1));
+        // Land capacity granted by holding tier (no balance tuning yet; simple linear mapping).
+        const holdingLandCap = 4 + Math.max(0, holdingTier - 1) * 2;
 
-        // Create a long-term subjugated settlement record and immediate occupation rewards.
-        try {
-          const settlementType = (factionBattleMeta && factionBattleMeta.type === "Town") ? "Town" : "Village";
-          const settlementName = (factionBattleMeta && factionBattleMeta.name) ? factionBattleMeta.name : "A neighbouring settlement";
-          const basePop = Math.max(0, Math.round(rawPop));
-          if(basePop > 0){
-            // Each conquered settlement becomes a subjugated settlement. Store basic stats.
-            const incomePerTick = Math.max(1, Math.round(basePop * 0.03));
-            if(!Array.isArray(S.subjugatedSettlements)) S.subjugatedSettlements = [];
-            S.subjugatedSettlements.push({
-              name: settlementName,
-              type: settlementType,
-              population: basePop,
-              income: incomePerTick,
-              loyalty: 50
-            });
-            // Increase land specialisation counts (farmland for villages, urban for towns)
-            if(settlementType === "Village"){
-              S.landFarmland = (S.landFarmland || 0) + 1;
-            }else{
-              S.landUrban = (S.landUrban || 0) + 1;
-            }
-            // Re-render the province summary after assimilation
-            if(typeof renderSubjugatedSettlementsList === "function"){
-              try{ renderSubjugatedSettlementsList(); }catch(e){}
-            }
-          }
-        } catch(e){}
+        const postConquestMeta = {
+          name: settlementName,
+          type: settlementType,
+          tier: holdingTier,
+          landCap: holdingLandCap
+        };
+
 
         // Immediate occupation rewards: extra gold and captivi from the conquered population.
         try{
@@ -11421,36 +12055,81 @@ bumpObjective("winBattle", 1);
             capturedNames = capturedNames.concat(extraTerritories.map(t => t.name));
             assimilatedTerritories = extraTerritories;
 
-            S.land = (S.land || 0) + extraTerritories.length;
+            // NOTE: state.land may be a number (legacy) or an object { total, unassigned } (holdings system).
+            // Preserve legacy land gain behavior without overwriting the object shape.
+            if (typeof S.land === "number") {
+              S.land = (S.land || 0) + extraTerritories.length;
+            } else {
+              if (!S.land || typeof S.land !== "object") S.land = { total: 0, unassigned: 0 };
+              if (typeof S.land.total !== "number") S.land.total = Math.max(0, Math.round(S.land.total || 0));
+              if (typeof S.land.unassigned !== "number") S.land.unassigned = Math.max(0, Math.round(S.land.unassigned || 0));
+              S.land.total += extraTerritories.length;
+              S.land.unassigned += extraTerritories.length;
+            }
           }
         }
+        // Post-conquest choice: create a Holding and grant land capacity based on tier.
+        // This does not change battle math; it only transitions the conquered settlement into a persistent holding.
+        try{
+          if(typeof showPostConquestHoldingChoicePopup === "function"){
+            setTimeout(function(){
+              showPostConquestHoldingChoicePopup(postConquestMeta, function(choiceMode){
+                try{
+                  if(!Array.isArray(S.holdings)) S.holdings = [];
 
-        if (assimilatedPopGain > 0 || (assimilatedTerritories && assimilatedTerritories.length > 0)) {
-          const fname = (factionBattleMeta && factionBattleMeta.name) ? factionBattleMeta.name : "A neighbouring settlement";
-          const kindLabel = (factionBattleMeta && factionBattleMeta.type === "Town") ? "town" : "village";
-          const occupiedText = `${fname} is now a subjugated ${kindLabel} paying regular tribute.`;
-          logLine(occupiedText, "good");
-          settlementOutcomeMessage = occupiedText;
-          toast("Settlement occupied and subjugated.");
-
-          try {
-            if (typeof showSettlementAssimilationPopup === "function") {
-              setTimeout(function(){
-                showSettlementAssimilationPopup(
-                  {
-                    name: fname,
-                    type: (factionBattleMeta && factionBattleMeta.type) || null
-                  },
-                  {
-                    population: assimilatedPopGain,
-                    landCount: assimilatedTerritories ? assimilatedTerritories.length : 0,
-                    territories: assimilatedTerritories || []
+                  // Ensure S.land exists as {total, unassigned} (old saves may have a number).
+                  if(typeof S.land === "number"){
+                    const v = Math.max(0, Math.round(S.land));
+                    S.land = { total: v, unassigned: v };
+                  }else if(!S.land || typeof S.land !== "object"){
+                    S.land = { total: 0, unassigned: 0 };
+                  }else{
+                    if(typeof S.land.total !== "number") S.land.total = Math.max(0, Math.round(S.land.total || 0));
+                    if(typeof S.land.unassigned !== "number") S.land.unassigned = Math.max(0, Math.round(S.land.unassigned || 0));
                   }
-                );
-              }, 80);
-            }
-          } catch(e){}
-        }
+
+                  // Create holding record
+                  const hid = "h_" + Date.now().toString(36) + "_" + Math.floor(Math.random()*1e6).toString(36);
+                  const holding = {
+                    id: hid,
+                    name: postConquestMeta.name,
+                    tier: postConquestMeta.tier,
+                    mode: (choiceMode === "annexed") ? "annexed" : (choiceMode === "ruins" ? "ruins" : "vassal"),
+                    loyalty: (choiceMode === "ruins") ? 0 : 50,
+                    taxRate: 0.20,
+                    garrison: 0,
+                    devLevel: 0,
+                    land: {
+                      max: Math.max(0, Math.round(postConquestMeta.landCap || 0)),
+                      farmland: 0,
+                      pasture: 0,
+                      woodland: 0,
+                      quarry: 0,
+                      mine: 0
+                    },
+                    tributeBank: 0,
+                    cooldowns: {}
+                  };
+
+                  S.holdings.push(holding);
+
+                  // Grant land capacity to the realm (unassigned initially).
+                  const capGain = Math.max(0, Math.round(postConquestMeta.landCap || 0));
+                  S.land.total = (S.land.total || 0) + capGain;
+                  S.land.unassigned = (S.land.unassigned || 0) + capGain;
+
+                  // Log outcome
+                  const modeLabel = holding.mode === "ruins" ? "pillaged into ruins" : (holding.mode === "annexed" ? "annexed" : "subjugated as a vassal");
+                  logLine(`${postConquestMeta.name} is ${modeLabel}. (+${fmt(capGain)} land capacity)`, "good");
+                  toast("Holding established.");
+                  if(typeof scheduleSave === "function") scheduleSave();
+                  if(typeof render === "function") render();
+                }catch(e){}
+              });
+            }, 80);
+          }
+        }catch(e){}
+
 
         // Remove the conquered faction card from the persistent list.  We
         // identify the card by its name stored in factionBattleMeta.  After
@@ -11463,6 +12142,8 @@ bumpObjective("winBattle", 1);
             if(idxToRemove >= 0){
               S.factionCards.splice(idxToRemove, 1);
             }
+              try{ if(typeof render === "function") render(); }catch(e){}
+
           }
         } catch(e){}
       }
@@ -12171,7 +12852,14 @@ if(btnReset){
     if(typeof passiveLandPopTick === "function"){
       passiveLandPopTick(dt);
     }
+    if(typeof passiveHoldingsLandTick === "function"){
+      passiveHoldingsLandTick(dt);
+    }
 
+
+    if(typeof passiveHoldingsGovernanceTick === "function"){
+      passiveHoldingsGovernanceTick(dt);
+    }
     // Passive income (village, land, and subjugated settlements)
     let incomeBase = incomePerSec();
     let tributePerSec = 0;
@@ -14924,6 +15612,50 @@ UI.onDoc("click", function(ev){
     }
   }catch(e){}
 }, true);
+
+// === Holdings land allocation controls (Territories / Land menu) ===
+UI.onDoc("click", function(ev){
+  try{
+    const t = ev.target;
+
+    // Pager
+    if(t && t.id === "holdingsPrevBtn"){
+      holdingsUIState.page = Math.max(0, (holdingsUIState.page||0) - 1);
+      render();
+      return;
+    }
+    if(t && t.id === "holdingsNextBtn"){
+      holdingsUIState.page = (holdingsUIState.page||0) + 1;
+      render();
+      return;
+    }
+
+    const btn = t && t.closest ? t.closest("[data-hold-land]") : null;
+    if(!btn) return;
+
+    const hid = btn.getAttribute("data-hid");
+    const kind = btn.getAttribute("data-kind");
+    const delta = parseInt(btn.getAttribute("data-delta")||"0", 10) || 0;
+
+    if(!hid || !kind || !delta) return;
+
+    const applied = adjustHoldingAllocation(hid, kind, delta);
+
+    // Small feedback (optional; uses existing toast)
+    if(applied){
+      try{
+        if(typeof toast === "function"){
+          const iconMap = {farmland:"🌾",pasture:"🐑",woodland:"🪵",quarry:"🪨",mine:"⛏️"};
+          const icon = iconMap[kind] || "";
+          toast((applied>0?"+":"") + applied + " " + icon);
+        }
+      }catch(e){}
+    }
+
+    render();
+  }catch(e){}
+}, true);
+
 
 
   // === [SYS] SYSTEM OBJECT MAPPING (preserve existing function names) ===
