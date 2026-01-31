@@ -216,13 +216,14 @@ body::after{
       background: transparent !important;
       border: none !important;
       box-shadow: none !important;
+      min-height: 132px;
       overflow: hidden;
     }
     .smallBtn.factionCard::before{
       content:"";
       position:absolute;
       inset:0;
-      background: url("Sprites/settlement%20holder%20card.png") center/100% 100% no-repeat;
+      background: url("Sprites/settlement%20holder%20card.png") 18% center/150% 155% no-repeat;
       image-rendering: pixelated;
       pointer-events:none;
       z-index:0;
@@ -9513,7 +9514,7 @@ const totalTroops =
     renderVillage();
     renderLegion(opts);
     renderLand();
-    renderInventory();
+    if(currentView === 'inventory') renderInventory();
     renderOverlays();
   }
   // ---- Actions ----
@@ -14506,6 +14507,19 @@ function currentRecruitBatchSize(){
       ensureTradeItemsState();
       const listEl = UI.el('inventoryList');
       if(!listEl) return;
+
+      // Avoid rebuilding the entire inventory DOM every render tick (prevents icon/image flicker).
+      // Only rebuild when quantities actually change.
+      const itemsObj = (S.items||{});
+      const keys = Object.keys(itemsObj).sort();
+      let sig = '';
+      for(const k of keys){
+        sig += k + ':' + (itemsObj[k]||0) + ';';
+      }
+      if(window.__invSig === sig && listEl.childElementCount){
+        return;
+      }
+      window.__invSig = sig;
 
       // Total quantity across all items
       let total = 0;
