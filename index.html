@@ -261,10 +261,8 @@ body::after{
     .factionCardStats{
       position:absolute;
       right:26px;
-      bottom:12px;
-
-      /* keep it out of the button cluster */
-      left:auto !important;
+      top:50%;
+      transform: translateY(48px); /* drop below title/leader area into empty holder space */
 
       display:flex;
       gap:12px;
