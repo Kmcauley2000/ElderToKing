@@ -3784,6 +3784,8 @@ function processRecruitQueue(){
 
   let S = normalizeState(load()) || defaultState();
 
+  // Global UI flag used by province/settlement render paths (prevents ReferenceError)
+  var useProvincePop = false;
   // If this looks like a fresh realm (no troops or progress yet), clear any stale training queue.
   if((S.warriors||0)===0 && (S.archers||0)===0 && (S.cavalry||0)===0 && (S.captiviAux||0)===0 && (S.renown||0)===0 && (S.glory||0)===0){
     S.recruitQueue = [];
