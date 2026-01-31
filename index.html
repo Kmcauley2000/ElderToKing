@@ -1775,6 +1775,23 @@ header{
   font-size:.92rem;
   opacity:.85;
 }
+
+#constructionOverlay .e2kBuildIconImg{
+  width: 20px;
+  height: 20px;
+  max-width: 20px;
+  max-height: 20px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  display:block;
+}
+#constructionOverlay .e2kBuildIcon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width: 22px;
+  height: 22px;
+}
 #constructionOverlay .e2kBuildMeta{
   margin-top:8px;
   display:flex;
@@ -1920,6 +1937,23 @@ header{
 .unitImg--captivi{
   width:42px;
   height:42px;
+}
+
+
+/* === BUILDING ICON SIZE NORMALIZATION (PLAYABLE SCALE) === */
+img[src*="Hunting"],
+img[src*="Farm"],
+img[src*="farm"],
+img[src*="Hut"],
+img[src*="hut"],
+img[src*="Market"],
+img[src*="market"] {
+    width: 1.2em !important;
+    height: 1.2em !important;
+    max-width: 24px !important;
+    max-height: 24px !important;
+    object-fit: contain;
+    vertical-align: middle;
 }
 
 </style>
