@@ -325,6 +325,53 @@ body::after{
     .factionActionBtn{
       flex:0 0 auto;
     }
+
+    /* --- Nearby settlement custom PNG buttons --- */
+    .factionCardActions{ gap:10px; }
+
+    /* Render the button as an image-skin while keeping semantics + click handlers */
+    .factionActionBtn{
+      border:0 !important;
+      background-color:transparent !important;
+      background-repeat:no-repeat !important;
+      background-position:center !important;
+      background-size:100% 100% !important;
+
+      padding:0 !important;
+      width: 132px;
+      height: 44px;
+
+      display:inline-block !important;
+      line-height: 44px;
+      font-size: 0 !important; /* hide label visually (images contain text) */
+      color: transparent !important;
+      text-shadow:none !important;
+      box-shadow:none !important;
+      border-radius: 0 !important;
+      filter:none !important;
+      transform: none;
+      cursor:pointer;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .factionActionBtn:active{ transform: translateY(1px); }
+    .factionActionBtn:focus-visible{
+      outline: 2px solid rgba(244,208,111,.75);
+      outline-offset: 2px;
+    }
+
+    .factionActionBtn[data-faction-action="trade"]{
+      background-image:url("Sprites/Nearby%20Settlement%20Buttons/Trade%20button.png");
+    }
+    .factionActionBtn[data-faction-action="attack"]{
+      background-image:url("Sprites/Nearby%20Settlement%20Buttons/Conquer%20button.png");
+    }
+    .factionActionBtn[data-faction-action="diplomacy"]{
+      background-image:url("Sprites/Nearby%20Settlement%20Buttons/Diplomacy%20button.png");
+    }
+    .factionActionBtn[data-faction-action="raid"]{
+      background-image:url("Sprites/Nearby%20Settlement%20Buttons/Pillage%20button.png");
+    }
     .factionPageBtn{
       min-width:32px;
     }
