@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Nearby Settlements — Growth + Relations (Clean)</title>
+<style>
+
+  :root{
+    --bg:#141414; --panel:#1f1f1f; --panel2:#242424; --line:#353535;
+    --txt:#eee; --muted:#b9b9b9; --btn:#333; --btn2:#3b3b3b;
+    --bad:#ff6b6b; --good:#76ff8f; --warn:#ffd36e;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); color:var(--txt); }
+  .wrap{ padding:18px; max-width:1400px; margin:0 auto; }
+  .top{ display:flex; gap:12px; flex-wrap:wrap; }
+  .panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; }
+  .panel h2{ margin:0 0 8px 0; font-size:20px; font-weight:700; letter-spacing:.2px; }
+  .panel h3{ margin:0 0 6px 0; font-size:18px; font-weight:700; color:var(--muted); }
+  .row{ display:flex; gap:12px; flex-wrap:wrap; }
+  .col{ flex:1; min-width:340px; }
+  .mini{ font-size:20px; color:var(--muted); }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .pill{ display:inline-flex; align-items:center; gap:12px; padding:3px 8px; border:1px solid var(--line); background:var(--panel2); border-radius:999px; font-size:20px; color:var(--muted); }
+  .btnbar{ display:flex; gap:12px; flex-wrap:wrap; }
+  button{ font-size:18px;
+    background:var(--btn); color:var(--txt); border:1px solid #4a4a4a;
+    border-radius:8px; padding:14px 18px; font-size:16px; cursor:pointer;
+    transition:transform .05s ease, background .15s ease;
+  }
+  button:hover{ background:var(--btn2); }
+  button:active{ transform:scale(.98); }
+  button:disabled{ opacity:.45; cursor:not-allowed; }
+  .card{
+    background:var(--panel2); border:1px solid var(--line); border-radius:14px;
+    padding:16px; margin-bottom:18px;
+  }
+  .cardTop{ display:flex; justify-content:space-between; align-items:flex-start; gap:14px; }
+  .name{ font-weight:800; font-size:18px; }
+  .tagrow{ display:flex; flex-wrap:wrap; gap:12px; margin-top:6px; }
+  .statline{ display:flex; flex-wrap:wrap; gap:12px; margin-top:6px; font-size:16px; color:var(--muted); }
+  .statline b{ color:var(--txt); }
+  .list{ display:flex; flex-direction:column; gap:12px; }
+  .itemrow{ display:flex; justify-content:space-between; align-items:center; gap:14px; font-size:16px; }
+  .itemrow .muted{ color:var(--muted); font-size:20px; }
+  .kpi{ display:flex; gap:12px; flex-wrap:wrap; }
+  .kpi .pill b{ color:var(--txt); }
+  .hr{ border-top:1px solid var(--line); margin:8px 0; }
+  .log{ max-height:220px; overflow:auto; padding-right:6px; }
+  .logline{ font-size:20px; color:var(--muted); padding:4px 0; border-bottom:1px dashed rgba(255,255,255,.08); }
+  .logline b{ color:var(--txt); }
+  .good{ color:var(--good); }
+  .bad{ color:var(--bad); }
+  .warn{ color:var(--warn); }
+
+  /* Modal */
+  .modalBack{ position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; padding:14px; }
+  .modal{ width:min(980px, 100%); background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px; }
+  .modalHead{ display:flex; justify-content:space-between; align-items:center; gap:14px; }
+  .modalTitle{ font-weight:900; font-size:18px; }
+  .closeBtn{ padding:12px 16px; }
+  .notice{ font-size:20px; color:var(--muted); margin-top:4px; }
+  .table{ width:100%; border-collapse:collapse; font-size:16px; }
+  .table th,.table td{ border-bottom:1px solid rgba(255,255,255,.08); padding:8px 6px; text-align:left; vertical-align:middle; }
+  .table th{ color:var(--muted); font-size:20px; font-weight:800; }
+  .right{ text-align:right; }
+  .qty{ display:inline-flex; align-items:center; gap:12px; }
+  .qty button{ font-size:18px; padding:4px 8px; border-radius:8px; }
+  .smallBtn{ padding:5px 8px; border-radius:8px; font-size:20px; }
+  .footerRow{ display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap; margin-top:8px; }
+  .hint{ font-size:20px; color:var(--muted); }
+  .holdings{ display:flex; flex-direction:column; gap:12px; }
+  .holdingRow{ display:flex; justify-content:space-between; align-items:center; gap:14px; font-size:16px; padding:8px; border:1px solid rgba(255,255,255,.08); background:var(--panel2); border-radius:14px; }
+
+/* --- Clarity upgrades --- */
+.panel h2{ font-size:22px; }
+.panel h3{ font-size:18px; }
+.name{ font-size:22px; }
+.statline{ font-size:18px; }
+.pill{ padding:8px 14px; }
+button{ font-size:18px; padding:14px 18px; }
+.smallBtn{ font-size:16px; padding:10px 14px; }
+.modalTitle{ font-size:18px; }
+.notice{ font-size:14px; }
+
+
+.btnPrimary{ background:#3b3b3b; border-color:#6a6a6a; font-weight:900; }
+.btnPrimary:hover{ background:#4a4a4a; }
+.btnDanger{ background:#3a2a2a; border-color:#7a5a5a; font-weight:900; }
+.btnDanger:hover{ background:#4a2f2f; }
+
+
+#settlements{ display:flex; flex-direction:column; gap:18px; }
+.card{ margin-bottom:0 !important; }
+
+/* --- Settlement Card: fixed 3-column grid --- */
+.cardGrid{
+  display:grid;
+  grid-template-columns: 320px 1fr 360px;
+  gap:12px;
+  align-items:stretch;
+}
+@media (max-width: 1100px){
+  .cardGrid{ grid-template-columns: 1fr; }
+}
+.colBox{
+  border:none;
+  background:transparent;
+  border-radius:12px;
+  padding:10px 12px;
+}
+.colTitle{
+  font-weight:900;
+  font-size:14px;
+  color:var(--muted);
+  margin-bottom:8px;
+  text-transform:uppercase;
+  letter-spacing:.6px;
+}
+.statIcons{ display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; }
+.statIcons .pill{ padding:6px 10px; font-size:14px; }
+.bullets{ margin:6px 0 0 0; padding-left:18px; color:var(--muted); font-size:14px; }
+.bullets li{ margin:2px 0; }
+.wrapRow{ display:flex; flex-wrap:wrap; gap:8px; }
+.miniTag{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid rgba(255,255,255,.10); background:#202020; border-radius:999px; font-size:14px; color:var(--muted); }
+.rightCol{ display:flex; flex-direction:column; gap:10px; min-height:220px; }
+.eventsBox{ flex:1; overflow:auto; max-height:160px; padding-right:6px; }
+.eventsBox .mini{ font-size:14px; }
+.actionsPinned{ margin-top:auto; display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+.actionsPinned button{ flex:1; min-width:120px; }
+
+
+/* --- Soft column guides (single-card feel) --- */
+.cardGrid > .colBox:not(:first-child){
+  position:relative;
+}
+.cardGrid > .colBox:not(:first-child)::before{
+  content:"";
+  position:absolute;
+  left:-8px;
+  top:6px;
+  bottom:6px;
+  width:1px;
+  background:rgba(255,255,255,.06);
+}
+
+
+
+  /* --- Layout tweaks: only Player + Settlements --- */
+  .top{ display:flex; gap:12px; flex-wrap:wrap; }
+  .col{ flex:1; min-width:340px; }
+  .panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; }
+  .wrap{ padding:18px; max-width:1400px; margin:0 auto; }
+  .mini{ font-size:14px; color:var(--muted); }
+
+  /* Hide unused legacy areas safely (in case any remain) */
+  .holdings, .holdingRow, #holdings, #log{ display:none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <div class="panel col">
+      <h2>Player</h2>
+      <div class="kpi">
+        <span class="pill">🪙 Gold: <b id="pGold">0</b></span>
+        <span class="pill">⚔ Army: <b id="pArmy">0</b></span>
+        <span class="pill">⏩ Time Flow: <b id="spd">1x</b></span>
+        <span class="pill">🗓 Day: <b id="dayNum">0</b> · Year: <b id="yearNum">0</b></span>
+      </div>
+      <div class="hr"></div>
+      <h3>Inventory</h3>
+      <div id="pInv" class="list"></div>
+      <div class="btnbar" style="margin-top:10px;">
+        <button onclick="toggleRun()"><span id="runBtnTxt">Pause</span></button>
+        <button onclick="setSpeed(1)">1x</button>
+        <button onclick="setSpeed(2)">2x</button>
+        <button onclick="setSpeed(4)">4x</button>
+        <button onclick="giveStarter()">+ Starter Items</button>
+      </div>
+      <div class="notice">Settlements build to grow (food + timber + villas), trade offscreen, form friendships/enmities, and generate their own event logs. You interact only via Trade / Diplomacy / Raid / Conquer.</div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:12px;">
+    <h2>Nearby Settlements</h2>
+    <div class="mini">Each settlement has population, military, denarii, inventory, buildings, daily production, and a local event log.</div>
+    <div class="hr"></div>
+    <div id="settlements"></div>
+  </div>
+
+</div>
+
+<!-- Modal -->
+<div id="modalBack" class="modalBack" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modalHead">
+      <div>
+        <div class="modalTitle" id="modalTitle">Modal</div>
+        <div class="notice" id="modalSub">—</div>
+      </div>
+      <button class="closeBtn" onclick="closeModal()">Close</button>
+    </div>
+    <div class="hr"></div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   CLEAN SYSTEM: Settlements only
+   - Micro-time day/year
+   - Settlement growth via buildings (Farms, Lumberjacks, Villas)
+   - Wants/needs based on growth bottlenecks
+   - Relations: settlement<->settlement + settlement<->player
+   - Per-settlement event log (incl. cross-settlement events)
+   - Player interactions: Trade / Diplomacy / Raid / Conquer
+   ========================================================= */
+
+/* ---------- Items ---------- */
+const ITEMS = {
+  grain:   { label:"🌾 Grain",   base:5  },
+  fish:    { label:"🐟 Fish",    base:7  },
+  timber:  { label:"🪵 Timber",  base:9  },
+  stone:   { label:"🪨 Stone",   base:10 },
+  ore:     { label:"⛏ Ore",     base:12 },
+  iron:    { label:"🔩 Iron",    base:18 },
+  tools:   { label:"🧰 Tools",   base:22 },
+  weapons: { label:"⚔ Weapons", base:30 },
+};
+
+/* ---------- Buildings (only growth-supporting) ---------- */
+const BUILDINGS = {
+  farm:       { name:"Farm",        icon:"🌾", cost:{ gold:26, timber:3 },                  out:{ grain:2 }, popCap:+8 },
+  fishingHut: { name:"Fishing Hut", icon:"🐟", cost:{ gold:24, timber:3 },                  out:{ fish:2 },  popCap:+4 },
+  lumberjack: { name:"Lumberjacks", icon:"🪵", cost:{ gold:28, tools:1 },                   out:{ timber:2 },popCap:+0 },
+  villa:      { name:"Villas",      icon:"🏛", cost:{ gold:44, timber:6, stone:3 },         out:{},          popCap:+22 },
+  workshop:   { name:"Workshop",    icon:"🧰", cost:{ gold:50, timber:4, iron:2 },          out:{ tools:1 }, popCap:+0 },
+  armoury:    { name:"Armoury",     icon:"🛡", cost:{ gold:62, stone:4, iron:4, tools:2 },  out:{ weapons:1 },popCap:+0 },
+};
+
+/* ---------- State ---------- */
+const S = {
+  running: true,
+  speed: 1,
+  worldDay: 0,
+  worldYear: 0,
+  _carrySec: 0,
+
+  player: {
+    gold: 140,
+    army: 20,
+    inv: { grain:10, timber:4, iron:1 },
+  },
+
+  settlements: []
+};
+
+/* ---------- Helpers ---------- */
+function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
+function rndInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function rndFloat(a,b){ return Math.random()*(b-a)+a; }
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function nowStamp(){ const d=new Date(); return d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", second:"2-digit"}); }
+
+// --- Safety: ensure training helpers exist (guards against partial/cached builds) ---
+if (typeof window.desiredArmySize !== "function") {
+  window.desiredArmySize = function desiredArmySize(st){
+    // Target ~5% of population, clamped to a sane range for this demo.
+    return clamp(Math.round(st.population * 0.05), 30, 1200);
+  };
+}
+if (typeof window.trainingBudgetGold !== "function") {
+  window.trainingBudgetGold = function trainingBudgetGold(st){
+    // Keep an internal reserve so settlements don't bankrupt themselves.
+    const reserve = 120 + Math.floor(st.population/60) + Math.floor(st.army * 1.2);
+    return Math.max(0, st.gold - reserve);
+  };
+}
+if (typeof window.maybeTrainArmy !== "function") {
+  window.maybeTrainArmy = function maybeTrainArmy(st, foodDaysAfter){
+    if(foodDaysAfter < 7) return;
+
+    const target = window.desiredArmySize(st);
+    const gap = target - st.army;
+    if(gap <= 0) return;
+
+    const budget = window.trainingBudgetGold(st);
+    if(budget <= 0) return;
+
+    const goldCost = 6;
+    const maxByGold = Math.floor(budget / goldCost);
+    if(maxByGold <= 0) return;
+
+    const urgency = clamp(gap / Math.max(50, target), 0, 1);
+    const foodBoost = clamp((foodDaysAfter - 7) / 8, 0, 1);
+    const baseChance = 0.10 + 0.35 * urgency * (0.6 + 0.4*foodBoost);
+
+    const capPerDay = clamp(1 + Math.floor(st.population / 2000), 1, 6);
+    if(Math.random() > baseChance) return;
+
+    let trained = Math.min(capPerDay, maxByGold, gap);
+
+    // Prefer consuming gear if available (keeps stock meaningful but optional).
+    const canUseWeapons = invGet(st.inv,"weapons") > 0;
+    const canUseIron = invGet(st.inv,"iron") > 0;
+    const canUseTools = invGet(st.inv,"tools") > 0;
+    if(canUseWeapons) invAdd(st.inv,"weapons", -Math.min(invGet(st.inv,"weapons"), trained));
+    else if(canUseIron) invAdd(st.inv,"iron", -Math.min(invGet(st.inv,"iron"), Math.ceil(trained/2)));
+    else if(canUseTools) invAdd(st.inv,"tools", -Math.min(invGet(st.inv,"tools"), Math.ceil(trained/2)));
+
+    st.gold -= trained * goldCost;
+    st.army += trained;
+    if(trained >= 2 && Math.random() < 0.35) settlementLog(st, `Trained ${trained} warriors.`);
+  };
+}
+
+
+
+function invGet(inv,k){ return inv[k]||0; }
+function invAdd(inv,k,amt){ inv[k]=(inv[k]||0)+amt; if(inv[k]<=0) delete inv[k]; }
+function invKeys(inv){ return Object.keys(inv).sort(); }
+
+function ensureSettlement(st){
+  if(!st.inv) st.inv={};
+  if(!st.buildings) st.buildings={};
+  if(!st.log) st.log=[];
+  if(!st.relations) st.relations={}; // id -> score [-100..100]
+  if(!st.wants) st.wants={};
+  if(typeof st.popCap !== "number") st.popCap = 120;
+  if(typeof st.foodNeedPerDay !== "number") st.foodNeedPerDay = 0.012; // per pop
+  if(typeof st.stanceToPlayer !== "number") st.stanceToPlayer = 0; // [-100..100]
+}
+
+function settlementLog(st, msg){
+  ensureSettlement(st);
+  st.log.unshift({ day:S.worldDay, t: nowStamp(), msg });
+  if(st.log.length > 6) st.log.length = 6;
+}
+
+function relGet(a, bId){ ensureSettlement(a); return a.relations[bId] ?? 0; }
+function relAdd(a, bId, delta){ ensureSettlement(a); a.relations[bId] = clamp(relGet(a,bId)+delta, -100, 100); }
+
+/* ---------- Prices ---------- */
+function priceFor(st, item){
+  const base = ITEMS[item].base;
+  const stock = invGet(st.inv, item);
+  const want = st.wants[item] || 0;
+
+  const stockFactor = clamp(1.25 - (stock * 0.04), 0.55, 1.6);
+  const wantFactor  = clamp(1.0 + (want * 0.10), 1.0, 2.0);
+
+  // Player standing modifier
+  const stanceFactor = clamp(1.05 - (st.stanceToPlayer/250), 0.85, 1.20);
+
+  return Math.max(1, Math.round(base * stockFactor * wantFactor * stanceFactor));
+}
+
+/* ---------- Production + Growth ---------- */
+function buildingCount(st, key){ ensureSettlement(st); return st.buildings[key]||0; }
+function addBuilding(st, key, n=1){ ensureSettlement(st); st.buildings[key]=(st.buildings[key]||0)+n; }
+
+function computeProductionPerDay(st){
+  ensureSettlement(st);
+  const out = {};
+  for(const [bKey, n] of Object.entries(st.buildings)){
+    const b = BUILDINGS[bKey];
+    if(!b || !n) continue;
+    for(const [item, amt] of Object.entries(b.out||{})){
+      out[item] = (out[item]||0) + amt*n;
+    }
+  }
+  return out;
+}
+
+function computePopCap(st){
+  ensureSettlement(st);
+  let cap = st.basePopCap || 120;
+  for(const [bKey, n] of Object.entries(st.buildings)){
+    const b = BUILDINGS[bKey];
+    if(!b || !n) continue;
+    cap += (b.popCap||0) * n;
+  }
+  st.popCap = cap;
+}
+
+function foodNeedUnits(st){
+  // Units of food consumed per day (grain/fish are 1 unit each)
+  return Math.max(1, Math.ceil(st.population * st.foodNeedPerDay));
+}
+function foodNeedPerDay(st){ return foodNeedUnits(st); }
+
+function foodStock(st){
+  return invGet(st.inv,"grain") + invGet(st.inv,"fish");
+}
+function foodDays(st){
+  const need = foodNeedUnits(st);
+  return foodStock(st) / need;
+
+// --- Army training (uses existing fields only) ---
+// Settlements aim for an army proportional to population.
+// They train only when they have food buffer and surplus gold, preferring to spend weapons/iron.
+function desiredArmySize(st){
+  // 5% of population, clamped for sanity.
+  return clamp(Math.floor(st.population * 0.05), 30, 1100);
+}
+function trainingBudgetGold(st){
+  // Keep a reserve so settlements don't bankrupt themselves.
+  return Math.max(0, st.gold - (80 + Math.floor(st.population/120) + Math.floor(st.army * 1.2)));
+}
+function maybeTrainArmy(st, foodDaysAfter){
+  // Need a stable food buffer before recruiting.
+  if(foodDaysAfter < 7) return;
+
+  const target = desiredArmySize(st);
+  const gap = target - st.army;
+  if(gap <= 0) return;
+
+  const budget = trainingBudgetGold(st);
+  if(budget <= 0) return;
+
+  // Cost per recruit (gold) — plus optional material if available.
+  const goldCost = 6;
+  const maxByGold = Math.floor(budget / goldCost);
+  if(maxByGold <= 0) return;
+
+  // Train a small number per day; scales with urgency and food buffer.
+  const urgency = clamp(gap / Math.max(50, target), 0, 1);          // 0..1
+  const foodBoost = clamp((foodDaysAfter - 7) / 8, 0, 1);           // 0..1
+  const baseChance = 0.10 + 0.35 * urgency * (0.6 + 0.4*foodBoost); // ~10%..45%
+
+  const capPerDay = (foodDaysAfter >= 12 ? 3 : 2);
+  const toTry = Math.min(gap, maxByGold, capPerDay);
+
+  let trained = 0;
+  for(let i=0;i<toTry;i++){
+    if(Math.random() > baseChance) continue;
+
+    // Pay gold
+    st.gold -= goldCost;
+
+    // Prefer to consume weapons; else iron; else tools; else nothing (militia/basic training).
+    if(invGet(st.inv,"weapons") > 0 && Math.random() < 0.70) invAdd(st.inv,"weapons",-1);
+    else if(invGet(st.inv,"iron") > 0 && Math.random() < 0.55) invAdd(st.inv,"iron",-1);
+    else if(invGet(st.inv,"tools") > 0 && Math.random() < 0.40) invAdd(st.inv,"tools",-1);
+
+    st.army += 1;
+    trained += 1;
+  }
+
+  if(trained > 0 && Math.random() < 0.25){
+    settlementLog(st, `Trained ${trained} warrior${trained===1?"":"s"}.`);
+  }
+}
+}
+
+function consumeFood(st){
+  const need = foodNeedUnits(st);
+  let remaining = need;
+
+  const take = (item) => {
+    const have = invGet(st.inv,item);
+    const t = Math.min(have, remaining);
+    if(t>0){ invAdd(st.inv,item,-t); remaining -= t; }
+  };
+  take("grain");
+  take("fish");
+
+  return { need, missing: remaining };
+}
+function dailySettlementStep(st){
+  ensureSettlement(st);
+  computePopCap(st);
+
+  // Produce
+  const prod = computeProductionPerDay(st);
+  for(const [item, amt] of Object.entries(prod)){
+    invAdd(st.inv, item, amt);
+  }
+
+  // Passive gold scales with size so large settlements can sustain armies/building loops.
+  st.gold += Math.max(1, Math.floor(st.population / 500));
+
+  // Food consumption + population drift
+  const need = foodNeedPerDay(st);
+  const beforeDays = foodDays(st);
+  const food = consumeFood(st); // consumes from inv
+  const afterDays = foodDays(st);
+
+  if(food.missing === 0){
+    // Grow faster when well-fed, slower when barely fed, and slower near cap.
+    const capFrac = clamp(st.population / Math.max(1, st.popCap), 0, 1);
+    const surplusDays = afterDays; // days of buffer after eating
+    const baseGrow = clamp((surplusDays - 3) / 9, 0, 1); // 0 at 3 days, 1 at 12+ days
+    const nearCap = 1 - clamp((capFrac - 0.75) / 0.25, 0, 1); // 1 until 75%, then fades to 0
+    const growChance = 0.06 + (0.28 * baseGrow * nearCap);
+    if(st.population < st.popCap && Math.random() < growChance) st.population += 1;
+
+    // Train army when stable and funded.
+    maybeTrainArmy(st, afterDays);
+} else {
+    // Shortage severity based on how many days of food we had before eating.
+    const sev = clamp((3 - beforeDays) / 3, 0.25, 1.0);
+    const popLossChance = 0.20 + 0.55 * sev;
+    const armyLossChance = 0.10 + 0.35 * sev;
+
+    if(Math.random() < popLossChance) st.population = Math.max(10, st.population - 1);
+    if(Math.random() < armyLossChance) st.army = Math.max(0, st.army - 1);
+
+    if(Math.random() < 0.20) settlementLog(st, "Food shortage strains the settlement.");
+  }
+
+  // Army upkeep (softened curve so large armies don't auto-collapse).
+  const upkeep = Math.max(0, Math.floor(st.army * 0.10));
+  if(upkeep > 0){
+    if(st.gold >= upkeep) st.gold -= upkeep;
+    else {
+      const short = upkeep - st.gold;
+      st.gold = 0;
+      // desertion proportional to how underfunded we are
+      const deserters = Math.min(st.army, Math.max(1, Math.floor(short / 6)));
+      if(Math.random() < 0.55) st.army = Math.max(0, st.army - deserters);
+    }
+  }
+
+  // Wants + build
+  updateWants(st);
+  maybeBuild(st);
+
+  // Random local events
+  if(Math.random() < 0.05) localEvent(st);
+}
+
+function updateWants(st){
+  ensureSettlement(st);
+  const w = {};
+
+  // Use "days of food" coverage so behavior scales from 100 pop to 5000 pop.
+  const days = foodDays(st);
+  const targetDays = 12;          // desired buffer
+  const criticalDays = 3;         // below this we are in trouble
+
+  if(days < targetDays){
+    // Intensity 1..3 based on how far below target we are.
+    const gap = clamp((targetDays - days) / (targetDays - criticalDays), 0, 1);
+    const need = 1 + Math.floor(gap * 2.99); // 1..3
+    w.grain = Math.max(w.grain||0, need);
+    w.fish  = Math.max(w.fish||0, need);
+  }
+
+  // Materials: keep modest buffers that scale a little with settlement size.
+  const size = clamp(st.population / 2000, 0.5, 2.0);
+  const timberMin = Math.round(10 * size);
+  const stoneMin  = Math.round(7  * size);
+  const toolsMin  = Math.round(3  * size);
+  const ironMin   = Math.round(3  * size);
+
+  if(invGet(st.inv,"timber") < timberMin) w.timber = Math.max(w.timber||0, 2);
+  if(invGet(st.inv,"stone")  < stoneMin)  w.stone  = Math.max(w.stone||0, 1);
+  if(invGet(st.inv,"tools")  < toolsMin)  w.tools  = Math.max(w.tools||0, 1);
+  if(invGet(st.inv,"iron")   < ironMin)   w.iron   = Math.max(w.iron||0, 1);
+
+  // Capacity pressure (unchanged idea, scaled)
+  if(st.population > st.popCap * 0.80){
+    w.timber = Math.max(w.timber||0, 2);
+    w.stone  = Math.max(w.stone||0, 2);
+  }
+
+  st.wants = w;
+}
+
+
+function canPayCost(st, cost){
+  const gold = cost.gold || 0;
+  if(st.gold < gold) return false;
+  for(const [k,v] of Object.entries(cost)){
+    if(k==="gold") continue;
+    if(invGet(st.inv,k) < v) return false;
+  }
+  return true;
+}
+function payCost(st, cost){
+  st.gold -= (cost.gold||0);
+  for(const [k,v] of Object.entries(cost)){
+    if(k==="gold") continue;
+    invAdd(st.inv,k,-v);
+  }
+}
+
+function scoreBuild(st, key){
+  const b = BUILDINGS[key];
+  if(!b) return -1e9;
+
+  const days = foodDays(st);
+  const targetDays = 12;
+  const foodPressure = clamp((targetDays - days) / targetDays, 0, 1);
+
+  let s = 0;
+
+  if(key==="farm" || key==="fishingHut") s += foodPressure * 5.0;
+
+  if(key==="lumberjack"){
+    const timberMin = Math.round(10 * clamp(st.population/2000, 0.5, 2.0));
+    if(invGet(st.inv,"timber") < timberMin) s += 2.8;
+  }
+
+  if(key==="villa" && st.population > st.popCap*0.78) s += 3.2;
+  if(key==="workshop" && invGet(st.inv,"tools") < Math.round(3 * clamp(st.population/2000, 0.5, 2.0))) s += 1.7;
+
+  if(key==="armoury"){
+    const weaponsNeed = Math.max(1, Math.floor(st.army / 80));
+    if(invGet(st.inv,"weapons") < weaponsNeed && invGet(st.inv,"iron") >= 2) s += 1.4;
+  }
+
+  // Stronger diminishing returns at scale (prevents "only farms forever").
+  const n = buildingCount(st,key);
+  const scale = clamp(st.population / 2000, 0.6, 2.0);
+  s -= n * (0.75 * scale);
+
+  return s;
+}
+
+
+function pickBuild(st){
+  let best = null, bestS = -1e9;
+  for(const key of Object.keys(BUILDINGS)){
+    const sc = scoreBuild(st,key);
+    if(sc > bestS){ bestS=sc; best=key; }
+  }
+  return best;
+}
+
+function maybeBuild(st){
+  const fd = foodDays(st);
+  const starving = fd < 3;
+
+  // Build more often under pressure; calmer otherwise (prevents constant churn at large scale)
+  const chance = starving ? 0.22 : 0.12;
+  if(Math.random() > chance) return;
+
+  const key = pickBuild(st);
+  const b = BUILDINGS[key];
+  if(!b) return;
+
+  if(!canPayCost(st, b.cost)) return;
+  payCost(st, b.cost);
+  addBuilding(st, key, 1);
+  computePopCap(st);
+  settlementLog(st, `Built ${b.icon} ${b.name}.`);
+}
+
+
+/* ---------- Events + Relations ---------- */
+function localEvent(st){
+  const roll = Math.random();
+  if(roll < 0.34){
+    const lostGold = Math.min(st.gold, rndInt(6,18));
+    st.gold -= lostGold;
+    const lostPop = (Math.random()<0.5) ? 1 : 0;
+    if(lostPop) st.population = Math.max(10, st.population - 1);
+    settlementLog(st, `Bandits struck. Lost ${lostGold}g${lostPop ? " and 1 population" : ""}.`);
+  } else if(roll < 0.66){
+    const lost = Math.min(invGet(st.inv,"grain"), rndInt(2,6));
+    if(lost>0) invAdd(st.inv,"grain",-lost);
+    settlementLog(st, "Drought reduced harvest yields.");
+  } else {
+    const gain = rndInt(8,20);
+    st.gold += gain;
+    settlementLog(st, `Trade boom. Gained ${gain}g.`);
+  }
+}
+
+function damageBuilding(st){
+  ensureSettlement(st);
+  const keys = Object.keys(st.buildings).filter(k => st.buildings[k] > 0);
+  if(!keys.length) return;
+  const k = pick(keys);
+  st.buildings[k] = Math.max(0, st.buildings[k]-1);
+  settlementLog(st, `A building was lost: ${BUILDINGS[k]?.icon||"🏚"} ${BUILDINGS[k]?.name||k}.`);
+}
+
+function crossSettlementEvent(){
+  if(S.settlements.length < 2) return;
+  const a = pick(S.settlements);
+  let b = pick(S.settlements);
+  if(a.id === b.id) return;
+
+  const rel = relGet(a,b.id);
+  const friendly = rel > 20;
+
+  if(friendly || Math.random() < 0.55){
+    relAdd(a,b.id, +8); relAdd(b,a.id, +8);
+    settlementLog(a, `Sent aid to ${b.name}.`);
+    settlementLog(b, `Received aid from ${a.name}.`);
+    const item = pick(["grain","timber","tools"]);
+    if(invGet(a.inv,item) > 4){
+      invAdd(a.inv,item,-2);
+      invAdd(b.inv,item,+2);
+    }
+  } else {
+    relAdd(a,b.id, -12); relAdd(b,a.id, -12);
+    const aLoss = rndInt(0,2);
+    const bLoss = rndInt(0,2);
+    a.army = Math.max(0, a.army - aLoss);
+    b.army = Math.max(0, b.army - bLoss);
+    if(Math.random()<0.10) damageBuilding(a);
+    if(Math.random()<0.10) damageBuilding(b);
+    settlementLog(a, `Clashed with ${b.name}. Lost ${aLoss} troops.`);
+    settlementLog(b, `Clashed with ${a.name}. Lost ${bLoss} troops.`);
+  }
+}
+
+/* ---------- Inter-settlement trade (offscreen) ---------- */
+function settlementWillBuy(st, item){
+  if(item==="grain" || item==="fish") return true;
+  return (st.wants[item]||0) > 0;
+}
+
+function pickWeighted(entries){
+  // entries: [[key, weight], ...]
+  let total = 0;
+  for(const [,w] of entries) total += Math.max(0, w);
+  if(total <= 0) return entries.length ? entries[0][0] : null;
+  let r = Math.random() * total;
+  for(const [k,w] of entries){
+    r -= Math.max(0, w);
+    if(r <= 0) return k;
+  }
+  return entries[entries.length-1][0];
+}
+
+function runAiTradeForDay(){
+  const n = S.settlements.length;
+  if(n < 2) return;
+
+  let sumWants = 0;
+  for(const st of S.settlements){
+    for(const v of Object.values(st.wants||{})) sumWants += v;
+  }
+
+  // Pressure 0..1 roughly tracks how "hungry" the world is for trades
+  const pressure = clamp(sumWants / (n * 6), 0, 1);
+  const attempts = clamp(1 + Math.floor(pressure * 2), 1, 3);
+  const chancePerAttempt = clamp(0.20 + pressure * 0.30, 0.12, 0.50);
+
+  for(let i=0;i<attempts;i++){
+    if(Math.random() < chancePerAttempt) aiTradeOne();
+  }
+}
+
+function aiTradeOne(){
+  if(S.settlements.length < 2) return;
+
+  // Pick a buyer weighted toward having actual wants.
+  const weighted = [];
+  for(const st of S.settlements){
+    const wsum = Object.values(st.wants||{}).reduce((a,b)=>a+b,0);
+    if(wsum>0) weighted.push([st, wsum]);
+  }
+  const buyer = weighted.length ? (()=>{
+    const total = weighted.reduce((a,[_,w])=>a+w,0);
+    let r = Math.random()*total;
+    for(const [st,w] of weighted){ r-=w; if(r<=0) return st; }
+    return weighted[weighted.length-1][0];
+  })() : pick(S.settlements);
+
+  // Choose an item from wants (weighted).
+  const wantEntries = Object.entries(buyer.wants||{});
+  if(!wantEntries.length) return;
+  const wantTotal = wantEntries.reduce((a,[,v])=>a+v,0);
+  let rr = Math.random()*wantTotal;
+  let item = wantEntries[0][0];
+  for(const [k,v] of wantEntries){ rr -= v; if(rr<=0){ item=k; break; } }
+
+  // Skip buying if already comfortable.
+  if(item==="grain" || item==="fish"){
+    if(foodDays(buyer) >= 10) return;
+  } else {
+    if(invGet(buyer.inv,item) > 12) return;
+  }
+
+  // Sellers must have enough stock, and must not endanger their own food safety.
+  const sellers = S.settlements.filter(s => {
+    if(s.id === buyer.id) return false;
+    if(invGet(s.inv,item) < 6) return false;
+
+    if(item==="grain" || item==="fish"){
+      const safe = 12; // keep ~12 days buffer
+      const need = foodNeedPerDay(s);
+      const stock = foodStock(s);
+      if(stock/need < safe) return false;           // don't sell if not safe
+      // also don't sell if removing qty would drop below safe
+      const after = (stock - 2) / need;
+      if(after < safe) return false;
+    }
+    return true;
+  });
+  if(!sellers.length) return;
+
+  // Prefer closer relations sellers.
+  sellers.sort((a,b)=> relGet(buyer,b.id) - relGet(buyer,a.id));
+  const seller = sellers[0];
+
+  const qty = (item==="grain" || item==="fish") ? rndInt(2,4) : rndInt(1,2);
+  const unit = Math.max(1, Math.round(ITEMS[item].base * clamp(1.15 - (invGet(seller.inv,item)*0.02), 0.7, 1.25)));
+  const total = qty * unit;
+  if(buyer.gold < total) return;
+
+  invAdd(seller.inv,item,-qty);
+  invAdd(buyer.inv,item,+qty);
+  buyer.gold -= total;
+  seller.gold += total;
+
+  relAdd(buyer, seller.id, +2);
+  relAdd(seller, buyer.id, +2);
+
+  settlementLog(seller, `Sold ${qty}× ${ITEMS[item].label}.`);
+  settlementLog(buyer,  `Bought ${qty}× ${ITEMS[item].label}.`);
+}
+
+/* ---------- Player interactions ---------- */
+let modalCtx = null; // {type, settlementId}
+
+function openTrade(id){
+  const st = S.settlements.find(x=>x.id===id); if(!st) return;
+  openModal(`Trade — ${st.name}`, `Leader: <b>${st.leader}</b>`, buildTradeUI(st));
+}
+
+function openDiplomacy(id){
+  const st = S.settlements.find(x=>x.id===id); if(!st) return;
+  openModal(
+    `Diplomacy — ${st.name}`,
+    `Standing: <b>${st.stanceToPlayer}</b> (higher = friendlier) · Your army ${S.player.army} vs their army ${st.army}`,
+    buildDiplomacyUI(st)
+  );
+}
+
+function raidSettlement(id){
+  const st = S.settlements.find(x=>x.id===id); if(!st) return;
+
+  const p = S.player.army, e = st.army;
+  const odds = clamp(0.55 + (p-e)*0.03, 0.12, 0.90);
+  const win = Math.random() < odds;
+
+  if(win){
+    const stealKeys = invKeys(st.inv).filter(k=>invGet(st.inv,k)>0);
+    for(let i=0;i<2 && stealKeys.length;i++){
+      const item = pick(stealKeys);
+      const have = invGet(st.inv,item);
+      const take = Math.max(1, Math.floor(have * (0.18 + Math.random()*0.18)));
+      invAdd(st.inv,item,-take);
+      invAdd(S.player.inv,item,+take);
+    }
+    const goldTake = Math.min(st.gold, rndInt(10,24));
+    st.gold -= goldTake; S.player.gold += goldTake;
+    st.army = Math.max(0, st.army - rndInt(1,3));
+    settlementLog(st, "Suffered a raid.");
+  } else {
+    const loss = rndInt(1,3);
+    S.player.army = Math.max(0, S.player.army - loss);
+  }
+
+  st.stanceToPlayer = clamp(st.stanceToPlayer - 18, -100, 100);
+  render(); refreshModal();
+}
+
+function conquerSettlement(id){
+  const st = S.settlements.find(x=>x.id===id); if(!st) return;
+
+  const gap = S.player.army - st.army;
+  const cost = gap < 0 ? Math.abs(gap) * 6 : 0;
+  if(cost > S.player.gold) return;
+
+  if(cost>0) S.player.gold -= cost;
+
+  const casualties = clamp(Math.floor(st.army * 0.25), 0, 12);
+  S.player.army = Math.max(0, S.player.army - casualties);
+
+  const lootGold = Math.min(st.gold, rndInt(20,60));
+  st.gold -= lootGold; S.player.gold += lootGold;
+
+  const lootItems = invKeys(st.inv);
+  for(const item of lootItems.slice(0,4)){
+    const take = Math.min(invGet(st.inv,item), rndInt(1,4));
+    if(take>0){ invAdd(st.inv,item,-take); invAdd(S.player.inv,item,+take); }
+  }
+
+  S.settlements = S.settlements.filter(x=>x.id!==st.id);
+  spawnNewSettlement();
+
+  render(); closeModal();
+}
+
+function improveRelations(id){
+  const st = S.settlements.find(x=>x.id===id); if(!st) return;
+  const cost = 18;
+  if(S.player.gold < cost) return;
+  S.player.gold -= cost;
+  st.stanceToPlayer = clamp(st.stanceToPlayer + 12, -100, 100);
+  settlementLog(st, "Received gifts from the player.");
+  render(); refreshModal();
+}
+
+function threaten(id){
+  const st = S.settlements.find(x=>x.id===id); if(!st) return;
+  const diff = S.player.army - st.army;
+  if(diff >= 6){
+    const paid = Math.min(st.gold, rndInt(8,20));
+    st.gold -= paid; S.player.gold += paid;
+    st.stanceToPlayer = clamp(st.stanceToPlayer - 10, -100, 100);
+    settlementLog(st, "Yielded to threats and paid tribute.");
+  } else {
+    st.stanceToPlayer = clamp(st.stanceToPlayer - 14, -100, 100);
+    st.army += 2;
+    settlementLog(st, "Refused threats and armed itself.");
+  }
+  render(); refreshModal();
+}
+
+function pact(id){
+  const st = S.settlements.find(x=>x.id===id); if(!st) return;
+  st.stanceToPlayer = clamp(st.stanceToPlayer + 18, -100, 100);
+  settlementLog(st, "Signed a pact with the player.");
+  render(); refreshModal();
+}
+
+function demandTribute(id){
+  const st = S.settlements.find(x=>x.id===id); if(!st) return;
+  const diff = S.player.army - st.army;
+  if(diff < 0){
+    st.stanceToPlayer = clamp(st.stanceToPlayer - 10, -100, 100);
+  } else {
+    const paid = Math.min(st.gold, rndInt(6,14));
+    st.gold -= paid; S.player.gold += paid;
+    st.stanceToPlayer = clamp(st.stanceToPlayer - 16, -100, 100);
+    settlementLog(st, "Paid tribute under pressure.");
+  }
+  render(); refreshModal();
+}
+
+/* ---------- Trade UI ---------- */
+function maxBuyQtyFromSettlement(st, item){
+  const stock = invGet(st.inv,item);
+  const keep = (item==="grain"||item==="fish") ? 8 : 3;
+  return Math.min(Math.max(0, stock - keep), 8);
+}
+function maxSellQtyToSettlement(st, item, offer){
+  const reserve = 60 + Math.floor(st.army * 2.0);
+  const spendable = Math.max(0, st.gold - reserve);
+  return Math.min(Math.floor(spendable / offer), 10);
+}
+
+function buildTradeUI(st){
+  modalCtx = { type:"trade", settlementId: st.id };
+  const player = S.player;
+
+  const buyable = invKeys(st.inv).filter(item => maxBuyQtyFromSettlement(st,item) > 0);
+  const sellable = invKeys(player.inv).filter(item => invGet(player.inv,item) > 0 && settlementWillBuy(st,item));
+
+  const rows = [];
+  rows.push(`
+    <div class="kpi">
+      <span class="pill">🪙 You: <b>${player.gold}g</b></span>
+      <span class="pill">🪙 ${st.name}: <b>${st.gold}g</b></span>
+    </div>
+    <div class="notice">Settlements protect reserves and keep safety stock.</div>
+    <div class="hr"></div>
+  `);
+
+  rows.push(`<h3>Buy</h3>`);
+  rows.push(`
+    <table class="table">
+      <thead><tr><th>Item</th><th class="right">Available</th><th class="right">Price</th><th class="right">Buy</th></tr></thead>
+      <tbody>
+        ${
+          buyable.map(item=>{
+            const price = priceFor(st,item);
+            const maxQty = maxBuyQtyFromSettlement(st,item);
+            const can1 = player.gold >= price && maxQty >= 1;
+            const can5 = player.gold >= price*5 && maxQty >= 5;
+            return `<tr>
+              <td>${ITEMS[item].label}</td>
+              <td class="right">${maxQty}</td>
+              <td class="right">${price}g</td>
+              <td class="right">
+                <button class="smallBtn" ${can1?'':'disabled'} onclick="tradeBuy('${st.id}','${item}',1)">+1</button>
+                <button class="smallBtn" ${can5?'':'disabled'} onclick="tradeBuy('${st.id}','${item}',5)">+5</button>
+              </td>
+            </tr>`;
+          }).join("") || `<tr><td colspan="4" class="mini">Nothing available.</td></tr>`
+        }
+      </tbody>
+    </table>
+  `);
+
+  rows.push(`<div class="hr"></div>`);
+  rows.push(`<h3>Sell</h3>`);
+  rows.push(`
+    <table class="table">
+      <thead><tr><th>Item</th><th class="right">You</th><th class="right">Offer</th><th class="right">Max</th><th class="right">Sell</th></tr></thead>
+      <tbody>
+        ${
+          sellable.map(item=>{
+            const have = invGet(player.inv,item);
+            const offer = Math.max(1, Math.round(priceFor(st,item) * 0.95));
+            const maxQty = Math.min(have, maxSellQtyToSettlement(st,item,offer));
+            const can1 = maxQty >= 1;
+            const can5 = maxQty >= 5;
+            return `<tr>
+              <td>${ITEMS[item].label}</td>
+              <td class="right">${have}</td>
+              <td class="right">${offer}g</td>
+              <td class="right">${maxQty}</td>
+              <td class="right">
+                <button class="smallBtn" ${can1?'':'disabled'} onclick="tradeSell('${st.id}','${item}',1,${offer})">-1</button>
+                <button class="smallBtn" ${can5?'':'disabled'} onclick="tradeSell('${st.id}','${item}',5,${offer})">-5</button>
+              </td>
+            </tr>`;
+          }).join("") || `<tr><td colspan="5" class="mini">They are not buying anything you have right now.</td></tr>`
+        }
+      </tbody>
+    </table>
+  `);
+
+  return rows.join("");
+}
+
+function tradeBuy(settlementId, item, qty){
+  const st = S.settlements.find(x=>x.id===settlementId); if(!st) return;
+
+  const price = priceFor(st,item);
+  const maxQty = maxBuyQtyFromSettlement(st,item);
+  const toBuy = Math.min(qty, maxQty);
+
+  let bought = 0;
+  for(let i=0;i<toBuy;i++){
+    if(S.player.gold < price) break;
+    if(maxBuyQtyFromSettlement(st,item) <= 0) break;
+
+    S.player.gold -= price; st.gold += price;
+    invAdd(st.inv,item,-1); invAdd(S.player.inv,item,1);
+    bought++;
+  }
+
+  if(bought>0) settlementLog(st, `Sold ${bought}× ${ITEMS[item].label} to the player.`);
+  render(); refreshModal();
+}
+
+function tradeSell(settlementId, item, qty, offer){
+  const st = S.settlements.find(x=>x.id===settlementId); if(!st) return;
+  if(!settlementWillBuy(st,item)) return;
+
+  let sold = 0;
+  for(let i=0;i<qty;i++){
+    if(invGet(S.player.inv,item)<=0) break;
+    if(maxSellQtyToSettlement(st,item,offer) <= 0) break;
+
+    st.gold -= offer; S.player.gold += offer;
+    invAdd(S.player.inv,item,-1); invAdd(st.inv,item,1);
+    sold++;
+  }
+
+  if(sold>0){
+    settlementLog(st, `Bought ${sold}× ${ITEMS[item].label} from the player.`);
+    st.stanceToPlayer = clamp(st.stanceToPlayer + (sold>=3 ? 4 : 1), -100, 100);
+  }
+  render(); refreshModal();
+}
+
+/* ---------- Diplomacy UI ---------- */
+function buildDiplomacyUI(st){
+  modalCtx = { type:"diplo", settlementId: st.id };
+  return `
+    <div class="panel" style="margin:0;">
+      <h3>Actions</h3>
+      <div class="btnbar">
+        <button onclick="improveRelations('${st.id}')">Send Gifts (-18g)</button>
+        <button onclick="pact('${st.id}')">Sign Pact</button>
+        <button onclick="threaten('${st.id}')">Threaten</button>
+        <button onclick="demandTribute('${st.id}')">Demand Tribute</button>
+      </div>
+      <div class="notice">Diplomacy changes pricing and how likely they are to retaliate after conflict.</div>
+    </div>
+    <div class="hr"></div>
+    <div class="grid2">
+      <div class="panel" style="margin:0;">
+        <h3>Snapshot</h3>
+        <div class="mini">👥 <b>${st.population}</b> / cap <b>${st.popCap}</b></div>
+        <div class="mini">⚔ <b>${st.army}</b> · 🪙 <b>${st.gold}</b></div>
+        <div class="mini">Standing: <b>${st.stanceToPlayer}</b></div>
+      </div>
+      <div class="panel" style="margin:0;">
+        <h3>Needs</h3>
+        ${renderWants(st)}
+      </div>
+    </div>
+  `;
+}
+function renderWants(st){
+  const entries = Object.entries(st.wants||{}).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  if(!entries.length) return `<div class="mini">Stable.</div>`;
+  return `<div class="list">
+    ${entries.map(([k,v])=>`<div class="itemrow"><span>${ITEMS[k].label}</span><span class="muted">need ${v}</span></div>`).join("")}
+  </div>`;
+}
+
+/* ---------- Rendering ---------- */
+function render(){
+  document.getElementById("pGold").textContent = S.player.gold;
+  document.getElementById("pArmy").textContent = S.player.army;
+  document.getElementById("spd").textContent = S.speed + "x";
+  document.getElementById("dayNum").textContent = S.worldDay;
+  document.getElementById("yearNum").textContent = S.worldYear;
+
+  const pInv = document.getElementById("pInv");
+  const keys = invKeys(S.player.inv);
+  pInv.innerHTML = keys.length ? keys.map(k=>`<div class="itemrow"><span>${ITEMS[k].label}</span><span class="muted">x${invGet(S.player.inv,k)}</span></div>`).join("") : `<div class="mini">Empty.</div>`;
+
+  const wrap = document.getElementById("settlements");
+  if(!S.settlements.length){ wrap.innerHTML = `<div class="mini">No nearby settlements.</div>`; return; }
+
+  wrap.innerHTML = S.settlements.map(st=>{
+    ensureSettlement(st);
+
+    const bList = Object.entries(st.buildings)
+      .filter(([k,v])=>v>0)
+      .sort((a,b)=>b[1]-a[1])
+      .slice(0,6)
+      .map(([k,v])=>`${BUILDINGS[k]?.icon||"🏗"} ${BUILDINGS[k]?.name||k} ×${v}`);
+
+    const stockKeys = invKeys(st.inv).slice(0,10);
+    const stockHtml = stockKeys.length
+      ? stockKeys.map(k=>`<span class="miniTag">${ITEMS[k].label} <b>x${invGet(st.inv,k)}</b></span>`).join("")
+      : `<div class="mini">Empty.</div>`;
+
+    const prod = computeProductionPerDay(st);
+    const prodEntries = Object.entries(prod).filter(([_,v])=>v>0).slice(0,8)
+      .map(([k,v])=>`<span class="miniTag">${ITEMS[k].label} <b>+${v}</b></span>`);
+    const prodHtml = prodEntries.length ? prodEntries.join("") : `<div class="mini">—</div>`;
+
+    const eventsHtml = (st.log && st.log.length)
+      ? st.log.map(e=>`<div class="mini">• ${e.msg}</div>`).join("")
+      : `<div class="mini">Quiet.</div>`;
+
+    return `
+      <div class="card">
+        <div class="cardGrid">
+          <div class="colBox">
+            <div class="name">${st.name} <span class="mini">[${st.type}]</span></div>
+            <div class="mini">Leader: <b>${st.leader}</b></div>
+
+            <div class="statIcons">
+              <span class="pill">👥 <b>${st.population}</b> / <span class="mini">cap</span> <b>${st.popCap}</b></span>
+              <span class="pill">⚔ <b>${st.army}</b></span>
+              <span class="pill">🪙 <b>${st.gold}</b></span>
+            </div>
+
+            <div class="hr"></div>
+
+            <div class="mini"><b>Buildings</b></div>
+            ${bList.length ? `<ul class="bullets">${bList.map(x=>`<li>${x}</li>`).join("")}</ul>` : `<div class="mini">—</div>`}
+
+            <div class="mini" style="margin-top:8px;"><b>Focus</b>: grow (food/capacity)</div>
+          </div>
+
+          <div class="colBox">
+            <div class="colTitle">Economy</div>
+            <div class="mini"><b>Stock</b></div>
+            <div class="wrapRow" style="margin-top:8px;">${stockHtml}</div>
+
+            <div class="hr"></div>
+
+            <div class="mini"><b>Production (per day)</b></div>
+            <div class="wrapRow" style="margin-top:8px;">${prodHtml}</div>
+          </div>
+
+          <div class="colBox rightCol">
+            <div class="colTitle">Activity</div>
+
+            <div class="mini"><b>Recent events</b></div>
+            <div class="eventsBox">${eventsHtml}</div>
+
+            <div class="actionsPinned">
+              <button class="btnPrimary" onclick="openTrade('${st.id}')">🪙 Trade</button>
+              <button onclick="openDiplomacy('${st.id}')">🕊 Diplomacy</button>
+              <button class="btnDanger" onclick="raidSettlement('${st.id}')">⚔ Raid</button>
+              <button class="btnDanger" onclick="conquerSettlement('${st.id}')">🏰 Conquer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+/* ---------- Modal plumbing ---------- */
+function openModal(title, sub, bodyHTML){
+  document.getElementById("modalTitle").textContent = title;
+  document.getElementById("modalSub").innerHTML = sub;
+  document.getElementById("modalBody").innerHTML = bodyHTML;
+  document.getElementById("modalBack").style.display = "flex";
+}
+function closeModal(){
+  document.getElementById("modalBack").style.display = "none";
+  modalCtx = null;
+}
+function refreshModal(){
+  if(!modalCtx) return;
+  const st = S.settlements.find(x=>x.id===modalCtx.settlementId);
+  if(!st){ closeModal(); return; }
+  if(modalCtx.type==="trade") document.getElementById("modalBody").innerHTML = buildTradeUI(st);
+  if(modalCtx.type==="diplo") document.getElementById("modalBody").innerHTML = buildDiplomacyUI(st);
+}
+
+/* ---------- Controls ---------- */
+function toggleRun(){
+  S.running = !S.running;
+  document.getElementById("runBtnTxt").textContent = S.running ? "Pause" : "Resume";
+}
+function setSpeed(x){ S.speed = x; render(); }
+function giveStarter(){
+  invAdd(S.player.inv,"grain",10);
+  invAdd(S.player.inv,"timber",6);
+  invAdd(S.player.inv,"iron",3);
+  invAdd(S.player.inv,"tools",2);
+  S.player.gold += 60;
+  S.player.army += 6;
+  render(); refreshModal();
+}
+
+/* ---------- World loop (micro time) ---------- */
+let _last = performance.now();
+function loop(now){
+  const dt = (now - _last) / 1000;
+  _last = now;
+
+  if(S.running){
+    // 1.0 sec = 1 day at 1x
+    S._carrySec += dt * S.speed;
+    while(S._carrySec >= 1.0){
+      S._carrySec -= 1.0;
+      advanceOneDay();
+    }
+  }
+  requestAnimationFrame(loop);
+}
+
+function advanceOneDay(){
+  S.worldDay += 1;
+  if(S.worldDay % 365 === 0) S.worldYear += 1;
+
+  for(const st of S.settlements) dailySettlementStep(st);
+
+  // Trade frequency scales with actual need (pressure) instead of a flat chance.
+  const pressures = S.settlements.map(st => {
+    const days = foodDays(st);
+    const foodP = clamp((10 - days) / 10, 0, 1); // strong when below 10 days
+    const matP = Object.values(st.wants||{}).reduce((a,b)=>a+b,0) / 10;
+    return clamp(0.65*foodP + 0.35*clamp(matP,0,1), 0, 1);
+  });
+  const avgP = pressures.length ? pressures.reduce((a,b)=>a+b,0)/pressures.length : 0;
+
+  const attempts = clamp(Math.round(1 + avgP * 4), 1, 6); // 1..6 trades/day across world
+  const perAttemptChance = 0.35 + avgP * 0.45;
+  for(let i=0;i<attempts;i++){
+    if(Math.random() < perAttemptChance) aiTradeOne();
+  }
+
+  if(Math.random() < 0.08) crossSettlementEvent();
+
+  render();
+}
+
+/* ---------- Seeding ---------- */
+function makeSettlement(o){
+  const st = {
+    id:o.id, name:o.name, leader:o.leader, type:o.type,
+    population:o.population, basePopCap:o.basePopCap ?? 120, popCap:o.basePopCap ?? 120,
+    army:o.army, gold:o.gold, inv:{...(o.inv||{})},
+    buildings:{...(o.buildings||{})},
+    wants:{},
+    relations:{},
+    stanceToPlayer: o.stanceToPlayer ?? 0,
+    log:[]
+  };
+  ensureSettlement(st);
+  updateWants(st);
+  computePopCap(st);
+  return st;
+}
+
+function seedWorld(){
+  // Start settlements with meaningful populations + armies, and enough economy to sustain them.
+  const mk = (id,name,leader,type,stance) => {
+    const population = rndInt(1000, 5000);
+    const basePopCap  = population + rndInt(250, 2200);
+
+    // Army scales with population (roughly 4–10%)
+    const army = clamp(Math.round(population * rndFloat(0.04, 0.10)), 80, 850);
+
+    // Food need (per pop) is tuned for larger populations (see ensureSettlement default).
+    const foodNeed = Math.max(1, Math.ceil(population * (0.012)));
+
+    // Buildings sized to cover most of daily food needs.
+    const farms = clamp(Math.ceil((foodNeed * rndFloat(0.45, 0.70)) / 2), 6, 220);
+    const fishHuts = clamp(Math.ceil((foodNeed * rndFloat(0.20, 0.45)) / 2), 2, 160);
+
+    // Timber capacity for growth/building loop
+    const lumber = clamp(Math.round(rndFloat(1, 6)), 1, 10);
+    const villas = clamp(Math.round(rndFloat(1, 6)), 1, 10);
+
+    // Starting inventory buffers (~6–14 days of food, plus materials)
+    const foodBufferDays = rndInt(6, 14);
+    const grainStart = Math.round((farms*2) * foodBufferDays * rndFloat(0.85, 1.10));
+    const fishStart  = Math.round((fishHuts*2) * foodBufferDays * rndFloat(0.80, 1.05));
+
+    const timberStart = rndInt(40, 160);
+    const stoneStart  = rndInt(20, 120);
+    const toolsStart  = rndInt(6, 28);
+    const ironStart   = rndInt(6, 26);
+
+    const gold = rndInt(900, 5200);
+
+    const buildings = {
+      farm: farms,
+      fishingHut: fishHuts,
+      lumberjack: lumber,
+      villa: villas
+    };
+
+    // Occasionally start with an industry building
+    if(Math.random() < 0.35) buildings.workshop = 1;
+    if(Math.random() < 0.20) buildings.armoury = 1;
+
+    return makeSettlement({
+      id, name, leader, type,
+      population, basePopCap,
+      army, gold,
+      inv:{
+        grain: grainStart,
+        fish: fishStart,
+        timber: timberStart,
+        stone: stoneStart,
+        tools: toolsStart,
+        iron: ironStart
+      },
+      buildings,
+      stanceToPlayer: stance
+    });
+  };
+
+  S.settlements = [
+    mk("s1","Golden Farmstead","Marcus Varro","Village", 0),
+    mk("s2","Brinehook Wharf","Lucius Faustus","Hamlet", 20),
+    mk("s3","Ironbite Camp","Gaius Severus","Camp", -5),
+    mk("s4","Stonegate","Titus Aurelian","Town", 0),
+  ];
+
+  for(const a of S.settlements){
+    for(const b of S.settlements){
+      if(a.id===b.id) continue;
+      a.relations[b.id] = rndInt(-10, 15);
+    }
+  }
+}
+
+
+function spawnNewSettlement(){
+  const id = "s" + rndInt(100,999);
+  const namesA = ["Ashen","Raven","Sun","Oak","East","West","Red","Gild","Wolf","High","Stone","River","Gold","Iron","Brine","Hill"];
+  const namesB = ["brook","ford","ridge","meadow","hollow","mere","field","water","den","fen","gate","market","hearth","cross","hold","wharf"];
+  const suffix = pick(["Hold","Crossing","Market","Hearth","Gate"]);
+  const name = pick(namesA) + pick(namesB) + " " + suffix;
+
+  const leaderNames = ["Marcus","Lucius","Gaius","Titus","Aurelius","Flavius","Cassius","Septimus"];
+  const leaderCogn  = ["Varro","Severus","Aurelian","Maximus","Drusus","Paullus","Rufus","Marcellus"];
+  const leader = pick(leaderNames) + " " + pick(leaderCogn);
+
+  const type = pick(["Village","Hamlet","Camp","Town"]);
+
+  const population = rndInt(1000, 5000);
+const basePopCap  = population + rndInt(250, 2200);
+
+const army = clamp(Math.round(population * rndFloat(0.04, 0.10)), 80, 850);
+const foodNeed = Math.max(1, Math.ceil(population * (0.012)));
+
+const farms = clamp(Math.ceil((foodNeed * rndFloat(0.45, 0.70)) / 2), 6, 220);
+const fishHuts = clamp(Math.ceil((foodNeed * rndFloat(0.20, 0.45)) / 2), 2, 160);
+const lumber = clamp(Math.round(rndFloat(1, 6)), 1, 10);
+const villas = clamp(Math.round(rndFloat(1, 6)), 1, 10);
+
+const foodBufferDays = rndInt(5, 12);
+const grainStart = Math.round((farms*2) * foodBufferDays * rndFloat(0.85, 1.10));
+const fishStart  = Math.round((fishHuts*2) * foodBufferDays * rndFloat(0.80, 1.05));
+
+const buildings = { farm: farms, fishingHut: fishHuts, lumberjack: lumber, villa: villas };
+if(Math.random() < 0.35) buildings.workshop = 1;
+if(Math.random() < 0.20) buildings.armoury = 1;
+
+const st = makeSettlement({
+  id, name, leader, type,
+  population, basePopCap,
+  army,
+  gold: rndInt(900, 5200),
+  inv: {
+    grain: grainStart,
+    fish: fishStart,
+    timber: rndInt(40, 160),
+    stone: rndInt(20, 120),
+    tools: rndInt(6, 28),
+    iron: rndInt(6, 26)
+  },
+  buildings,
+  stanceToPlayer: rndInt(-10, 25)
+});
+
+  for(const other of S.settlements){
+    st.relations[other.id] = rndInt(-15, 15);
+    other.relations[st.id] = rndInt(-15, 15);
+  }
+
+  S.settlements.push(st);
+  settlementLog(st, "A new settlement emerges nearby.");
+}
+
+/* ---------- Init ---------- */
+seedWorld();
+render();
+requestAnimationFrame(loop);
+
+document.getElementById("modalBack").addEventListener("click", (e)=>{
+  if(e.target.id==="modalBack") closeModal();
+});
+</script>
+</body>
+</html>
