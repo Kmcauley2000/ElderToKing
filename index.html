@@ -2464,7 +2464,8 @@ img[src*="market"] {
               <span>Denarii <b id="gold">0</b></span>
             </span>
           </div>
-          <div class="pill">Land <b id="landHud">0</b></div>
+          <!-- Hide land HUD since the land system is disabled -->
+          <div class="pill" style="display:none;">Land <b id="landHud">0</b></div>
           <div class="pill" id="playerPill" style="display:none;">
             <span>Ruler <b id="playerNameHud"></b></span>
           </div>
@@ -2741,7 +2742,8 @@ img[src*="market"] {
 
 <div class="meta">
           <div>Upkeep: <b id="legionUpkeep">0</b>/s</div>
-          <div>Land: <b id="landLegion">0</b></div>
+          <!-- Hide legion land display since land system is disabled -->
+          <div style="display:none;">Land: <b id="landLegion">0</b></div>
         </div>
       </div>
     </section>
@@ -2924,7 +2926,8 @@ img[src*="market"] {
     <button class="tab active" data-go="village"><span class="dot"></span>Village</button>
     <button class="tab" data-go="legion"><span class="dot"></span>⚔️</button>
 <button class="tab" data-go="temple"><span class="dot"></span>Temple</button>
-    <button class="tab" data-go="land"><span class="dot"></span>Land</button>
+    <!-- Land button removed because land/province system is disabled -->
+    <!-- <button class="tab" data-go="land"><span class="dot"></span>Land</button> -->
     <!-- New Inventory tab. Allows the player to view and manage their items. -->
     <button class="tab" data-go="inventory"><span class="dot"></span>Inventory</button>
     <button class="tab" data-go="stats"><span class="dot"></span>Stats</button>
@@ -5881,7 +5884,7 @@ function renderSubjugatedSettlementsList(){
     '</div>',
     '<div class="factionCardStats">',
       '<div class="factionCardStat"><span>Loyalty</span><b>', loyaltyAvg, '</b></div>',
-      '<div class="factionCardStat"><span>Land</span><b>', fmt(farmlandCount), ' farms · ', fmt(urbanCount), ' towns</b></div>',
+      /* The land/province system is disabled. Omit the land row to prevent confusing UI. */ '',
     '</div>',
     '<div class="provinceCardFooter" style="display:flex;justify-content:flex-end;margin-top:4px;">',
       '<button type="button" class="tinyBtn renameProvinceBtn">Rename Province</button>',
@@ -8269,12 +8272,15 @@ function makeObjective(slotIndex = 0){
       let landMin = 1;
       let landMax = 2 + Math.floor(progTier*0.8);
       landMax = Math.min(8, landMax);
-      pushObj({
-        type:"gainLand",
-        min: landMin,
-        max: landMax,
-        weight: 4
-      });
+      // Only generate land gain objectives if the land system is enabled.
+      if(!(typeof LAND_DISABLED !== 'undefined' && LAND_DISABLED)) {
+        pushObj({
+          type:"gainLand",
+          min: landMin,
+          max: landMax,
+          weight: 4
+        });
+      }
     }
 
     // Back-up econ task if legion is locked
@@ -10961,22 +10967,25 @@ function showBattleReport(rep){
   }
 
   if(rep.win){
-    const names = Array.isArray(rep.territoryNames) ? rep.territoryNames : [];
-    if(names.length > 0){
-      // Group captured territory names into a "Captured:" section
-      lines.push("Captured:");
-      const counts = {};
-      for(const n of names){
-        counts[n] = (counts[n]||0) + 1;
+    // Skip showing captured territory lines entirely when the land system is disabled.
+    if(!(typeof LAND_DISABLED !== 'undefined' && LAND_DISABLED)){
+      const names = Array.isArray(rep.territoryNames) ? rep.territoryNames : [];
+      if(names.length > 0){
+        // Group captured territory names into a "Captured:" section
+        lines.push("Captured:");
+        const counts = {};
+        for(const n of names){
+          counts[n] = (counts[n]||0) + 1;
+        }
+        Object.entries(counts).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([name,count])=>{
+          lines.push(`• ${name} ×${fmt(count)}`);
+        });
+      }else if(landChange > 0){
+        // Fallback if we somehow gained land but have no names
+        lines.push(`Captured: +${fmt(landChange)} land`);
+      }else{
+        lines.push("Captured: No new land");
       }
-      Object.entries(counts).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([name,count])=>{
-        lines.push(`• ${name} ×${fmt(count)}`);
-      });
-    }else if(landChange > 0){
-      // Fallback if we somehow gained land but have no names
-      lines.push(`Captured: +${fmt(landChange)} land`);
-    }else{
-      lines.push("Captured: No new land");
     }
   }
 
@@ -11108,7 +11117,7 @@ function showPostConquestHoldingChoicePopup(meta, cb){
         '<button type="button" class="primaryContinueBtn" id="postConquestBtnSubjugate" style="min-width:unset;width:100%;">Subjugate — Vassal</button>',
         '<button type="button" class="primaryContinueBtn" id="postConquestBtnAnnex" style="min-width:unset;width:100%;">Annex — Annexed</button>',
       '</div>',
-      '<div style="margin-top:10px;font-size:.78rem;color:var(--muted);">You can manage land and tribute later from the Land menu.</div>',
+        '<div style="margin-top:10px;font-size:.78rem;color:var(--muted);">You can manage tribute later.</div>',
     '</div>'
   ].join("");
 
@@ -11139,10 +11148,15 @@ function showSettlementAssimilationPopup(meta, gained){
   const name = meta && meta.name ? meta.name : "A neighbouring settlement";
   const settlementType = meta && meta.type ? meta.type : null;
   const popGain = gained && typeof gained.population === "number" ? gained.population : 0;
-  const territories = gained && Array.isArray(gained.territories) ? gained.territories : [];
-  const landCount = gained && typeof gained.landCount === "number"
-    ? gained.landCount
-    : (territories ? territories.length : 0);
+  // If land is disabled, do not list or count territories gained from settlements.
+  const territories = (typeof LAND_DISABLED !== 'undefined' && LAND_DISABLED)
+    ? []
+    : (gained && Array.isArray(gained.territories) ? gained.territories : []);
+  const landCount = (typeof LAND_DISABLED !== 'undefined' && LAND_DISABLED)
+    ? 0
+    : (gained && typeof gained.landCount === "number"
+      ? gained.landCount
+      : (territories ? territories.length : 0));
 
   const lines = [];
 
@@ -11163,7 +11177,7 @@ function showSettlementAssimilationPopup(meta, gained){
   }
 
   const names = [];
-  if(territories && territories.length){
+  if(!(typeof LAND_DISABLED !== 'undefined' && LAND_DISABLED) && territories && territories.length){
     for(const t of territories){
       if(t && t.name){
         names.push(t.name);
@@ -11171,7 +11185,7 @@ function showSettlementAssimilationPopup(meta, gained){
     }
   }
 
-  if(names.length > 0){
+  if(names.length > 0 && !(typeof LAND_DISABLED !== 'undefined' && LAND_DISABLED)){
     const counts = {};
     for(const n of names){
       counts[n] = (counts[n] || 0) + 1;
@@ -11184,12 +11198,14 @@ function showSettlementAssimilationPopup(meta, gained){
         lines.push(`<li>${n} &times; ${fmt(c)}</li>`);
       });
     lines.push(`</ul>`);
-  }else if(landCount > 0){
+  } else if(landCount > 0 && !(typeof LAND_DISABLED !== 'undefined' && LAND_DISABLED)) {
     lines.push(
       `<div style="margin-top:6px;">` +
         `New land tiles gained: <strong style="color:var(--good);">+${fmt(landCount)}</strong>` +
       `</div>`
     );
+  } else {
+    lines.push(`<div style="margin-top:6px;">No new lands were gained.</div>`);
   }
 
   if(lines.length === 1){
@@ -11998,7 +12014,10 @@ bumpObjective("winBattle", 1);
         const rawPop = typeof factionBattleMeta.population === "number" ? factionBattleMeta.population : 0;
         const rawLand = typeof factionBattleMeta.land === "number" ? factionBattleMeta.land : 0;
         const popGain = Math.max(0, Math.round(rawPop));
-        const landTilesFromSettlement = Math.max(0, Math.round(rawLand));
+        // When the land system is disabled, captured settlements do not grant extra land tiles.
+        const landTilesFromSettlement = (typeof LAND_DISABLED !== 'undefined' && LAND_DISABLED)
+          ? 0
+          : Math.max(0, Math.round(rawLand));
         // Prepare post-conquest holding data (choice prompt happens after rewards are applied).
         const settlementType = (factionBattleMeta && factionBattleMeta.type === "Town") ? "Town" : "Village";
         const settlementName = (factionBattleMeta && factionBattleMeta.name) ? factionBattleMeta.name : "A neighbouring settlement";
