@@ -1,3 +1,4 @@
+
 <!doctype html>
 <!--
 === ELDER TO KING – CODE MAP / GLOSSARY ===
@@ -4314,6 +4315,11 @@ const defaultState = () => ({
 
   let S = normalizeState(load()) || defaultState();
 
+  // Disable the land/province system entirely. When enabled, all functions
+  // related to land, territories or provinces will return zero or no‑ops.
+  // The LAND_DISABLED flag is checked throughout the code to bypass land logic.
+  const LAND_DISABLED = true;
+
   // Global UI flag used by province/settlement render paths (prevents ReferenceError)
   var useProvincePop = false;
   // If this looks like a fresh realm (no troops or progress yet), clear any stale training queue.
@@ -6324,6 +6330,8 @@ const LAND_TYPE_EFFECTS = {
 
 
 function landBaseIncome(){
+  // When land is disabled, no passive land income should be generated.
+  if(typeof LAND_DISABLED !== 'undefined' && LAND_DISABLED) return 0;
   if(!Array.isArray(S.controlledRegions)) return 0;
   let sum = 0;
   for(const r of S.controlledRegions){
@@ -6334,6 +6342,8 @@ function landBaseIncome(){
 }
 
 function landBasePopCap(){
+  // When land is disabled, land does not contribute to population cap.
+  if(typeof LAND_DISABLED !== 'undefined' && LAND_DISABLED) return 0;
   if(!Array.isArray(S.controlledRegions)) return 0;
   let sum = 0;
   for(const r of S.controlledRegions){
@@ -6356,6 +6366,8 @@ function totalTypeWorkers(){
 
 // Simple per-worker land income; each worker is worth +0.4 denarii/s.
 function landWorkersIncome(){
+  // When land is disabled, there are no workers assigned to territories.
+  if(typeof LAND_DISABLED !== 'undefined' && LAND_DISABLED) return 0;
   if(!S.territoryWorkers) return 0;
   let sum = 0;
   for(const k in S.territoryWorkers){
@@ -7372,7 +7384,9 @@ function adjustTerritoryWorkers(delta){
 
 
 // === Territory Systemm (named lands instead of abstract plots) ===
-  function territoryCount(){
+function territoryCount(){
+    // When land is disabled, always report zero territories.
+    if (typeof LAND_DISABLED !== 'undefined' && LAND_DISABLED) return 0;
     return Array.isArray(S.controlledRegions) ? S.controlledRegions.length : 0;
   }
 
@@ -11866,7 +11880,12 @@ bumpObjective("winBattle", 1);
         territorial = Math.max(1, rawLand || 1);
       }
 
-      landGain = territorial;
+      // When the land system is disabled, skip awarding land completely.
+      if (typeof LAND_DISABLED !== 'undefined' && LAND_DISABLED) {
+        landGain = 0;
+      } else {
+        landGain = territorial;
+      }
 
       if(landGain > 0){
         S.land = (S.land||0) + landGain;
@@ -15276,7 +15295,8 @@ function currentRecruitBatchSize(){
     const renCost = Math.max(1, Math.round(popVal / 200)) + Math.max(0, Math.round(landVal / 2));
     const goldCost = Math.max(0, Math.round(landVal * 5)) + Math.max(0, Math.round(popVal / 40));
     const popGain = Math.max(0, Math.round(popVal * 0.3));
-    const landGain = Math.max(1, Math.round(landVal * 0.5));
+    // When land is disabled, integration cannot yield additional land.
+    const landGain = (typeof LAND_DISABLED !== 'undefined' && LAND_DISABLED) ? 0 : Math.max(1, Math.round(landVal * 0.5));
     currentDiplomacyIntegrateParams = { renCost, goldCost, popGain, landGain };
     // Alliance parameters
     const renCost2 = Math.max(1, Math.round(popVal / 250)) + Math.max(0, Math.round(landVal / 3));
@@ -15286,7 +15306,11 @@ function currentRecruitBatchSize(){
     // Update descriptions
     const intDesc = UI.el('diplomacyIntegrateDesc');
     if(intDesc){
-      intDesc.textContent = `Cost: ${fmt(renCost)} renown, ${fmt(goldCost)} denarii • Gain: +${fmt(popGain)} population, +${fmt(landGain)} land`;
+      if(typeof LAND_DISABLED !== 'undefined' && LAND_DISABLED){
+        intDesc.textContent = `Cost: ${fmt(renCost)} renown, ${fmt(goldCost)} denarii • Gain: +${fmt(popGain)} population`;
+      } else {
+        intDesc.textContent = `Cost: ${fmt(renCost)} renown, ${fmt(goldCost)} denarii • Gain: +${fmt(popGain)} population, +${fmt(landGain)} land`;
+      }
     }
     const alliDesc = UI.el('diplomacyAllianceDesc');
     if(alliDesc){
@@ -15501,7 +15525,8 @@ function currentRecruitBatchSize(){
         const renCost = params.renCost || 0;
         const goldCost = params.goldCost || 0;
         const popGain = params.popGain || 0;
-        const landGain = params.landGain || 0;
+        // When land is disabled, do not honour land rewards from integration.
+        const landGain = (typeof LAND_DISABLED !== 'undefined' && LAND_DISABLED) ? 0 : (params.landGain || 0);
         const nm = currentDiplomacyCardData && currentDiplomacyCardData.name ? currentDiplomacyCardData.name : 'the faction';
         if((S.renown || 0) < renCost || (S.gold || 0) < goldCost){
           toast(`Not enough renown (${fmt(renCost)}) or denarii (${fmt(goldCost)}) for integration.`);
@@ -15525,12 +15550,16 @@ function currentRecruitBatchSize(){
           S.population = newPop;
           S.populationUsed = (S.warriors||0)+(S.archers||0)+(S.cavalry||0)+(S.auxilia||0)+(S.equites||0)+(S.veterans||0);
         }
-        // Apply land gain
-        if(landGain > 0){
+        // Apply land gain only if the land system is enabled
+        if(!(typeof LAND_DISABLED !== 'undefined' && LAND_DISABLED) && landGain > 0){
           S.land = (S.land || 0) + landGain;
         }
         logLine(`You negotiate peaceful integration with ${nm}.`, 'good');
-        toast(`Diplomacy complete: +${fmt(popGain)} population, +${fmt(landGain)} land, -${fmt(renCost)} renown, -${fmt(goldCost)} denarii.`);
+        if(typeof LAND_DISABLED !== 'undefined' && LAND_DISABLED){
+          toast(`Diplomacy complete: +${fmt(popGain)} population, -${fmt(renCost)} renown, -${fmt(goldCost)} denarii.`);
+        } else {
+          toast(`Diplomacy complete: +${fmt(popGain)} population, +${fmt(landGain)} land, -${fmt(renCost)} renown, -${fmt(goldCost)} denarii.`);
+        }
         closeDiplomacyOverlay();
         if(typeof render === 'function') render();
       });
